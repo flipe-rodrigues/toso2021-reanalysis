@@ -54,7 +54,7 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 <img src="panels/overall_modulation_choices.svg" width="1000"/>
 
 ### toso2021_rasters.m
-- Plots spike rasters & corresponding spike density functions for the selected neurons;
+- Plots spike rasters & corresponding spike density functions for the selected neurons (3 examples below);
 <img src="rasters/neuron_393.png" width="1000"/>
 <img src="rasters/neuron_459.png" width="1000"/>
 <img src="rasters/neuron_526.png" width="1000"/>
