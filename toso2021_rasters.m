@@ -3,14 +3,17 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
+%% neuron selection
+neurons2plot = [1,10];
+
 %% construct Si-aligned, Ti- & Ii-split psths
 ti_padd = [-500,0];
 action_padd = [-1,1] * 450;
 
 % iterate through neurons
-for nn = 1 : n_neurons
+for nn = flagged_neurons(neurons2plot)'
     progressreport(nn,n_neurons,'parsing neural data');
-    neuron_flags = data.NeuronNumb == flagged_neurons(nn);
+    neuron_flags = data.NeuronNumb == nn;
     
     % figure initialization
     fig = figure(figopt,...
@@ -420,7 +423,7 @@ for nn = 1 : n_neurons
             'ylim',[1,go_n_trial_counter]);
         
         % save settings
-        save_file = fullfile(save_path,'rasters',[get(fig,'name'),'.png']);
+        save_file = fullfile(raster_path,[get(fig,'name'),'.png']);
         print(fig,save_file,'-dpng','-r300','-painters');
         close(fig);
     else
