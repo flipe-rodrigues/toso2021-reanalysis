@@ -39,7 +39,7 @@ for ii = 1 : n_epochs
 end
 
 %% contrast settings
-contrast_str = 't2';
+contrast_str = 'choices';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str(1:end-1),'_set']);
 n_contrasts = numel(contrast_set);
