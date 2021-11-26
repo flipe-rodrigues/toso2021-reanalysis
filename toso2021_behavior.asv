@@ -3,9 +3,7 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
-%% choice GLM
-
-% complete model
+%% choice GLM (complete model)
 X = [t1,t2,i1,i2];
 Z = (X - nanmean(X)) ./ nanstd(X);
 mdl = fitglm(Z(valid_flags,:),choices(valid_flags,:),'linear',...
@@ -20,16 +18,28 @@ axes(axesopt.default,...
     'xlim',[0,n_betas+1],...
     'xtick',1:n_betas,...
     'xticklabel',{'T_1','T_2','I_1','I_2'});
-title('Logistic regression');
-xlabel('Predictors');
+title('$T_{2} > T_{1} ~ Binomial(\phi (\beta X))$',...
+    'interpreter','latex');
+xlabel('X');
 ylabel('\beta');
 stem(1:numel(betas),betas,'.k','markersize',25);
 
 % save figure
 if want2save
-    svg_file = fullfile(save_path,'panels',[fig.Name,'.svg']);
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
 end
+
+%% choice GLM (partial model)
+mdl = fitglm([t1(valid_flags),t2(valid_flags)].*[1,1],...
+    choices(valid_flags,:),'linear',...
+    'predictorvars',{'T1','T2'},...
+    'distribution','binomial',...
+    'intercept',true);
+betas = mdl.Coefficients.Estimate;
+beta_0 = betas(1);
+beta_t1 = betas(2);
+beta_t2 = betas(3);
 
 %% generalization matrix
 
@@ -121,7 +131,7 @@ scatter(...
 
 % save figure
 if want2save
-    svg_file = fullfile(save_path,'panels',[fig.Name,'.svg']);
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
 end
 
@@ -186,7 +196,7 @@ scatter(...
 
 % save figure
 if want2save
-    svg_file = fullfile(save_path,'panels',[fig.Name,'.svg']);
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
 end
 
@@ -376,6 +386,6 @@ end
 
 % save figure
 if want2save
-    svg_file = fullfile(save_path,'panels',[fig.Name,'.svg']);
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
 end
