@@ -31,7 +31,7 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 <img src="panels/choice_GLM.svg" width="500"/>
 
 ### toso2021_trialTypeDistributions.m
-- asdsad
+- Plots the joint distribution of trial counts and T2s that neurons were recorded for;
 
 ### toso2021_neuronSelection.m
 - Selects neurons according to the criteria specified in `toso2021_preface.m` & prints how many passed selection (**affects all subsequent scripts!**);
