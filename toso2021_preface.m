@@ -3,7 +3,7 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
-%% fix rounding errors / filter outlier trial types
+%% data curation
 fprintf('\nHETEROGENEITY FIXES:\n');
 
 % intensity
@@ -100,7 +100,7 @@ valid_time = padded_time(validtime_flags);
 
 %% parse meta data (ephys)
 neuron_idcs = unique(data.NeuronNumb);
-n_neurons = numel(neuron_idcs);
+n_neurons_total = numel(neuron_idcs);
 
 %% trial pre-selection
 valid_flags = ...
@@ -166,4 +166,4 @@ t1_clrs = cool(n_t);
 t2_clrs = spring(n_t);
 i1_clrs = winter(n_i);
 i2_clrs = copper(n_i);
-choices_clrs = [rgb('dodgerblue');rgb('crimson')];
+choices_clrs = [.1,.5,1; .85,.1,.2];

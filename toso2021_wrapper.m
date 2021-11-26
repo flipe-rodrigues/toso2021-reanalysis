@@ -6,7 +6,8 @@ clc;
 task = 'duration';
 
 %% data directory settings
-data_path = fullfile(pwd,'data');
+root_path = pwd;
+data_path = fullfile(root_path,'data');
 file_name = sprintf('%c%s_rats.mat',upper(task(1)),task(2:end));
 data_file = fullfile(data_path,file_name);
 load(data_file);
@@ -14,9 +15,10 @@ data = DataB.Info;
 clear DataB;
 
 %% save settings
-save_path = 'C:\Users\flipe\Desktop\Comment - Toso et al. (2021)';
-mkdir(fullfile(save_path,'panels'));
-mkdir(fullfile(save_path,'rasters'));
+panel_path = fullfile(root_path,'panels');
+raster_path = fullfile(root_path,'rasters');
+mkdir(panel_path);
+mkdir(raster_path);
 want2save = true;
 
 %% script execution order

@@ -66,7 +66,6 @@ for nn = neuron_idcs'
 end
 
 %% neuron selection
-n_neurons_total = numel(neuron_idcs);
 mean_fr_flags = ...
     all(mean_frs(:,:,i2_mode_idx) >= mean_fr_cutoff,[2,3]);
 trial_number_flags = ...
