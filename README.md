@@ -4,24 +4,38 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 
 ### toso2021_wrapper.m  
 - Loads the data;
-- Sets *if* and *where* to save figures;
+- Sets _if_ and _where_ to save figures;
 - Runs all other scripts in sequence (in the same order as they appear below);
 
 ### toso2021_preface.m
-- Curates & parses the data;
+- Curates the data & prints _before_ & _after_ metrics;
+- Parses the data;
+- Sets neuron selection criteria;
 - Sets aesthetic preferences for figures & axes;
 - Sets all color schemes;
 
 ### toso2021_behavior.m
-![Alt text](panels/sampling_scheme.svg?raw=true)
-![Alt text](panels/contraction_bias.svg?raw=true)
-![Alt text](panels/psychometric_curves_i1.svg?raw=true)
-![Alt text](panels/psychometric_curves_i2.svg?raw=true)
-![Alt text](panels/choice_GLM.svg?raw=true)
+- Plots stimulus pairs with the corresponding average performance;
+<img src="panels/sampling_scheme.svg" width="500"/>
 
-### toso2021_neuronSelection.m
+- Same as above, plus a gradient representing the hypothesized continuous performance so as to allow for a better visualization of _contraction bias_ on T1;
+<img src="panels/contraction_bias.svg" width="500"/>
+
+- Plots psychometric curves assuming T2 as the stimulus & split by I1;
+<img src="panels/psychometric_curves_i1.svg" width="500"/>
+
+- Same as above, but split by I2;
+<img src="panels/psychometric_curves_i2.svg" width="500"/>
+
+- Fits a generalized linear model (GLM) to choice data using T1, T2, I1 & I2 as predictors;
+<img src="panels/choice_GLM.svg" width="500"/>
 
 ### toso2021_trialTypeDistributions.m
+- Plots the joint distribution of trial counts and T2s that neurons were recorded for;
+<img src="panels/trial_type_distributions_i2.svg" width="500"/>
+
+### toso2021_neuronSelection.m
+- Selects neurons according to the criteria specified in `toso2021_preface.m` & prints how many passed selection (**affects all subsequent scripts!**);
 
 ### toso2021_overallModulation.m
 
