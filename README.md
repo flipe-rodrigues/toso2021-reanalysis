@@ -13,7 +13,7 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 - Sets all color schemes;
 
 ### toso2021_behavior.m
-![Alt text](panels/GLM.svg?raw=true "Title")
+![Alt text](panels/GLM.svg?raw=true "Whoah")
 
 ### toso2021_neuronSelection.m
 
