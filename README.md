@@ -3,9 +3,14 @@
 Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral & neural [data](https://data.mendeley.com/datasets/wp9h39kbtv/2) from [Toso et al. 2021](https://doi.org/10.1016/j.neuron.2021.08.020).
 
 ## toso2021_wrapper.m  
-Loads the data, sets *if* and *where* to save figures and runs all other scripts in sequence (in the same order as they appear below).
+- Loads the data;
+- Sets *if* and *where* to save figures;
+- Runs all other scripts in sequence (in the same order as they appear below);
 
 ### toso2021_preface.m
+- Curates & parses the data;
+- Sets aesthetic preferences for figures & axes;
+- Sets all color schemes;
 
 ### toso2021_behavior.m
 
