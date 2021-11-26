@@ -30,10 +30,11 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 - Fits a generalized linear model (GLM) to choice data using T1, T2, I1 & I2 as predictors;
 <img src="panels/choice_GLM.svg" width="500"/>
 
-### toso2021_neuronSelection.m
-- Selects neurons according to the criteria specified in **toso2021_preface.m**;
-
 ### toso2021_trialTypeDistributions.m
+- asdsad
+
+### toso2021_neuronSelection.m
+- Selects neurons according to the criteria specified in **toso2021_preface.m** (affects all subsequent scripts);
 
 ### toso2021_overallModulation.m
 
