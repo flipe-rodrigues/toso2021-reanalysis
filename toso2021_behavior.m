@@ -201,8 +201,8 @@ if strcmpi(task,'duration')
     w1 = 0; % beta_t1;
     w2 = 1; % beta_t2;
     norm_c = (abs(w2) + abs(w1));
-    w2 = w2 / norm_c;
-    w1 = w1 / norm_c;
+%     w2 = w2 / norm_c;
+%     w1 = w1 / norm_c;
     stimuli = t2 * w2 + t1 * w1;
 else
     w1 = 0;
@@ -292,7 +292,7 @@ psyopt.plot.normalizemarkersize = false;
 
 % figure initialization
 fig = figure(figopt,...
-    'name','psychometric_curves_t2');
+    'name',sprintf('psychometric_curves_%s',contrast_str));
 
 % axes initialization
 axes(...
