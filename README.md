@@ -39,7 +39,7 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 
 ### toso2021_overallModulation.m
 - Plots normalized firing rate averaged across the population of recorded DLS neurons, aligned to different moments in the task and split by _I1_;
-<img src="panels/overall_modulation_i1.svg" width="500"/>
+<img src="panels/overall_modulation_i1.svg" width="750"/>
 
 - Same as above, but using _I2_ as contrast;
 <img src="panels/overall_modulation_i2.svg" width="500"/>
