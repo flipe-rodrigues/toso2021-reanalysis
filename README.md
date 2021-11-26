@@ -13,7 +13,7 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 - Sets all color schemes;
 
 ### toso2021_behavior.m
-![Alt text](panels/sampling_scheme.svg=250x?raw=true "sampling")
+![Alt text](panels/sampling_scheme.svg =250x?raw=true "sampling")
 ![Alt text](panels/contraction_bias.svg?raw=true "psycurves")
 ![Alt text](panels/psychometric_curves_i1.svg?raw=true "psycurves"; width="95%")
 ![Alt text](panels/psychometric_curves_i2.svg?raw=true "psycurves")
