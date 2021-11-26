@@ -113,7 +113,7 @@ end
 
 %% 3D trajectories in PC space
 fig = figure(figopt,...
-    'name',sprintf('pc_trajectories_%s',contrast_str));
+    'name','pcTrajectories');
 set(gca,...
     axesopt.default,...
     'xtick',0,...
@@ -188,7 +188,8 @@ view(angle,30);
 
 % save figure
 if want2save
-    svg_file = fullfile(panel_path,[fig.Name,'_',num2str(angle),'.svg']);
+    svg_file = fullfile(panel_path,...
+        [fig.Name,'_',num2str(angle),'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
 end
 
@@ -197,7 +198,7 @@ end
 % figure initialization
 fig = figure(figopt,...
     'position',[769.8,41.8,766.4,740.8],...
-    'name',sprintf('pc_projections_%s',contrast_str));
+    'name',sprintf('pc_projections_%s',contrast_str);
 n_pcs2plot = 6;
 sps = gobjects(n_pcs2plot,1);
 for pc = 1 : n_pcs2plot
