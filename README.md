@@ -8,7 +8,8 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 - Runs all other scripts in sequence (in the same order as they appear below);
 
 ### toso2021_preface.m
-- Curates & parses the data;
+- Curates the data & prints _before_ & _after_ metrics;
+- Parses the data;
 - Sets neuron selection criteria;
 - Sets aesthetic preferences for figures & axes;
 - Sets all color schemes;
