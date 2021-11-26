@@ -4,21 +4,23 @@ if ~exist('data','var')
 end
 
 %% neuron selection
-neurons2plot = [1,10];
+neurons2plot = ...
+    [35,72,205,215,224,393,397,402,428,441,459,462,470,473,526,544,566];
+n_neurons2plot = numel(neurons2plot);
 
 %% construct Si-aligned, Ti- & Ii-split psths
 ti_padd = [-500,0];
 action_padd = [-1,1] * 450;
 
 % iterate through neurons
-for nn = flagged_neurons(neurons2plot)'
-    progressreport(nn,n_neurons,'parsing neural data');
-    neuron_flags = data.NeuronNumb == nn;
+for nn = 1 : n_neurons2plot
+    progressreport(nn,n_neurons2plot,'parsing neural data');
+    neuron_flags = data.NeuronNumb == neurons2plot(nn);
     
     % figure initialization
     fig = figure(figopt,...
         'windowstate','maximized',...
-        'name',sprintf('neuron_%i',nn));
+        'name',sprintf('neuron_%i',neurons2plot(nn)));
     n_rows = 3;
     n_cols = 3;
     n_sps = (n_rows - 1) * n_cols;
