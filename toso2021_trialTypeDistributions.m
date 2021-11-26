@@ -75,7 +75,7 @@ end
 
 % figure & axes initialization
 fig = figure(figopt,...
-    'name',sprintf('trial type distributions (%s)',contrast_str));
+    'name',sprintf('trial_type_distributions_%s',contrast_str));
 axes(axesopt.default,...
     'ylim',[1,n_stimuli] + [-1,1] * .05 * n_stimuli,...
     'ytick',1:n_stimuli,...
@@ -114,6 +114,6 @@ end
 
 % save figure
 if want2save
-    svg_file = fullfile(save_path,'panels',[fig.Name,'.svg']);
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
 end

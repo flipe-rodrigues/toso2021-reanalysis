@@ -24,8 +24,8 @@ want2save = true;
 %% script execution order
 toso2021_preface;
 toso2021_behavior;
-toso2021_neuronSelection;
 toso2021_trialTypeDistributions;
+toso2021_neuronSelection;
 toso2021_overallModulation;
 toso2021_PCA;
 % toso2021_rasters;
