@@ -6,8 +6,9 @@ clc;
 task = 'duration';
 
 %% data directory settings
+data_path = fullfile(pwd,'data');
 file_name = sprintf('%c%s_rats.mat',upper(task(1)),task(2:end));
-data_file = fullfile(pwd,file_name);
+data_file = fullfile(data_path,file_name);
 load(data_file);
 data = DataB.Info;
 clear DataB;
