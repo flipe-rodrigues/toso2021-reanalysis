@@ -13,6 +13,8 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 - Sets all color schemes;
 
 ### toso2021_behavior.m
+- Fits a generalized linear model (GLM) to choice data using T1, T2, I1 & I2 as predictors;
+- Plots stimulus pairs with the corresponding average performance;
 ![Alt text](panels/sampling_scheme.svg?raw=true)
 ![Alt text](panels/contraction_bias.svg?raw=true)
 ![Alt text](panels/psychometric_curves_i1.svg?raw=true)
