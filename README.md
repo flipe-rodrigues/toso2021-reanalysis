@@ -30,7 +30,7 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 <img src="panels/choice_GLM.svg" width="500"/>
 
 ### toso2021_neuronSelection.m
-- Selects neurons according to the criteria specified in _toso2021_preface.m_;
+- Selects neurons according to the criteria specified in **toso2021_preface.m**;
 
 ### toso2021_trialTypeDistributions.m
 
