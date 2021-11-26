@@ -218,7 +218,7 @@ normstim_set = unique(norm_stimuli(valid_flags));
 n_stimuli = numel(stim_set);
 
 % contrast settings
-contrast_str = 'i2';
+contrast_str = 'i1';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str(1:end-1),'_set']);
 n_contrasts = numel(contrast_set);
@@ -292,7 +292,7 @@ psyopt.plot.normalizemarkersize = false;
 
 % figure initialization
 fig = figure(figopt,...
-    'name','psychometric_curves_t2');
+    'name',sprintf('psychometric_curves_%s',contrast_str));
 
 % axes initialization
 axes(...
