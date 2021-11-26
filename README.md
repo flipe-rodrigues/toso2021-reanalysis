@@ -57,7 +57,7 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 
 ### toso2021_PCA.m
 - Plots average activity alinged to _T2_ onset and conditioned on _I2_ projected onto the subspace defined by its first 3 principal components (PC);
-<img src="panels/pc_trajectories_i2.svg" width="500"/>
+<img src="panels/pc_trajectories_.svg" width="500"/>
 
 - Plots the same data from above but projected onto individual PCs;
 <img src="panels/pc_projections_i2.svg" width="500"/>
