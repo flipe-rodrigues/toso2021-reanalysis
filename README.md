@@ -34,7 +34,7 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 - asdsad
 
 ### toso2021_neuronSelection.m
-- Selects neurons according to the criteria specified in **toso2021_preface.m** (affects all subsequent scripts);
+- Selects neurons according to the criteria specified in `toso2021_preface.m` (**affects all subsequent scripts**);
 
 ### toso2021_overallModulation.m
 
