@@ -39,7 +39,7 @@ for ii = 1 : n_epochs
 end
 
 %% contrast settings
-contrast_str = 't1';
+contrast_str = 'i2';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str(1:end-1),'_set']);
 n_contrasts = numel(contrast_set);
@@ -277,6 +277,6 @@ linkaxes(sps,'y');
 
 % save figure
 if want2save
-    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    svg_file = fullfile(save_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
 end
