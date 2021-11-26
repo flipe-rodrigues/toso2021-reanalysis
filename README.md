@@ -64,7 +64,3 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 
 - Plots the same data from above but projected onto individual PCs;
 <img src="panels/pc_projections_i2.svg" width="500"/>
-
-### toso2021_neurometricCurves.m
-
-### toso2021_naiveBayesDecoder.m
