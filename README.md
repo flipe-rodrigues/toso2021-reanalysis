@@ -19,7 +19,7 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 - Same as above, plus a gradient representing the hypothesized continuous performance so as to allow for a better visualization of _contraction bias_ on T1;
 <img src="panels/contraction_bias.svg" width="500"/>
 
-- Psychometric curves assuming T2 as the stimulus & split by I1;
+- Plots psychometric curves assuming T2 as the stimulus & split by I1;
 <img src="panels/psychometric_curves_i1.svg" width="500"/>
 
 - Same as above, but split by I2;
