@@ -4,7 +4,7 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 
 ### toso2021_wrapper.m  
 - Loads the data;
-- Sets *if* and *where* to save figures;
+- Sets _if_ and _where_ to save figures;
 - Runs all other scripts in sequence (in the same order as they appear below);
 
 ### toso2021_preface.m
@@ -15,7 +15,7 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 ### toso2021_behavior.m
 - Plots stimulus pairs with the corresponding average performance;
 <img src="panels/sampling_scheme.svg" width="500">
-- Same as before, plus a gradient representing the hypothesized continuous performance so as to allow for a better visualization of *contraction bias* on T1.
+- Same as before, plus a gradient representing the hypothesized continuous performance so as to allow for a better visualization of _contraction bias_ on T1.
 <img src="panels/contraction_bias.svg" width="500">
 <img src="panels/psychometric_curves_i1.svg" width="500">
 <img src="panels/psychometric_curves_i2.svg" width="500">
