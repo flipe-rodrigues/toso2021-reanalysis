@@ -54,9 +54,11 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 <img src="panels/overall_modulation_choices.svg" width="1000"/>
 
 ### toso2021_rasters.m
+- Plots spike rasters & corresponding spike density functions for the selected neurons;
+<img src="panels/neuron_393.png" width="500"/>
 
 ### toso2021_PCA.m
-- Plots average activity alinged to _T2_ onset and conditioned on _I2_ projected onto the subspace defined by its first 3 principal components (PC);
+- Plots activity aligned to the onset of _T2_ and conditioned on _I2_ projected onto the subspace defined by its first 3 principal components (PCs);
 <img src="panels/pc_trajectories_i2.svg" width="500"/>
 
 - Plots the same data from above but projected onto individual PCs;
