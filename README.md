@@ -13,7 +13,10 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 - Sets all color schemes;
 
 ### toso2021_behavior.m
-![Alt text](panels/psychometric_curves.svg?raw=true "psycurves")
+![Alt text](panels/sampling_scheme.svg?raw=true "psycurves")
+![Alt text](panels/psychometric_curves_T2-T1.svg?raw=true "psycurves")
+![Alt text](panels/contraction_bias.svg?raw=true "psycurves")
+![Alt text](panels/psychometric_curves_T2.svg?raw=true "psycurves")
 ![Alt text](panels/choice_GLM.svg?raw=true "choiceGLM")
 
 ### toso2021_neuronSelection.m
