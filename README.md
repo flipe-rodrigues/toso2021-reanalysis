@@ -67,7 +67,7 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 <img src="panels/pc_projections_i2.svg" width="500"/>
 
 ### toso2021_neurometricCurves.m
-- Plots neurometric curves (built using linear discriminant analysis (LDA) trained on spike counts recorded in the last 100 ms before _T2_ offset of middle intensity trials) split by the specified intensity contrast (_I2_ below);
+- Plots neurometric curves (built using linear discriminant analysis (LDA) trained on spike counts recorded in the last 100 ms before _T2_ offset of middle intensity trials) split by the specified intensity contrast (_I1_ below);
 <img src="panels/neurometric_curves_i1.svg" width="500"/>
 
 - Same as above, but split by _I2_;
