@@ -54,7 +54,7 @@ n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% neurometric curve settings
 spkintegration_window = min(t_set);
-n_runs = 10;
+n_runs = 50;
 
 % preallocation
 neurocurves = struct();
@@ -343,6 +343,8 @@ score = X * lda_mdl.Coeffs(2,1).Linear;
 n_bins = 50;
 binedges = linspace(min(score)*.95,max(score)*1.05,n_bins+1);
 prevcounts = zeros(1,n_bins);
+shortcounts = zeros(1,n_bins);
+longcounts = zeros(1,n_bins);
 
 % iterate through stimuli
 for ii = 1 : n_stimuli
@@ -357,13 +359,31 @@ for ii = 1 : n_stimuli
         'edgecolor','none',...
         'facecolor',t2_clrs(ii,:),...
         'facealpha',1);
+    
+    % update running counts
     prevcounts = prevcounts + bincounts;
+    if stim_set(ii) < median(t1)
+        shortcounts = shortcounts + bincounts;
+    end
+    if stim_set(ii) > median(t1)
+        longcounts = longcounts + bincounts;
+    end
+    
+    % manage ui stack
     uistack(h,'bottom');
 end
 
 % plot distribution outline
 stairs(binedges,[prevcounts,prevcounts(end)],...
     'linewidth',1.5,...
+    'color','k');
+stairs(binedges,[shortcounts,shortcounts(end)],...
+    'linewidth',1.5,...
+    'linestyle',':',...
+    'color','k');
+stairs(binedges,[longcounts,longcounts(end)],...
+    'linewidth',1.5,...
+    'linestyle',':',...
     'color','k');
 
 % plot decision boundary
