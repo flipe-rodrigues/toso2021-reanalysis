@@ -14,7 +14,7 @@ contrast_clrs = eval([contrast_str,'_clrs']);
 %% stimulus selection (for training & test sets)
 
 % stimuli
-stim2train_idcs = [1 : t2_mode_idx - 1, t2_mode_idx + 1 : n_stimuli];
+stim2train_idcs = [1 : t2_mode_idx - 1, t2_mode_idx + 1: n_stimuli;
 stim2train_n = numel(stim2train_idcs);
 stim2test_idcs = 1 : n_stimuli;
 stim2test_n = numel(stim2test_idcs);
@@ -59,10 +59,6 @@ n_runs = 10;
 % preallocation
 neurocurves = struct();
 
-% stimulus 1 flags
-i1_flags = i1 == i_set(i1_mode_idx);
-t1_flags = t1 > t_set(2) & t1 < t_set(end-1);
-
 % iterate through runs
 for rr = 1 : n_runs
     
@@ -93,8 +89,6 @@ for rr = 1 : n_runs
             s2_spike_flags = ...
                 valid_flags & ...
                 neuron_flags & ...
-                i1_flags & ...
-                t1_flags & ...
                 stimulus_flags & ...
                 contrast_flags;
             flagged_trials = find(s2_spike_flags);
@@ -218,7 +212,7 @@ for rr = 1 : n_runs
     
     % linear discriminant analysis
     X = concat_spkrates(:,train_flags)';
-    y = concat_stimuli(train_flags) > median(t1);
+    y = concat_stimuli(train_flags) >= median(t1);
     lda_mdl = fitcdiscr(X,y,...
         'discrimtype','linear');
     
