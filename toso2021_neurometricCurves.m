@@ -409,8 +409,7 @@ end
 
 % figure initialization
 fig = figure(figopt,...
-    'name',sprintf('neurometric_curves_%s',...
-    w1,w2,contrast_str));
+    'name',sprintf('neurometric_curves_%s',contrast_str));
 
 % axes initialization
 axes(...
