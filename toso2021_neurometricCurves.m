@@ -49,7 +49,7 @@ conditions.test.contrasts = ...
     num2cell(repmat(contrast_set(contrast2test_idcs'),stim2test_n,1));
 
 %% concatenation settings
-n_concatspercond = 2^7;
+n_concatspercond = 2^8;
 n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% neurometric curve settings
@@ -258,7 +258,7 @@ Z = zscore(X);
 
 % figure initialization
 fig = figure(figopt,...
-    'name','PCA visualization');
+    'name','pca_visualization');
 
 % axes initialization
 set(gca,...
@@ -308,7 +308,7 @@ ylim(ylim + [-1,1] * .05 * range(ylim));
 
 % save figure
 if want2save
-    svg_file = fullfile(save_path,'panels',[fig.Name,'.svg']);
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
 end
 
@@ -316,7 +316,7 @@ end
 
 % figure initialization
 fig = figure(figopt,...
-    'name','LDA visualization');
+    'name','lda_visualization');
 
 % axes initialization
 set(gca,...
@@ -365,7 +365,7 @@ plot([1,1]*mean(xlim),ylim,'--k',...
 
 % save figure
 if want2save
-    svg_file = fullfile(save_path,'panels',[fig.Name,'.svg']);
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
 end
 
@@ -409,7 +409,7 @@ end
 
 % figure initialization
 fig = figure(figopt,...
-    'name',sprintf('neurometric curves (w1 = %.2f, w2 = %.2f) %s',...
+    'name',sprintf('neurometric_curves_%s',...
     w1,w2,contrast_str));
 
 % axes initialization
@@ -491,6 +491,6 @@ end
 
 % save figure
 if want2save
-    svg_file = fullfile(save_path,'panels',[fig.Name,'.svg']);
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
 end
