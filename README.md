@@ -67,6 +67,12 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 <img src="panels/pc_projections_i2.svg" width="500"/>
 
 ### toso2021_neurometricCurves.m
+- Plots population state recorded in the last 100 ms of _T2_ projected onto its first 2 PCs;
+<img src="panels/pca_visualization.svg" width="500"/>
+
+- Same data as above, but projected onto the linear discriminant that best separated population state vectors according to whether they came from a trial where _T2_ < 334 ms (the median of the _T1_ marginal distribution) or _T2_ >= 334 ms;
+<img src="panels/lda_visualization.svg" width="500"/>
+
 - Plots neurometric curves (built using linear discriminant analysis (LDA) trained on spike counts recorded in the last 100 ms before _T2_ offset of middle intensity trials) split by the specified intensity contrast (_I1_ below);
 <img src="panels/neurometric_curves_i1.svg" width="500"/>
 
