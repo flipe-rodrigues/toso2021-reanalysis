@@ -4,7 +4,7 @@ if ~exist('data','var')
 end
 
 %% contrast settings
-contrast_str = 'i2';
+contrast_str = 'i1';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str(1:end-1),'_set']);
 n_contrasts = numel(contrast_set);
@@ -255,6 +255,7 @@ for rr = 1 : n_runs
 end
 
 %% visualize population state at T2 offset
+X = concat_spkrates';
 
 % normalization
 Z = zscore(X);
@@ -280,7 +281,7 @@ ylabel(sprintf('%s\n%.1f%% variance','PC 2',explained(2)),...
 
 % iterate through stimuli
 for ii = 1 : n_stimuli
-    stimulus_flags = concat_stimuli(train_flags) == stim_set(ii);
+    stimulus_flags = concat_stimuli == stim_set(ii);
     
     % plot state space projections
     plot(score(stimulus_flags,1),...
@@ -295,7 +296,7 @@ end
 
 % iterate through stimuli
 for ii = 1 : n_stimuli
-    stimulus_flags = concat_stimuli(train_flags) == stim_set(ii);
+    stimulus_flags = concat_stimuli == stim_set(ii);
     
     % plot state space projections
     plot(score(stimulus_flags,1),...
@@ -345,7 +346,7 @@ prevcounts = zeros(1,n_bins);
 
 % iterate through stimuli
 for ii = 1 : n_stimuli
-    stimulus_flags = concat_stimuli(train_flags) == stim_set(ii);
+    stimulus_flags = concat_stimuli == stim_set(ii);
     
     % plot projections onto linear discriminant
     bincounts = histcounts(score(stimulus_flags),binedges);
