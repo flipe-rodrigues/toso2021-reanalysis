@@ -197,7 +197,7 @@ end
 %% construct psychophysical triple
 
 % stimulus settings
-if strcmpi(task,'duration')
+if strcmpi(task_str,'duration')
     w1 = 0; % beta_t1;
     w2 = 1; % beta_t2;
     norm_c = (abs(w2) + abs(w1));
@@ -300,7 +300,7 @@ axes(...
     axesopt.stimulus,...
     axesopt.psycurve);
 title('Psychometric curves');
-if strcmpi(task,'duration')
+if strcmpi(task_str,'duration')
     xlabel(sprintf('%.2f \\times T_2 + %.2f \\times T_1 (ms)',w2,w1));
 else
     xlabel('I_2 - I_1 (mm/s)');
