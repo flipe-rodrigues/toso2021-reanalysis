@@ -4,7 +4,7 @@ if ~exist('data','var')
 end
 
 %% contrast settings
-contrast_str = 't1';
+contrast_str = 't2';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str(1:end-1),'_set']);
 n_contrasts = numel(contrast_set);
@@ -281,7 +281,7 @@ leg_str = arrayfun(@(x,y,z)sprintf('%s_%s = %i',x,y,z),...
     repmat(contrast_str(2),n_contrasts,1),contrast_set,...
     'uniformoutput',false);
 leg = legend(p(isgraphics(p)),leg_str(isgraphics(p)),...
-    'position',[0.915,0.45,0.07,0.3],...
+    'position',[0.915,0.425,0.07,0.3],...
     'box','on');
 
 % axes linkage
