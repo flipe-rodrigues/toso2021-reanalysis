@@ -38,19 +38,11 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 - Selects neurons according to the criteria specified in `toso2021_preface.m` & prints how many passed selection (**affects all subsequent scripts!**);
 
 ### toso2021_overallModulation.m
-- Plots normalized firing rate averaged across the population of recorded DLS neurons, aligned to different moments in the task and split by the specified contrast (_I1_ below);
+- Plots normalized firing rate averaged across the population of recorded DLS neurons, aligned to different moments in the task and split by the specified contrast;
 <img src="panels/overall_modulation_i1.svg" width="1000"/>
-
-- Same as above, but using _I2_ as contrast;
 <img src="panels/overall_modulation_i2.svg" width="1000"/>
-
-- Same as above, but using _T1_ as contrast;
 <img src="panels/overall_modulation_t1.svg" width="1000"/>
-
-- Same as above, but using _T2_ as contrast;
 <img src="panels/overall_modulation_t2.svg" width="1000"/>
-
-- Same as above, but using _choice_ as contrast;
 <img src="panels/overall_modulation_choices.svg" width="1000"/>
 
 ### toso2021_rasters.m
