@@ -4,7 +4,7 @@ if ~exist('data','var')
 end
 
 %% contrast settings
-contrast_str = 'i2';
+contrast_str = 'i1';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str(1:end-1),'_set']);
 n_contrasts = numel(contrast_set);
@@ -54,7 +54,7 @@ n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% neurometric curve settings
 spkintegration_window = 100;
-n_runs = 1;
+n_runs = 15;
 
 % preallocation
 neurocurves = struct();

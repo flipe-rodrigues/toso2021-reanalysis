@@ -1,25 +1,25 @@
 %% initialization
-clear
+% clear
 clc;
 
 %% handle dependencies
-% [file_list,~] = matlab.codetools.requiredFilesAndProducts(mfilename);
-% n_files = numel(file_list);
-% for ii = 1 : n_files
-%     
-%     dest_path = fullfile(root_path,'dependencies');
-%     copyfile(file_list{ii},dest_path);
-% end
+[file_list,~] = matlab.codetools.requiredFilesAndProducts(mfilename);
+n_files = numel(file_list);
+for ii = 1 : n_files
+    
+    dest_path = fullfile(root_path);
+    copyfile(root_path
+end
 
 %% task selection
-task_str = 'duration';
+task = 'duration';
 
 %% directory settings
 root_path = fileparts(which(mfilename));
 addpath(genpath(root_path));
 cd(root_path);
 data_path = fullfile(root_path,'data');
-file_name = sprintf('%c%s_rats.mat',upper(task_str(1)),task_str(2:end));
+file_name = sprintf('%c%s_rats.mat',upper(task(1)),task(2:end));
 data_file = fullfile(data_path,file_name);
 load(data_file);
 data = DataB.Info;
@@ -43,6 +43,6 @@ toso2021_trialTypeDistributions;
 toso2021_neuronSelection;
 toso2021_overallModulation;
 toso2021_PCA;
-% toso2021_rasters;
+toso2021_rasters;
 toso2021_neurometricCurves;
 % toso2021_naiveBayesDecoder;
