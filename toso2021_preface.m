@@ -51,8 +51,9 @@ inter_t1t2_delay = 2e3 + inferred_t1t2_bug * 1;
 post_t2_delay = 500;
 
 %% neuron selection criteria
-n_trial_cutoff = 3;
+trial_count_cutoff = 2;
 mean_fr_cutoff = 1;
+stability_cutoff = .5;
 
 %% parse meta data (bhv)
 t1 = data.Duration1;

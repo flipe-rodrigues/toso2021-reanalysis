@@ -2,6 +2,13 @@
 clear
 clc;
 
+%% handle dependencies
+[file_list,~] = matlab.codetools.requiredFilesAndProducts(mfilename);
+n_files = numel(file_list);
+for ii = 1 : n_files
+
+end
+
 %% task selection
 task = 'duration';
 
@@ -27,8 +34,6 @@ if ~exist(raster_path,'dir')
 end
 want2save = true;
 
-raster_path = 'C:\Users\flipe\Desktop\Comment - Toso et al. (2021)\rasters';
-
 %% script execution order
 toso2021_preface;
 toso2021_behavior;
@@ -36,6 +41,6 @@ toso2021_trialTypeDistributions;
 toso2021_neuronSelection;
 toso2021_overallModulation;
 toso2021_PCA;
-% toso2021_rasters;
+toso2021_rasters;
 toso2021_neurometricCurves;
 % toso2021_naiveBayesDecoder;

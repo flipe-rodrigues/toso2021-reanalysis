@@ -70,6 +70,9 @@ for nn = 1 : n_neurons
     end
 end
 
+% nan handling
+s2_psths(isnan(s2_zpsths)) = 0;
+
 %% normalization
 mus = nanmean(s2_psths,[1,3]);
 sigs = nanstd(s2_psths,0,[1,3]);
@@ -183,8 +186,8 @@ set(gca,...
     'zcolor','k');
 
 % update axis
-angle = -135;
-view(angle,30);
+angle = 0;
+view(angle,0);
 
 % save figure
 if want2save

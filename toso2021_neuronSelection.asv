@@ -133,9 +133,9 @@ n_neurons = sum(neurons2keep_flags);
 
 % display selection outcome
 fprintf('\nSELECTION CRITERIA:\n');
-fprintf('- minimum mean firing rate in middle I2 trials: %i Hz\n',...
+fprintf('- minimum mean firing rate in middle I2 trials: %.2f Hz\n',...
     mean_fr_cutoff);
 fprintf('- minimum trial count on all T2-I2 combinations: %i\n',...
     trial_count_cutoff);
-fprintf('- stability assessed by visual inspection\n');
+fprintf('- stability as assessed by visual inspection\n');
 fprintf('%i/%i neurons passed.\n\n',n_neurons,n_neurons_total);
