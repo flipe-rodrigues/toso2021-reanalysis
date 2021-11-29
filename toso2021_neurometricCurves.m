@@ -53,8 +53,8 @@ n_concatspercond = 2^8;
 n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% neurometric curve settings
-spkintegration_window = min(t_set);
-n_runs = 50;
+spkintegration_window = 100;
+n_runs = 10;
 
 % preallocation
 neurocurves = struct();

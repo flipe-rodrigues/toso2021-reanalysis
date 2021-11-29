@@ -49,7 +49,7 @@ beta_0 = betas(1);
 beta_t1 = betas(2);
 beta_t2 = betas(3);
 
-%% generalization matrix
+%% sampling scheme w/ T1-T2 pairwise performance
 
 % transfer function
 tfun = @(x) log(x);
@@ -299,7 +299,6 @@ axes(...
     axesopt.default,...
     axesopt.stimulus,...
     axesopt.psycurve);
-title(sprintf('Delayed %s comparison task',task));
 title('Psychometric curves');
 if strcmpi(task,'duration')
     xlabel(sprintf('%.2f \\times T_2 + %.2f \\times T_1 (ms)',w2,w1));
@@ -327,13 +326,7 @@ for kk = 1 : n_contrasts
     p(kk) = plotpsy(psycurves(kk),psycurves(kk).fit,psyopt.plot);
 end
 
-% plot psychometric curve
-psyopt.plot.fitclr = 'k';
-psyopt.plot.plotfit = true;
-psyopt.plot.plotdata = false;
-
 % legend
-
 leg_str = arrayfun(@(x,y)sprintf('I_%s = %i (mm/s)',x,y),...
     repmat(contrast_str(2),n_contrasts,1),contrast_set,...
     'uniformoutput',false);

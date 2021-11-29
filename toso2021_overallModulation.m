@@ -3,6 +3,14 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
+%% contrast settings
+contrast_str = 't1';
+contrasts = eval(contrast_str);
+contrast_set = eval([contrast_str(1:end-1),'_set']);
+n_contrasts = numel(contrast_set);
+contrast_mode_idx = find(contrast_set == mode(contrasts));
+contrast_clrs = eval([contrast_str,'_clrs']);
+
 %% ROI settings
 
 % preallocation
@@ -37,14 +45,6 @@ for ii = 1 : n_epochs
     time.(epoch) = linspace(rois.(epoch)(1),rois.(epoch)(2),n_bins.(epoch));
     psths.(epoch) = nan(n_bins.(epoch),n_neurons,n_contrasts);
 end
-
-%% contrast settings
-contrast_str = 'choices';
-contrasts = eval(contrast_str);
-contrast_set = eval([contrast_str(1:end-1),'_set']);
-n_contrasts = numel(contrast_set);
-contrast_mode_idx = find(contrast_set == mode(contrasts));
-contrast_clrs = eval([contrast_str,'_clrs']);
 
 %% construct s2-aligned psths
 
@@ -249,6 +249,9 @@ ylabel(sps(1),'Firing rate (z-scored)');
 for ii = 1 : n_epochs
     epoch = task_epochs{ii};
     
+    % graphical object preallocation
+    p = gobjects(n_contrasts,1);
+    
     % iterate through contrasts
     for jj = 1 : n_contrasts
     
@@ -266,11 +269,20 @@ for ii = 1 : n_epochs
             'edgecolor','none');
         
         % plot mean
-        plot(sps(ii),time.(epoch)(~nan_flags),mod_mu,...
+        p(jj) = plot(sps(ii),time.(epoch)(~nan_flags),mod_mu,...
             'color',contrast_clrs(jj,:),...
             'linewidth',1.5);
     end
 end
+
+% legend
+leg_str = arrayfun(@(x,y,z)sprintf('%s_%s = %i',x,y,z),...
+    repmat(upper(contrast_str(1)),n_contrasts,1),...
+    repmat(contrast_str(2),n_contrasts,1),contrast_set,...
+    'uniformoutput',false);
+leg = legend(p(isgraphics(p)),leg_str(isgraphics(p)),...
+    'position',[0.915,0.45,0.07,0.3],...
+    'box','on');
 
 % axes linkage
 linkaxes(sps,'y');
