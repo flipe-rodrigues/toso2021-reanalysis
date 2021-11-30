@@ -41,7 +41,7 @@ conditions.test.contrasts = ...
     num2cell(repmat(contrast_set(contrast2test_idcs'),stim2test_n,1));
 
 %% concatenation settings
-n_concatspercond = 2^8;
+n_concatspercond = 2^6;
 n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% construct spike rate tensor (time X neurons X concatenations)
