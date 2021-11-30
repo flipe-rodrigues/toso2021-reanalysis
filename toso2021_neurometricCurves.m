@@ -4,7 +4,7 @@ if ~exist('data','var')
 end
 
 %% contrast settings
-contrast_str = 'i1';
+contrast_str = 'i2';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str(1:end-1),'_set']);
 n_contrasts = numel(contrast_set);
@@ -163,8 +163,6 @@ for rr = 1 : n_runs
                 contrast_flags;
             flagged_trials = find(s2_spike_flags);
             if sum(s2_spike_flags) == 0
-                disp([conditions.test.stimuli{kk},...
-                    conditions.test.contrasts{kk}])
                 continue;
             end
             

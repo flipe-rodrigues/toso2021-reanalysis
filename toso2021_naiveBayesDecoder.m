@@ -1,5 +1,5 @@
 %% initialization
-if ~exist('tosoData','var')
+if ~exist('data','var')
     toso2021_wrapper;
 end
 
@@ -41,7 +41,7 @@ conditions.test.contrasts = ...
     num2cell(repmat(contrast_set(contrast2test_idcs'),stim2test_n,1));
 
 %% concatenation settings
-n_concatspercond = 2^8;
+n_concatspercond = 2^6;
 n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% construct spike rate tensor (time X neurons X concatenations)
@@ -63,7 +63,7 @@ t1_flags = t1 > t_set(2) & t1 < t_set(end-1);
 % iterate through units
 for nn = 1 : n_neurons
     progressreport(nn,n_neurons,'constructing concatenations');
-    neuron_flags = tosoData.NeuronNumb == flagged_neurons(nn);
+    neuron_flags = data.NeuronNumb == flagged_neurons(nn);
     
     % preallocation
     nn_train_trials = cell(conditions.train.n,1);
@@ -78,7 +78,6 @@ for nn = 1 : n_neurons
             valid_flags & ...
             neuron_flags & ...
             stimulus_flags & ...
-            ...pseudo_correct_flags & ...
             i1_flags & ...
             t1_flags & ...
             contrast_flags;
@@ -88,9 +87,9 @@ for nn = 1 : n_neurons
         end
         
         % fetch spike counts & compute spike rates
-        s2_spike_counts = tosoData.FR(s2_spike_flags,:);
+        s2_spike_counts = data.FR(s2_spike_flags,:);
         s2_spike_rates = ...
-            conv2(1,t_kernel.pdf,s2_spike_counts,'valid')' / psthbin * 1e3;
+            conv2(1,kernel.pdf,s2_spike_counts,'valid')' / psthbin * 1e3;
         n_trials = size(s2_spike_counts,1);
         
         % T2-offset-aligned spike rates
@@ -100,11 +99,11 @@ for nn = 1 : n_neurons
             t1(s2_spike_flags) + ...
             inter_t1t2_delay;
         s2_alignment_flags = ...
-            t_valid_time >= s2_alignment_offset + roi(1) & ...
-            t_valid_time < s2_alignment_offset + t2(s2_spike_flags);
+            valid_time >= s2_alignment_offset + roi(1) & ...
+            valid_time < s2_alignment_offset + t2(s2_spike_flags);
         s2_chunk_flags = ...
-            t_valid_time >= s2_alignment_offset + roi(1) & ...
-            t_valid_time < s2_alignment_offset + roi(2);
+            valid_time >= s2_alignment_offset + roi(1) & ...
+            valid_time < s2_alignment_offset + roi(2);
         s2_spkrates = s2_spike_rates;
         s2_spkrates(~s2_alignment_flags') = nan;
         s2_spkrates = ...
@@ -155,9 +154,9 @@ for nn = 1 : n_neurons
         end
         
         % fetch spike counts & compute spike rates
-        s2_spike_counts = tosoData.FR(s2_spike_flags,:);
+        s2_spike_counts = data.FR(s2_spike_flags,:);
         s2_spike_rates = ...
-            conv2(1,t_kernel.pdf,s2_spike_counts,'valid')' / psthbin * 1e3;
+            conv2(1,kernel.pdf,s2_spike_counts,'valid')' / psthbin * 1e3;
         n_trials = size(s2_spike_counts,1);
         
         % T2-aligned spike rates
@@ -167,11 +166,11 @@ for nn = 1 : n_neurons
             t1(s2_spike_flags) + ...
             inter_t1t2_delay;
         s2_alignment_flags = ...
-            t_valid_time >= s2_alignment_offset + roi(1) & ...
-            t_valid_time < s2_alignment_offset + t2(s2_spike_flags);
+            valid_time >= s2_alignment_offset + roi(1) & ...
+            valid_time < s2_alignment_offset + t2(s2_spike_flags);
         s2_chunk_flags = ...
-            t_valid_time >= s2_alignment_offset + roi(1) & ...
-            t_valid_time < s2_alignment_offset + roi(2);
+            valid_time >= s2_alignment_offset + roi(1) & ...
+            valid_time < s2_alignment_offset + roi(2);
         s2_spkrates = s2_spike_rates;
         s2_spkrates(~s2_alignment_flags') = nan;
         s2_spkrates = ...
@@ -531,7 +530,7 @@ type = 'median';
 % figure initialization
 figure(...
     figopt,...
-    'name',sprintf('point estimates (%s)',type),...
+    'name','decoder_point_estimates',...
     'numbertitle','off');
 
 % axes initialization
@@ -590,4 +589,10 @@ for ii = 1 : n_i
             'markerfacecolor',contrast_clrs(ii,:),...
             'markeredgecolor','k');
     end
+end
+
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
 end

@@ -71,7 +71,7 @@ for nn = 1 : n_neurons
 end
 
 % nan handling
-s2_psths(isnan(s2_zpsths)) = 0;
+s2_psths(isnan(s2_psths)) = 0;
 
 %% normalization
 mus = nanmean(s2_psths,[1,3]);
