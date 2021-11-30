@@ -70,3 +70,7 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 
 - Same as above, but split by _I2_;
 <img src="panels/neurometric_curves_i2.svg" width="500"/>
+
+### toso2021_naiveBayesDecoder.m
+- ;
+<img src="panels/decoder_point_estimates.svg" width="500"/>
