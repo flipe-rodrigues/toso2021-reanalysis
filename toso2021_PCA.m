@@ -191,7 +191,7 @@ view(angle,0);
 
 % save figure
 if want2save
-    svg_file = fullfile(panel_path,[fig.Name,'_',num2str(angle),'.svg']);
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
 end
 
