@@ -12,7 +12,7 @@ clc;
 % end
 
 %% task selection
-task_str = 'duration';
+task_str = 'intensity';
 
 %% directory settings
 root_path = fileparts(which(mfilename));
@@ -38,6 +38,7 @@ want2save = true;
 
 %% script execution order
 toso2021_preface;
+return;
 toso2021_behavior;
 toso2021_trialTypeDistributions;
 toso2021_neuronSelection;

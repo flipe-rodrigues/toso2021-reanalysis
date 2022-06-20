@@ -42,16 +42,11 @@ end
 fprintf('- after: (intensity | I1 count | I2 count)\n');
 summary(categorical([data.Intensity1,data.Intensity2]))
 
-%% duration heterogeneity fixes
+% duration
 fprintf('DURATION:\n');
 fprintf('- before: (duration | T1 count | T2 count)\n');
 summary(categorical([data.Duration1,data.Duration2]))
 
-% round
-data.Duration1 = round(data.Duration1);
-data.Duration2 = round(data.Duration2);
-
-% remove spurious t1 trial types
 t1_set_bugged = unique(data.Duration1);
 for ii = 1 : numel(t1_set_bugged)
     t1_flags = data.Duration1 == t1_set_bugged(ii);
@@ -60,7 +55,6 @@ for ii = 1 : numel(t1_set_bugged)
     end
 end
 
-% remove spurious t2 trial types
 t2_set_bugged = unique(data.Duration2);
 for ii = 1 : numel(t2_set_bugged)
     t2_flags = data.Duration2 == t2_set_bugged(ii);
