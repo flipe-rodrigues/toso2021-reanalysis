@@ -4,14 +4,17 @@ if ~exist('data','var')
 end
 
 %% contrast settings
-contrast_str = 'i1';
+contrast_str = 'i2';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str(1:end-1),'_set']);
 n_contrasts = numel(contrast_set);
 contrast_mode_idx = find(contrast_set == mode(contrasts));
 contrast_clrs = eval([contrast_str,'_clrs']);
 
-%% construct S2-aligned, I2-split psths
+%% shuffle labels?
+shuffle_is_on = 0;
+
+%% construct Si-aligned, Ii-split psths
 pre_padd = 500;
 roi2use = [0,t_set(end-2)];
 roi2plot = [-pre_padd,t_set(end)];
@@ -33,6 +36,9 @@ for nn = 1 : n_neurons
     
     % iterate through contrasts
     for ii = 1 : n_contrasts
+        if shuffle_is_on
+            contrasts = contrasts(randperm(numel(contrasts)));
+        end
         contrast_flags = contrasts == contrast_set(ii);
         s2_spike_flags = ...
             valid_flags & ...
@@ -98,7 +104,8 @@ for nn = 1 : n_neurons
 end
 
 % pca
-coeff = pca(s2_concat_extr);
+coeff = pca(s2_concat_extr); % pseudo-demixed PCA
+% coeff = pca(s2_concat_mode); % vanilla PCA
 lat_pca = nanvar(s2_concat_all * coeff)';
 [~,pca_idcs] = sort(lat_pca,'descend');
 coeff = coeff(:,pca_idcs);

@@ -218,7 +218,7 @@ normstim_set = unique(norm_stimuli(valid_flags));
 n_stimuli = numel(stim_set);
 
 % contrast settings
-contrast_str = 'i2';
+contrast_str = 'i1';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str(1:end-1),'_set']);
 n_contrasts = numel(contrast_set);
