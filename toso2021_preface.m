@@ -114,6 +114,26 @@ correct = choices == (t2 > t1);
 pre_t1_delay = data.PreDelay;
 trial_idcs = data.Trial;
 
+%% task variant adaptations
+if strcmpi(task_str,'duration')
+    
+    % stimulus
+    s1 = t1;
+    s2 = t2;
+    s1_set = t1_set;
+    s2_set = t2_set;
+    s_set = t_set;
+    
+    % distractor
+    d1 = i1;
+    d2 = i2;
+    d1_set = i1_set;
+    d2_set = i2_set;
+    d_set = i_set;
+    
+elseif strcmpi(task_str,'intensity')
+end
+
 %% kernel settings
 psthbin = 1;
 kernel = gammakernel('peakx',50,'binwidth',psthbin);
@@ -138,6 +158,19 @@ valid_flags = ...
     ismember(t1,t_set) & ...
     ismember(i2,i_set) & ...
     ismember(t2,t_set);
+
+
+clear t1;
+clear t2;
+clear t1_set;
+clear t2_set;
+clear t_set;
+
+clear i1;
+clear i2;
+clear i1_set;
+clear i2_set;
+clear i_set;
 
 %% figure options
 figopt.color = 'w';

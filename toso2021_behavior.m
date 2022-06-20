@@ -4,7 +4,7 @@ if ~exist('data','var')
 end
 
 %% choice GLM (complete model)
-X = [t1,t2,i1,i2];
+X = [s1,s2,d1,d2];
 Z = (X - nanmean(X)) ./ nanstd(X);
 mdl = fitglm(Z(valid_flags,:),choices(valid_flags,:),'linear',...
     'predictorvars',{'T1','T2','I1','I2'},...

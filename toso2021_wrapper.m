@@ -12,7 +12,7 @@ clc;
 % end
 
 %% task selection
-task_str = 'intensity';
+task_str = 'duration';
 
 %% directory settings
 root_path = fileparts(which(mfilename));
