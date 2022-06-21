@@ -73,9 +73,9 @@ fprintf('- after: (duration | T1 count | T2 count)\n');
 summary(categorical([data.Duration1,data.Duration2]))
 
 %% hard-coded task parameters
-inferred_t1t2_bug = 250;
-pre_init_padding = 1e3 + inferred_t1t2_bug * 0;
-inter_t1t2_delay = 2e3 + inferred_t1t2_bug * 1;
+inferred_misalignment = 200;
+pre_init_padding = 1e3;
+inter_t1t2_delay = 2e3;
 post_t2_delay = 500;
 
 %% neuron selection criteria
@@ -106,33 +106,70 @@ i1_max_idx = find(i_set == max(i1));
 i2_max_idx = find(i_set == max(i2));
 n_t = numel(t_set);
 n_i = numel(i_set);
+t_units = 'ms';
+i_units = 'mm.s^{-1}';
 choices = data.Action;
 choice_set = unique(choices);
 n_choices = numel(choice_set);
 prev_choices = [nan;choices(1:end)];
 correct = choices == (t2 > t1);
-pre_t1_delay = data.PreDelay;
+pre_t1_delay = data.PreDelay + inferred_misalignment;
 trial_idcs = data.Trial;
 
+%% color scheme
+t1_clrs = cool(n_t);
+t2_clrs = colorlerp([0,0,1; [0,0,0]; [1,1,0]],n_t);
+i1_clrs = winter(n_i);
+i2_clrs = copper(n_i);
+choices_clrs = [.1,.5,1; .85,.1,.2];
+
 %% task variant adaptations
+
+% delayed duration comparison 
 if strcmpi(task_str,'duration')
     
-    % stimulus
+    % stimuli
     s1 = t1;
     s2 = t2;
-    s1_set = t1_set;
-    s2_set = t2_set;
     s_set = t_set;
     
-    % distractor
+    % distractors
     d1 = i1;
     d2 = i2;
-    d1_set = i1_set;
-    d2_set = i2_set;
     d_set = i_set;
     
+    % labels
+    s1_lbl = 'T_1';
+    s2_lbl = 'T_2';
+    d1_lbl = 'I_1';
+    d2_lbl = 'I_2';
+    s_units = t_units;
+    
+% delayed intensity comparison    
 elseif strcmpi(task_str,'intensity')
+    
+    % stimuli
+    s1 = i1;
+    s2 = i2;
+    s_set = i_set;
+    
+    % distractors
+    d1 = t1;
+    d2 = t2;
+    d_set = t_set;
+    
+    % labels
+    s1_lbl = 'I_1';
+    s2_lbl = 'I_2';
+    d1_lbl = 'T_1';
+    d2_lbl = 'T_2';
+    s_units = i_units;
 end
+
+% s1_mode_idx = find(s_set == mode(s1));
+% s2_mode_idx = find(s_set == mode(s2));
+% d1_mode_idx = find(d_set == mode(d1));
+% d2_mode_idx = find(d_set == mode(d2));
 
 %% kernel settings
 psthbin = 1;
@@ -158,19 +195,6 @@ valid_flags = ...
     ismember(t1,t_set) & ...
     ismember(i2,i_set) & ...
     ismember(t2,t_set);
-
-
-clear t1;
-clear t2;
-clear t1_set;
-clear t2_set;
-clear t_set;
-
-clear i1;
-clear i2;
-clear i1_set;
-clear i2_set;
-clear i_set;
 
 %% figure options
 figopt.color = 'w';
@@ -222,10 +246,3 @@ axesopt.colorbar.xcolor = 'k';
 axesopt.colorbar.ycolor = 'k';
 axesopt.colorbar.tickdir = 'out';
 axesopt.colorbar.box = 'off';
-
-%% color scheme
-t1_clrs = cool(n_t);
-t2_clrs = spring(n_t);
-i1_clrs = winter(n_i);
-i2_clrs = copper(n_i);
-choices_clrs = [.1,.5,1; .85,.1,.2];

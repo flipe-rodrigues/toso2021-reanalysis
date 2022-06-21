@@ -3,14 +3,6 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
-%% contrast settings
-contrast_str = 'i2';
-contrasts = eval(contrast_str);
-contrast_set = eval([contrast_str(1:end-1),'_set']);
-n_contrasts = numel(contrast_set);
-contrast_mode_idx = find(contrast_set == mode(contrasts));
-contrast_clrs = eval([contrast_str,'_clrs']);
-
 %% construct S2-aligned, Ti- & Ii-split psths
 
 % time settings
@@ -19,7 +11,7 @@ roi_n_bins = range(roi) * psthbin;
 roi_time = linspace(roi(1),roi(2),roi_n_bins);
 
 % preallocation
-trial_type_numbers = nan(numel(neuron_idcs),n_t,n_i);
+trial_type_numbers = nan(numel(neuron_idcs),n_stimuli,n_contrasts);
 
 % iterate through neurons
 for nn = neuron_idcs'
@@ -27,8 +19,8 @@ for nn = neuron_idcs'
     neuron_flags = data.NeuronNumb == neuron_idcs(nn);
     
     % iterate through stimuli
-    for tt = 1 : n_t
-        t2_flags = t2 == t_set(tt);
+    for tt = 1 : n_stimuli
+        stim_flags = stimuli == stim_set(tt);
         
         % iterate through contrasts
         for ii = 1 : n_contrasts
@@ -36,7 +28,7 @@ for nn = neuron_idcs'
             s2_spike_flags = ...
                 valid_flags & ...
                 neuron_flags & ...
-                t2_flags & ...
+                stim_flags & ...
                 contrast_flags;
             if sum(s2_spike_flags) == 0
                 continue;
@@ -82,7 +74,7 @@ axes(axesopt.default,...
     'yticklabel',num2cell(stim_set),...
     'xscale','log');
 xlabel('Trial count');
-ylabel('T_2 (ms)');
+ylabel(stim_lbl);
 zlabel('Neuron count');
 view(30,80);
 

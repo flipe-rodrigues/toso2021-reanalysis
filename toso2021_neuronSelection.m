@@ -4,11 +4,16 @@ if ~exist('data','var')
 end
 
 %% manual curation
+
 % selected for being unstable (assessed by looking at spike rasters)
-neurons2exclude = [...
-    1,19,29,51,60,63,71,86,92,...
-    153,239,326,453,...
-    557,584,585,599];
+if strcmpi(task_str,'duration')
+    neurons2exclude = [...
+        1,19,29,51,60,63,71,86,92,...
+        153,239,326,453,...
+        557,584,585,599];
+elseif strcmpi(task_str,'intensity')
+   neurons2exclude = []; 
+end
 
 %% construct S2-aligned, Ti- & Ii-split psths
 
@@ -27,7 +32,7 @@ for nn = neuron_idcs'
     progressreport(nn,numel(neuron_idcs),'computing selection criteria');
     neuron_flags = data.NeuronNumb == neuron_idcs(nn);
     
-    % iterate through stimuli
+    % iterate through durations
     for tt = 1 : n_t
         t2_flags = t2 == t_set(tt);
         

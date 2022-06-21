@@ -1,5 +1,7 @@
 %% initialization
-clear
+warning('off');
+close all;
+clear;
 clc;
 
 %% handle dependencies
@@ -13,6 +15,7 @@ clc;
 
 %% task selection
 task_str = 'duration';
+task_str = 'intensity';
 
 %% directory settings
 root_path = fileparts(which(mfilename));
@@ -26,8 +29,8 @@ data = DataB.Info;
 clear DataB;
 
 %% save settings
-panel_path = fullfile(root_path,'panels');
-raster_path = fullfile(root_path,'rasters');
+panel_path = fullfile(root_path,'panels',task_str);
+raster_path = fullfile(root_path,'rasters',task_str);
 if ~exist(panel_path,'dir')
     mkdir(panel_path);
 end
@@ -38,12 +41,13 @@ want2save = true;
 
 %% script execution order
 toso2021_preface;
-return;
-toso2021_behavior;
+toso2021_samplingScheme;
+toso2021_choiceGLM;
+toso2021_psychometricCurves;
 toso2021_trialTypeDistributions;
 toso2021_neuronSelection;
 toso2021_overallModulation;
-toso2021_PCA;
-% toso2021_rasters;
+% toso2021_PCA;
+toso2021_rasters;
 % toso2021_neurometricCurves;
 % toso2021_naiveBayesDecoder;
