@@ -3,16 +3,6 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
-%% contrast settings
-contrast_str = 't2';
-contrasts = eval(contrast_str);
-contrast_set = eval([contrast_str(1:end-1),'_set']);
-n_contrasts = numel(contrast_set);
-contrast_mode_idx = find(contrast_set == mode(contrasts));
-contrast_clrs = eval([contrast_str,'_clrs']);
-contrast_units = eval([contrast_str(1),'_units']);
-contrast_lbl = [upper(contrast_str(1)),'_',contrast_str(2)];
-
 %% stimulus settings
 w_norm = sum(abs(beta_s1) + abs(beta_s2));
 w1 = beta_s1 / w_norm; % 0;
