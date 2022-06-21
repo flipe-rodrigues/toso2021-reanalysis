@@ -93,7 +93,7 @@ psyopt.plot.normalizemarkersize = false;
 
 % figure initialization
 fig = figure(figopt,...
-    'name',sprintf('psychometric_curves_%s',contrast_lbl));
+    'name',sprintf('psychometric_curves_%s',contrast_str));
 
 % axes initialization
 axes(...
