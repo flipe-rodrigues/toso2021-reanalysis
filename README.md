@@ -14,13 +14,14 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 - Sets aesthetic preferences for figures & axes;
 - Sets all color schemes;
 
-### toso2021_behavior.m
+### toso2021_samplingScheme.m
 - Plots stimulus pairs with the corresponding average performance;
 <img src="panels/duration/sampling_scheme.svg" width="500"/>
 
 - Same as above, plus a gradient representing the hypothesized continuous performance so as to allow for a better visualization of _contraction bias_ on _T1_;
 <img src="panels/duration/contraction_bias.svg" width="500"/>
 
+### toso2021_psychometricCurves.m
 - Plots psychometric curves assuming _T2_ as the stimulus & split by _I1_;
 <img src="panels/duration/psychometric_curves_i1.svg" width="500"/>
 
