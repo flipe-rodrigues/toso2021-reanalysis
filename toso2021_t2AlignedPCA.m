@@ -3,22 +3,16 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
-%% contrast settings
-contrast_str = 'i1';
-contrasts = eval(contrast_str);
-contrast_set = eval([contrast_str(1:end-1),'_set']);
-n_contrasts = numel(contrast_set);
-contrast_mode_idx = find(contrast_set == mode(contrasts));
-contrast_clrs = eval([contrast_str,'_clrs']);
-contrast_units = eval([contrast_str(1),'_units']);
-contrast_lbl = [upper(contrast_str(1)),'_',contrast_str(2)];
+%% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+% should have both s1- & s2-aligned psths here, compute PCs with one
+% alignment, one intensity, and then contrast with the other 2
 
 %% shuffle labels?
 shuffle_is_on = 0;
 
-%% construct Si-aligned, Ii-split psths
+%% construct Ti-aligned, Ii-split psths
 pre_padd = 500;
-roi2use = [0,t_set(end-2)];
+roi2use = [0,t_set(end-1)];
 roi2plot = [-pre_padd,t_set(end)];
 roi2use_n_bins = range(roi2use) * psthbin;
 roi2plot_n_bins = range(roi2plot) * psthbin;
@@ -29,6 +23,7 @@ roi2use_flags = ...
     roi2plot_time <= roi2use(2);
 
 % preallocation
+s1_psths = nan(roi2plot_n_bins,n_neurons,n_contrasts);
 s2_psths = nan(roi2plot_n_bins,n_neurons,n_contrasts);
 
 % iterate through neurons
@@ -106,15 +101,17 @@ for nn = 1 : n_neurons
 end
 
 % pca
-
-
-% coeff = pca(s2_concat_extr_i2clamped); % i2-clamped 
-coeff = pca(s2_concat_extr); % pseudo-demixed PCA
+if strcmpi(contrast_str,'i2')
+    s2_concat_i2clamped = s2_concat_all;
+end
+t2_coeff = pca(s2_concat_i2clamped); % pseudo-demixed PCA (i2-clamped)
+t2_coeff = t1_coeff;
+% coeff = pca(s2_concat_extr); % pseudo-demixed PCA
 % coeff = pca(s2_concat_mode); % robust PCA
 % coeff = pca(s2_concat_all); % vanilla PCA
-lat_pca = nanvar(s2_concat_all * coeff)';
+lat_pca = nanvar(s2_concat_all * t2_coeff)';
 [~,pca_idcs] = sort(lat_pca,'descend');
-coeff = coeff(:,pca_idcs);
+t2_coeff = t2_coeff(:,pca_idcs);
 exp_pca = lat_pca(pca_idcs) / sum(nanvar(s2_concat_all)) * 100;
 
 % preallocation
@@ -124,12 +121,12 @@ s2_score = nan(roi2plot_n_bins,n_neurons,n_contrasts);
 for ii = 1 : n_contrasts
     
     % project onto PCs
-    s2_score(:,:,ii) = s2_zpsths(:,:,ii) * coeff;
+    s2_score(:,:,ii) = s2_zpsths(:,:,ii) * t2_coeff;
 end
 
 %% 3D trajectories in PC space
 fig = figure(figopt,...
-    'name',sprintf('pc_trajectories_%s',contrast_str));
+    'name',sprintf('pc_trajectories_t2_%s',contrast_str));
 set(gca,...
     axesopt.default,...
     'xtick',0,...
@@ -213,7 +210,7 @@ end
 % figure initialization
 fig = figure(figopt,...
     'position',[769.8,41.8,766.4,740.8],...
-    'name',sprintf('pc_projections_%s',contrast_str));
+    'name',sprintf('pc_projections_t2_%s',contrast_str));
 n_pcs2plot = 6;
 sps = gobjects(n_pcs2plot,1);
 for pc = 1 : n_pcs2plot
