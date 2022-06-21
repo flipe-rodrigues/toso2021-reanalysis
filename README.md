@@ -21,15 +21,16 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 - Same as above, plus a gradient representing the hypothesized continuous performance so as to allow for a better visualization of _contraction bias_ on _T1_;
 <img src="panels/duration/contraction_bias.svg" width="500"/>
 
+### toso2021_choiceGLM.m
+- Fits a generalized linear model (GLM) to _choice_ data using _T1_, _T2_, _I1_ & _I2_ as predictors;
+<img src="panels/duration/choice_GLM.svg" width="500"/>
+
 ### toso2021_psychometricCurves.m
 - Plots psychometric curves assuming _T2_ as the stimulus & split by _I1_;
 <img src="panels/duration/psychometric_curves_i1.svg" width="500"/>
 
 - Same as above, but split by _I2_;
 <img src="panels/duration/psychometric_curves_i2.svg" width="500"/>
-
-- Fits a generalized linear model (GLM) to _choice_ data using _T1_, _T2_, _I1_ & _I2_ as predictors;
-<img src="panels/duration/choice_GLM.svg" width="500"/>
 
 ### toso2021_trialTypeDistributions.m
 - Plots the joint distribution of trial counts and _T2_ durations (conditioned on _I2_) that neurons were recorded for;
