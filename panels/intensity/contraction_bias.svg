@@ -504,6 +504,19 @@ Z233CI4yMjMyC47CW/AWvCU4Wvfoud49jMyCo4zMgqOCoyUSLkZmwVHB0aSj5+L7
     /></g
     ><g style="stroke-linecap:butt; fill:white; text-rendering:geometricPrecision; image-rendering:optimizeQuality; color-rendering:optimizeQuality; stroke-linejoin:bevel; stroke-dasharray:8,8; stroke:white; color-interpolation:linearRGB; stroke-width:2.5; stroke-miterlimit:1;"
     ><line y2="39" style="fill:none;" x1="133" x2="515" y1="421"
+      /><line y2="39" style="fill:none;" x1="326.7105" x2="326.7105" y1="421"
+    /></g
+    ><g transform="translate(164.8333,282.1997)" style="fill:rgb(45,133,247); text-rendering:geometricPrecision; color-rendering:optimizeQuality; image-rendering:optimizeQuality; color-interpolation:linearRGB; stroke:rgb(45,133,247);"
+    ><path style="stroke:none;" d="M-10 -10 L-10 10 L10 10 L10 -10 Z"
+      /><path d="M-10 -10 L-10 10 L10 10 L10 -10 Z" style="fill:rgb(0,184,199); stroke:none;" transform="translate(55.8714,-54.9102)"
+      /><path d="M-10 -10 L-10 10 L10 10 L10 -10 Z" style="fill:rgb(70,63,227); stroke:none;" transform="translate(106.967,106.967)"
+      /><path d="M-10 -10 L-10 10 L10 10 L10 -10 Z" style="fill:rgb(199,193,41); stroke:none;" transform="translate(106.967,-106.1529)"
+      /><path d="M-10 -10 L-10 10 L10 10 L10 -10 Z" style="fill:rgb(71,74,238); stroke:none;" transform="translate(161.8772,51.0955)"
+      /><path d="M-10 -10 L-10 10 L10 10 L10 -10 Z" style="fill:rgb(250,211,46); stroke:none;" transform="translate(161.8772,-158.7952)"
+      /><path d="M-10 -10 L-10 10 L10 10 L10 -10 Z" style="fill:rgb(65,107,254); stroke:none;" transform="translate(213.1199,0)"
+      /><path d="M-10 -10 L-10 10 L10 10 L10 -10 Z" style="fill:rgb(245,240,31); stroke:none;" transform="translate(213.1199,-211.3664)"
+      /><path d="M-10 -10 L-10 10 L10 10 L10 -10 Z" style="fill:rgb(39,150,235); stroke:none;" transform="translate(265.7622,-54.9102)"
+      /><path d="M-10 -10 L-10 10 L10 10 L10 -10 Z" style="fill:rgb(2,182,204); stroke:none;" transform="translate(318.3334,-106.1529)"
     /></g
     ><g style="text-rendering:geometricPrecision; stroke-width:3.3333; color-interpolation:linearRGB; color-rendering:optimizeQuality; image-rendering:optimizeQuality; stroke-linejoin:round;"
     ><line y2="421" style="fill:none;" x1="133" x2="515" y1="421"
