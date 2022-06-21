@@ -96,7 +96,10 @@ for nn = 1 : n_neurons
 end
 
 % pca
-% coeff = pca(s2_concat_extr_i2clamped); % i2-clamped 
+if strcmpi(contrast_str,'i2')
+    s2_concat_extr_i2clamped = s2_concat_extr;
+end
+% coeff = pca(s2_concat_extr_i2clamped); % pseudo-demixed PCA (i2-clamped)
 coeff = pca(s2_concat_extr); % pseudo-demixed PCA
 % coeff = pca(s2_concat_mode); % robust PCA
 % coeff = pca(s2_concat_all); % vanilla PCA
