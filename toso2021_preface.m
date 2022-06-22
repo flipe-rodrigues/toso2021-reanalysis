@@ -108,6 +108,7 @@ n_t = numel(t_set);
 n_i = numel(i_set);
 t_units = 'ms';
 i_units = 'mm.s^{-1}';
+c_units = 'a.u.';
 choices = data.Action;
 choice_set = unique(choices);
 n_choices = numel(choice_set);
