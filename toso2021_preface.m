@@ -117,13 +117,6 @@ correct = choices == (t2 > t1);
 pre_t1_delay = data.PreDelay + inferred_misalignment;
 trial_idcs = data.Trial;
 
-%% color scheme
-t1_clrs = cool(n_t);
-t2_clrs = colorlerp([0,0,1; [0,0,0]; [1,1,0]],n_t);
-i1_clrs = winter(n_i);
-i2_clrs = copper(n_i);
-choices_clrs = [.1,.5,1; .85,.1,.2];
-
 %% task variant adaptations
 
 % delayed duration comparison 
@@ -247,3 +240,10 @@ axesopt.colorbar.xcolor = 'k';
 axesopt.colorbar.ycolor = 'k';
 axesopt.colorbar.tickdir = 'out';
 axesopt.colorbar.box = 'off';
+
+%% color scheme
+t1_clrs = cool(n_t);
+t2_clrs = colorlerp([.25,.5,1; [1,1,1]*.25; [1,1,0]],n_t);
+i1_clrs = winter(n_i);
+i2_clrs = copper(n_i);
+choices_clrs = [.1,.5,1; .85,.1,.2];

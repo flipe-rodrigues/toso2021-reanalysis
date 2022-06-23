@@ -145,16 +145,8 @@ for nn = 1 : n_neurons
     s2_concat_diff(:,nn) = nn_zpsths_diff(:);
 end
 
-% compute observation weights
-time_mat = repmat(roi2use(1)+psthbin:psthbin:roi2use(2),numel(trial_idcs),1);
-s1_weights = sum(time_mat <= t1);
-s1_weights = s1_weights / nansum(s1_weights);
-s2_weights = sum(time_mat <= t2);
-s2_weights = s2_weights / nansum(s2_weights);
-
 % training settings
 pca_stimulus_str = 's2';
-pca_contrast_str = 'i2';
 pca_design_str = 'all';
 %   'all'   ->  vanilla PCA
 %   'extr'  ->  pseudo-demixed PCA
@@ -163,7 +155,7 @@ pca_design_str = 'all';
 % PCA
 pca_design = eval([pca_stimulus_str,'_concat_',pca_design_str]);
 pca_alignment = eval(strrep(pca_stimulus_str,'s','t'));
-pca_contrast = eval(pca_contrast_str);
+pca_contrast_str = strrep(pca_stimulus_str,'s','i');
 pca_contrasts = eval(pca_contrast_str);
 pca_contrast_set = eval([pca_contrast_str(1:end-1),'_set']);
 pca_n_contrasts = numel(pca_contrast_set);

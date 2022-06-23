@@ -3,14 +3,6 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
-%% contrast settings
-contrast_str = 'i2';
-contrasts = eval(contrast_str);
-contrast_set = eval([contrast_str(1:end-1),'_set']);
-n_contrasts = numel(contrast_set);
-contrast_mode_idx = find(contrast_set == mode(contrasts));
-contrast_clrs = eval([contrast_str,'_clrs']);
-
 %% stimulus selection (for training & test sets)
 
 % stimuli
