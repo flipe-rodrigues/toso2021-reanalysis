@@ -113,6 +113,8 @@ choices = data.Action;
 choice_set = unique(choices);
 n_choices = numel(choice_set);
 prev_choices = [nan;choices(1:end)];
+prev_choice_set = unique(choices);
+n_prev_choices = numel(choice_set);
 correct = choices == (t2 > t1);
 pre_t1_delay = data.PreDelay + inferred_misalignment;
 trial_idcs = data.Trial;
@@ -160,10 +162,10 @@ elseif strcmpi(task_str,'intensity')
     s_units = i_units;
 end
 
-% s1_mode_idx = find(s_set == mode(s1));
-% s2_mode_idx = find(s_set == mode(s2));
-% d1_mode_idx = find(d_set == mode(d1));
-% d2_mode_idx = find(d_set == mode(d2));
+s1_mode_idx = find(s_set == mode(s1));
+s2_mode_idx = find(s_set == mode(s2));
+d1_mode_idx = find(d_set == mode(d1));
+d2_mode_idx = find(d_set == mode(d2));
 
 %% kernel settings
 psthbin = 1;
