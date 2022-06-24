@@ -115,9 +115,15 @@ n_choices = numel(choice_set);
 prev_choices = [nan;choices(1:end)];
 prev_choice_set = unique(choices);
 n_prev_choices = numel(choice_set);
-correct = choices == (t2 > t1);
 pre_t1_delay = data.PreDelay + inferred_misalignment;
 trial_idcs = data.Trial;
+
+%% color scheme
+t1_clrs = cool(n_t);
+t2_clrs = colorlerp([.25,.5,1; [1,1,1]*.25; [1,1,0]],n_t);
+i1_clrs = winter(n_i);
+i2_clrs = copper(n_i);
+choices_clrs = [.1,.5,1; .85,.1,.2];
 
 %% task variant adaptations
 
@@ -141,6 +147,10 @@ if strcmpi(task_str,'duration')
     d2_lbl = 'I_2';
     s_units = t_units;
     
+    % colors
+    s1_clrs = t1_clrs;
+    s2_clrs = t2_clrs;
+    
 % delayed intensity comparison    
 elseif strcmpi(task_str,'intensity')
     
@@ -160,12 +170,20 @@ elseif strcmpi(task_str,'intensity')
     d1_lbl = 'T_1';
     d2_lbl = 'T_2';
     s_units = i_units;
+    
+    % colors
+    s1_clrs = i1_clrs;
+    s2_clrs = i2_clrs;
 end
 
+% modality agnostic set mode indices
 s1_mode_idx = find(s_set == mode(s1));
 s2_mode_idx = find(s_set == mode(s2));
 d1_mode_idx = find(d_set == mode(d1));
 d2_mode_idx = find(d_set == mode(d2));
+
+% correctness
+correct = choices == (s2 > s1);
 
 %% kernel settings
 psthbin = 1;
@@ -242,10 +260,3 @@ axesopt.colorbar.xcolor = 'k';
 axesopt.colorbar.ycolor = 'k';
 axesopt.colorbar.tickdir = 'out';
 axesopt.colorbar.box = 'off';
-
-%% color scheme
-t1_clrs = cool(n_t);
-t2_clrs = colorlerp([.25,.5,1; [1,1,1]*.25; [1,1,0]],n_t);
-i1_clrs = winter(n_i);
-i2_clrs = copper(n_i);
-choices_clrs = [.1,.5,1; .85,.1,.2];
