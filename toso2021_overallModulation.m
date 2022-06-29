@@ -245,7 +245,7 @@ for ii = 1 : n_epochs
     p = gobjects(n_contrasts,1);
     
     % iterate through contrasts
-    for jj = 1 : n_contrasts
+    for jj = n_contrasts : -1 : 1
     
         % compute modulation stats
         nan_flags = all(isnan(zpsths.(epoch)(:,:,jj)),2);

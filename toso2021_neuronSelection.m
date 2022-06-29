@@ -29,6 +29,9 @@ roi_time = linspace(roi(1),roi(2),roi_n_bins);
 mean_frs = nan(numel(neuron_idcs),n_t,n_i);
 trial_type_counts = nan(numel(neuron_idcs),n_t,n_i);
 stability_coeffs = nan(numel(neuron_idcs),1);
+timeregression_pvals = nan(numel(neuron_idcs),1);
+timeregression_coeffs = nan(numel(neuron_idcs),1);
+timecorr_coeffs = nan(numel(neuron_idcs),1);
 
 % iterate through neurons
 for nn = neuron_idcs'
@@ -113,11 +116,11 @@ for nn = neuron_idcs'
         valid_time < s2_alignment_offset + t2(s2i2_spike_flags);
     s2_chunk_flags = ...
         valid_time >= s2_alignment_offset + roi(1) & ...
-        valid_time < s2_alignment_offset + t_set(t2_mode_idx);
+        valid_time < s2_alignment_offset + roi(2);
     s2_spkrates = s2_spike_rates;
     s2_spkrates(~s2_alignment_flags') = nan;
     s2_spkrates = reshape(...
-        s2_spkrates(s2_chunk_flags'),[t_set(t2_mode_idx)*psthbin,s2_n_trials])';
+        s2_spkrates(s2_chunk_flags'),[roi_n_bins,s2_n_trials])';
     
     % compute stability coefficient
     first_third_idcs = 1 : round(s2_n_trials * 1 / 3);
@@ -128,6 +131,12 @@ for nn = neuron_idcs'
         first_third_mu(~isnan(first_third_mu)&~isnan(last_third_mu)),...
         last_third_mu(~isnan(first_third_mu)&~isnan(last_third_mu)));
     stability_coeffs(nn) = abs(corr_coeffs(1,2));
+    
+    % compute ramping vs. non-ramping metrics
+    mdl = fitlm(roi_time,nanmean(s2_spkrates,1));
+    timeregression_pvals(nn) = mdl.Coefficients.pValue(2);
+    timeregression_coeffs(nn) = mdl.Coefficients.Estimate(2);
+    timecorr_coeffs(nn) = corr(roi_time',nanmean(s2_spkrates,1)');
 end
 trial_type_counts(isnan(trial_type_counts)) = 0;
 
@@ -153,3 +162,6 @@ fprintf('- minimum trial count on all T2-I2 combinations: %i\n',...
     trial_count_cutoff);
 fprintf('- stability assessed by visual inspection\n');
 fprintf('%i/%i neurons passed.\n\n',n_neurons,n_neurons_total);
+
+%% ramping scatter
+

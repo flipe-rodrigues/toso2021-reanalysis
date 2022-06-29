@@ -15,7 +15,7 @@ clc;
 
 %% task selection
 task_str = 'duration';
-task_str = 'intensity';
+% task_str = 'intensity';
 
 %% directory settings
 root_path = fileparts(which(mfilename));
@@ -53,14 +53,14 @@ contrast_units = eval([contrast_str(1),'_units']);
 contrast_lbl = [upper(contrast_str(1)),'_',contrast_str(2)];
 
 %% script execution order
-toso2021_samplingScheme;
 toso2021_contractionBias;
 toso2021_choiceGLM;
 toso2021_psychometricCurves;
 toso2021_trialTypeDistributions;
 toso2021_neuronSelection;
 toso2021_overallModulation;
+toso2021_t2AlignedPCA;
 toso2021_PCA;
 toso2021_neurometricCurves;
-% toso2021_naiveBayesDecoder;
+toso2021_naiveBayesDecoder;
 % toso2021_rasters;

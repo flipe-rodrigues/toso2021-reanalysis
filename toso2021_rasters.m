@@ -33,7 +33,7 @@ action_padd = [-1,1] * 450;
 for nn = 1 : n_neurons2plot
     progressreport(nn,n_neurons2plot,'parsing neural data');
     neuron_flags = data.NeuronNumb == neurons2plot(nn);
-    
+
     % figure initialization
     fig = figure(figopt,...
         'windowstate','maximized',...
@@ -71,12 +71,12 @@ for nn = 1 : n_neurons2plot
     ylabel(sps(1+n_cols),'Trial #');
     ylabel(sps(2+n_cols),'Trial #');
     ylabel(sps(3+n_cols),'Trial #');
-    
+
     % preallocation
     s1_n_trial_counter = 0;
     s2_n_trial_counter = 0;
     go_n_trial_counter = 0;
-    
+
     % iterate through intensities
     for ii = 1 : n_i
         i1_flags = i1 == i_set(ii);
@@ -92,7 +92,7 @@ for nn = 1 : n_neurons2plot
         if sum(s2_spike_flags) == 0
             continue;
         end
-        
+
         % fetch spike counts & compute spike rates
         s1_spike_counts = data.FR(s1_spike_flags,:);
         s2_spike_counts = data.FR(s2_spike_flags,:);
@@ -102,7 +102,7 @@ for nn = 1 : n_neurons2plot
             1,kernel.pdf,s2_spike_counts,'valid')' / psthbin * 1e3;
         s1_n_trials = size(s1_spike_counts,1);
         s2_n_trials = size(s2_spike_counts,1);
-        
+
         % T1-aligned spike rates
         s1_alignment_onset = ...
             pre_init_padding + ...
@@ -117,7 +117,7 @@ for nn = 1 : n_neurons2plot
         s1_spkrates(~s1_alignment_flags') = nan;
         s1_spkrates = reshape(...
             s1_spkrates(s1_chunk_flags'),[n_tbins+range(ti_padd),s1_n_trials])';
-        
+
         % T2-aligned spike rates
         s2_alignment_onset = ...
             pre_init_padding + ...
@@ -134,7 +134,7 @@ for nn = 1 : n_neurons2plot
         s2_spkrates(~s2_alignment_flags') = nan;
         s2_spkrates = reshape(...
             s2_spkrates(s2_chunk_flags'),[n_tbins+range(ti_padd),s2_n_trials])';
-        
+
         % flag current stimulus period
         time2plot = ti_padd(1) + psthbin : psthbin : max(t_set) + ti_padd(2);
         time_flags = time2plot <= t_set(tt) + ti_padd(2);
@@ -143,7 +143,7 @@ for nn = 1 : n_neurons2plot
         offset_flags = time2plot < t_set(tt) & ...
             [time2plot(2:end),nan] >= t_set(tt);
         flagged_time = time2plot(time_flags);
-        
+
         % compute mean spike density function
         s1_mu = nanmean(s1_spkrates(:,time_flags),1);
         s1_std = nanstd(s1_spkrates(:,time_flags),0,1);
@@ -151,7 +151,7 @@ for nn = 1 : n_neurons2plot
         s2_mu = nanmean(s2_spkrates(:,time_flags),1);
         s2_std = nanstd(s2_spkrates(:,time_flags),0,1);
         s2_sem = s2_std ./ sqrt(sum(~isnan(s2_spkrates),1));
-        
+
         % patch s.e.m.
         xpatch = [flagged_time,fliplr(flagged_time)];
         s1_ypatch = [s1_mu-s1_sem,fliplr(s1_mu+s1_sem)];
@@ -162,7 +162,7 @@ for nn = 1 : n_neurons2plot
         patch(sps(2),xpatch,s2_ypatch,i2_clrs(ii,:),...
             'facealpha',.25,...
             'edgecolor','none');
-        
+
         % plot average activity
         plot(sps(1),flagged_time,s1_mu,...
             'color',i1_clrs(ii,:),...
@@ -196,7 +196,7 @@ for nn = 1 : n_neurons2plot
             'markersize',7.5,...
             'markerfacecolor',i2_clrs(ii,:),...
             'markeredgecolor','w');
-        
+
         % plot T1 raster
         s1_time_mat = padded_time - (...
             pre_init_padding + ...
@@ -215,7 +215,7 @@ for nn = 1 : n_neurons2plot
             'marker',spike_marker,...
             'markersize',2.5,...
             'linestyle','none');
-        
+
         % plot T2 raster
         s2_time_mat = padded_time - (...
             pre_init_padding + ...
@@ -236,7 +236,7 @@ for nn = 1 : n_neurons2plot
             'marker',spike_marker,...
             'markersize',2.5,...
             'linestyle','none');
-        
+
         % plot raster bands
         xpatch = ti_padd(1) + [0,.05,.05,0] .* range(xlim(sps(1)));
         ypatch = [.5,.5,s1_n_trials+.5,s1_n_trials+.5] + s1_n_trial_counter;
@@ -250,12 +250,12 @@ for nn = 1 : n_neurons2plot
             'linewidth',1.5,...
             'facealpha',.75,...
             'edgecolor','none');
-        
+
         % update trial counters
         s1_n_trial_counter = s1_n_trial_counter + s1_n_trials;
         s2_n_trial_counter = s2_n_trial_counter + s2_n_trials;
     end
-    
+
     % iterate through intensities
     for ii = 1 : n_i
         i2_flags = i2 == i_set(ii);
@@ -266,13 +266,13 @@ for nn = 1 : n_neurons2plot
         if sum(go_spike_flags) == 0
             continue;
         end
-        
+
         % fetch spike counts & compute spike rates
         spike_counts = data.FR(go_spike_flags,:);
         spike_rates = conv2(...
             1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
         n_trials = size(spike_counts,1);
-        
+
         % go-aligned spike rates
         go_alignment_onset = ...
             pre_init_padding + ...
@@ -291,42 +291,41 @@ for nn = 1 : n_neurons2plot
         go_spkrates(~go_alignment_flags') = nan;
         go_spkrates = reshape(...
             go_spkrates(go_chunk_flags'),[range(action_padd),n_trials])';
-        
+
         % flag current stimulus period
         time2plot = ...
             action_padd(1) + psthbin : psthbin : action_padd(2);
         time_flags = time2plot <= 0;
         onset_flags = time2plot <= 0 & ...
             [time2plot(2:end),nan] > 0;
-        
+
         % compute mean spike density function
         go_mu = nanmean(go_spkrates,1);
         go_std = nanstd(go_spkrates,0,1);
         go_sem = go_std ./ sqrt(sum(~isnan(go_spkrates),1));
-        
+
         % patch s.e.m.
         xpatch = [time2plot(time_flags),fliplr(time2plot(time_flags))];
         ypatch = [go_mu(time_flags)-go_sem(time_flags),fliplr(go_mu(time_flags)+go_sem(time_flags))];
         patch(sps(3),xpatch,ypatch,i2_clrs(ii,:),...
             'facealpha',.25,...
             'edgecolor','none');
-        
+
         % plot average activity
         plot(sps(3),time2plot(time_flags),go_mu(time_flags),...
             'color',i2_clrs(ii,:),...
             'linestyle','-',...
             'linewidth',1.5);
     end
-    
+
     % iterate through choices
     for ch = 1 : n_choices
         choice_flags = choices == choice_set(ch);
         light_clrs = colorlerp([choices_clrs(ch,:);[1,1,1]],5);
         dark_clrs = colorlerp([choices_clrs(ch,:);[1,1,1]*0],5);
-        clrs = [dark_clrs(3,:);choices_clrs(ch,:);light_clrs(3,:);];
         clrs = colorlerp([dark_clrs(3,:);choices_clrs(ch,:);light_clrs(3,:)],n_i);
-        
-        
+
+
         % iterate through intensities
         for ii = 1 : n_i
             i2_flags = i2 == i_set(ii);
@@ -338,13 +337,13 @@ for nn = 1 : n_neurons2plot
             if sum(go_spike_flags) == 0
                 continue;
             end
-            
+
             % fetch spike counts & compute spike rates
             spike_counts = data.FR(go_spike_flags,:);
             spike_rates = conv2(...
                 1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
             n_trials = size(spike_counts,1);
-            
+
             % go-aligned spike rates
             go_alignment_onset = ...
                 pre_init_padding + ...
@@ -363,26 +362,26 @@ for nn = 1 : n_neurons2plot
             go_spkrates(~go_alignment_flags') = nan;
             go_spkrates = reshape(...
                 go_spkrates(go_chunk_flags'),[range(action_padd),n_trials])';
-            
+
             % flag current stimulus period
             time2plot = ...
                 action_padd(1) + psthbin : psthbin : action_padd(2);
             time_flags = time2plot >= 0;
             onset_flags = time2plot <= 0 & ...
                 [time2plot(2:end),nan] > 0;
-            
+
             % compute mean spike density function
             go_mu = nanmean(go_spkrates,1);
             go_std = nanstd(go_spkrates,0,1);
             go_sem = go_std ./ sqrt(sum(~isnan(go_spkrates),1));
-            
+
             % patch s.e.m.
             xpatch = [time2plot(time_flags),fliplr(time2plot(time_flags))];
             ypatch = [go_mu(time_flags)-go_sem(time_flags),fliplr(go_mu(time_flags)+go_sem(time_flags))];
             patch(sps(3),xpatch,ypatch,clrs(ii,:),...
                 'facealpha',.25,...
                 'edgecolor','none');
-            
+
             % plot average activity
             plot(sps(3),time2plot(time_flags),go_mu(time_flags),...
                 'color',clrs(ii,:),...
@@ -394,7 +393,7 @@ for nn = 1 : n_neurons2plot
                 'markersize',7.5,...
                 'markerfacecolor','w',...
                 'markeredgecolor',clrs(ii,:));
-            
+
             % plot go cue raster
             time_mat = padded_time - (...
                 pre_init_padding + ...
@@ -417,7 +416,7 @@ for nn = 1 : n_neurons2plot
                 'marker',spike_marker,...
                 'markersize',2.5,...
                 'linestyle','none');
-            
+
             % plot raster bands
             xpatch = min(xlim(sps(3))) + [0,.05,.05,0] .* range(xlim(sps(3)));
             ypatch = [.5,.5,n_trials+.5,n_trials+.5] + go_n_trial_counter;
@@ -425,12 +424,12 @@ for nn = 1 : n_neurons2plot
                 'linewidth',1.5,...
                 'facealpha',.75,...
                 'edgecolor','none');
-            
+
             % update trial counters
             go_n_trial_counter = go_n_trial_counter + n_trials;
         end
     end
-    
+
     % text annotations
     mean_formula = strjoin(repmat({'%.1f'},1,n_i),' | ');
     text(sps(2),.05,1,sprintf(['mean FR: ',mean_formula],...
@@ -464,7 +463,7 @@ for nn = 1 : n_neurons2plot
         'horizontalalignment','right',...
         'verticalalignment','top',...
         'units','normalized');
-    
+
     % save figure
     if want2save
         try
@@ -475,7 +474,7 @@ for nn = 1 : n_neurons2plot
                 'ylim',[1,s2_n_trial_counter]);
             set(sps(6),...
                 'ylim',[1,go_n_trial_counter]);
-            
+
             % save settings
             save_file = fullfile(raster_path,[get(fig,'name'),'.png']);
             print(fig,save_file,'-dpng','-r300','-painters');

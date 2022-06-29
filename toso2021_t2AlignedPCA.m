@@ -69,7 +69,7 @@ for nn = 1 : n_neurons
 end
 
 % nan handling
-s2_psths(isnan(s2_psths)) = 0;
+% s2_psths(isnan(s2_psths)) = 0;
 
 %% normalization
 mus = nanmean(s2_psths,[1,3]);
@@ -95,13 +95,32 @@ for nn = 1 : n_neurons
     s2_concat_diff(:,nn) = nn_zpsths_diff(:);
 end
 
-% pca
-% coeff = pca(s2_concat_extr);    % pseudo-demixed PCA
-% coeff = pca(s2_concat_mode);    % robust PCA
-t1_coeff = pca(s2_concat_all);     % vanilla PCA
-lat_pca = nanvar(s2_concat_all * t1_coeff)';
+% training settings
+pca_design = s2_concat_all;
+%   'all'   ->  vanilla PCA
+%   'extr'  ->  pseudo-demixed PCA
+%   'mode'  ->  robust PCA
+
+% compute observation weights
+weights = ones(size(pca_design,1),1);
+for ii = 1 : n_contrasts
+    contrast_flags = contrasts == contrast_set(ii);
+    time_mat = repmat(roi2use(1) + psthbin : psthbin : roi2use(2),...
+        sum(contrast_flags),1);
+    concat_idcs = (1 : roi2use_n_bins) + roi2use_n_bins * (ii - 1);
+    weights(concat_idcs) = sum(time_mat <= t2(contrast_flags));
+end
+weights = repmat(weights,1,size(pca_design,1)/numel(weights));
+weights(weights == 0) = nan;
+
+% PCA
+coeff = pca(pca_design,...
+    'weights',weights);
+
+% reorder PCs by variance explained
+lat_pca = nanvar(s2_concat_all * coeff)';
 [~,pca_idcs] = sort(lat_pca,'descend');
-t1_coeff = t1_coeff(:,pca_idcs);
+coeff = coeff(:,pca_idcs);
 exp_pca = lat_pca(pca_idcs) / sum(nanvar(s2_concat_all)) * 100;
 
 % preallocation
@@ -111,7 +130,7 @@ s2_score = nan(roi2plot_n_bins,n_neurons,n_contrasts);
 for ii = 1 : n_contrasts
     
     % project onto PCs
-    s2_score(:,:,ii) = s2_zpsths(:,:,ii) * t1_coeff;
+    s2_score(:,:,ii) = s2_zpsths(:,:,ii) * coeff;
 end
 
 %% 3D trajectories in PC space
@@ -200,13 +219,13 @@ end
 % figure initialization
 fig = figure(figopt,...
     'position',[769.8,41.8,766.4,740.8],...
-    'name',sprintf('pc_projections_t1_%s',contrast_str));
+    'name',sprintf('pc_projections_t2_%s',contrast_str));
 n_pcs2plot = 6;
 sps = gobjects(n_pcs2plot,1);
 for pc = 1 : n_pcs2plot
     sp_idx = pc * 2 - 1 - (pc > n_pcs2plot / 2) * (n_pcs2plot - 1);
     sps(pc) = subplot(n_pcs2plot/2,2,sp_idx);
-    xlabel(sps(pc),'Time since T_1 onset (s)');
+    xlabel(sps(pc),'Time since T_2 onset (s)');
     ylabel(sps(pc),sprintf('PC %i\n%.1f%% variance',pc,exp_pca(pc)));
 end
 xxtick = unique([roi2plot';0;t_set]);

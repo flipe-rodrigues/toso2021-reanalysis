@@ -22,6 +22,7 @@ roi2use_flags = ...
 % preallocation
 s1_psths = nan(roi2plot_n_bins,n_neurons,n_i);
 s2_psths = nan(roi2plot_n_bins,n_neurons,n_i);
+post_s2_psths = nan(post_t2_delay,n_neurons,n_choices);
 
 % iterate through neurons
 for nn = 1 : n_neurons
@@ -34,13 +35,13 @@ for nn = 1 : n_neurons
     % iterate through intensities
     for ii = 1 : n_i
         i1_flags = i1 == i_set(ii);
-        contrast_flags = i2 == i_set(ii);
+        i2_flags = i2 == i_set(ii);
         s1_spike_flags = ...
             spike_flags & ...
             i1_flags;
         s2_spike_flags = ...
             spike_flags & ...
-            contrast_flags;
+            i2_flags;
         if sum(s1_spike_flags) == 0 || sum(s2_spike_flags) == 0
             continue;
         end
@@ -70,7 +71,8 @@ for nn = 1 : n_neurons
         s1_spkrates = s1_spike_rates;
         s1_spkrates(~s1_alignment_flags') = nan;
         s1_spkrates = reshape(...
-            s1_spkrates(s1_chunk_flags'),[roi2plot_n_bins,s1_n_trials])';
+            s1_spkrates(s1_chunk_flags'),...
+            [roi2plot_n_bins,s1_n_trials])';
         
         % T2-aligned spike rates
         s2_alignment = ...
@@ -87,17 +89,56 @@ for nn = 1 : n_neurons
         s2_spkrates = s2_spike_rates;
         s2_spkrates(~s2_alignment_flags') = nan;
         s2_spkrates = reshape(...
-            s2_spkrates(s2_chunk_flags'),[roi2plot_n_bins,s2_n_trials])';
+            s2_spkrates(s2_chunk_flags'),...
+            [roi2plot_n_bins,s2_n_trials])';
         
         % compute mean spike density functions
         s1_psths(:,nn,ii) = nanmean(s1_spkrates,1);
         s2_psths(:,nn,ii) = nanmean(s2_spkrates,1);
     end
+    
+    % iterate through choices
+    for ii = 1 : n_choices
+        choice_flags = choices == choice_set(ii);
+        post_s2_spike_flags = ...
+            spike_flags & ...
+            choice_flags;
+        if sum(post_s2_spike_flags) == 0
+            continue;
+        end
+        
+        % fetch post T2-aligned spike counts & compute spike rates
+        post_s2_spike_counts = data.FR(post_s2_spike_flags,:);
+        post_s2_spike_rates = conv2(...
+            1,kernel.pdf,post_s2_spike_counts,'valid')' / psthbin * 1e3;
+        post_s2_n_trials = size(post_s2_spike_counts,1);
+        
+        % post T2 delay-aligned spike rates
+        post_s2_alignment = ...
+            pre_init_padding + ...
+            pre_t1_delay(post_s2_spike_flags) + ...
+            t1(post_s2_spike_flags) + ...
+            inter_t1t2_delay + ...
+            t2(post_s2_spike_flags);
+        post_s2_alignment_flags = ...
+            valid_time >= post_s2_alignment & ...
+            valid_time < post_s2_alignment + post_t2_delay;
+        post_s2_chunk_flags = post_s2_alignment_flags;
+        post_s2_spkrates = post_s2_spike_rates;
+        post_s2_spkrates(~post_s2_alignment_flags') = nan;
+        post_s2_spkrates = reshape(...
+            post_s2_spkrates(post_s2_chunk_flags'),...
+            [post_t2_delay,post_s2_n_trials])';
+        
+        % compute mean spike density functions
+        post_s2_psths(:,nn,ii) = nanmean(post_s2_spkrates,1);
+    end
 end
 
 % nan handling
-s1_psths(isnan(s1_psths)) = 0;
-s2_psths(isnan(s2_psths)) = 0;
+% s1_psths(isnan(s1_psths)) = 0;
+% s2_psths(isnan(s2_psths)) = 0;
+% post_s2_psths(isnan(post_s2_psths)) = 0;
 
 %% normalization
 
@@ -111,7 +152,12 @@ s2_mus = nanmean(s2_psths,[1,3]);
 s2_sigs = nanstd(s2_psths,0,[1,3]);
 s2_zpsths = (s2_psths - s2_mus) ./ nanstd(s2_sigs);
 
-%% PCA
+% z-score post T2-aligned spike density functions
+post_s2_mus = nanmean(post_s2_psths,[1,3]);
+post_s2_sigs = nanstd(post_s2_psths,0,[1,3]);
+post_s2_zpsths = (post_s2_psths - post_s2_mus) ./ nanstd(post_s2_sigs);
+
+%% cross-condition concatenations
 
 % concatenate T1-aligned psths across conditions
 s1_concat_all = nan(roi2use_n_bins*n_i,n_neurons);
@@ -145,38 +191,51 @@ for nn = 1 : n_neurons
     s2_concat_diff(:,nn) = nn_zpsths_diff(:);
 end
 
+% concatenate post T2-aligned psths across conditions
+post_s2_concat_all = nan(post_t2_delay*n_choices,n_neurons);
+post_s2_concat_diff = nan(post_t2_delay,n_neurons);
+for nn = 1 : n_neurons
+    nn_zpsths_all = post_s2_zpsths(:,nn,:);
+    nn_zpsths_diff = post_s2_zpsths(:,nn,end) - post_s2_zpsths(:,nn,1);
+    post_s2_concat_all(:,nn) = nn_zpsths_all(:);
+    post_s2_concat_diff(:,nn) = nn_zpsths_diff(:);
+end
+
+%% PCA
+
 % training settings
-pca_stimulus_str = 's2';
+pca_epoch_str = 'post_s2';
 pca_design_str = 'all';
 %   'all'   ->  vanilla PCA
 %   'extr'  ->  pseudo-demixed PCA
 %   'mode'  ->  robust PCA
-
-% PCA
-pca_design = eval([pca_stimulus_str,'_concat_',pca_design_str]);
-pca_alignment = eval(strrep(pca_stimulus_str,'s','t'));
-pca_contrast_str = strrep(pca_stimulus_str,'s','i');
-pca_contrasts = eval(pca_contrast_str);
-pca_contrast_set = eval([pca_contrast_str(1:end-1),'_set']);
-pca_n_contrasts = numel(pca_contrast_set);
+pca_design = eval([pca_epoch_str,'_concat_',pca_design_str]);
+% pca_alignment = eval(strrep(pca_epoch_str,'s','t'));
+% pca_contrast_str = strrep(pca_epoch_str,'s','i');
+% pca_contrasts = eval(pca_contrast_str);
+% pca_contrast_set = eval([pca_contrast_str(1:end-1),'_set']);
+% pca_n_contrasts = numel(pca_contrast_set);
 
 % compute observation weights
-weights = nan(size(pca_design,1),1);
-for ii = 1 : pca_n_contrasts
-    contrast_flags = pca_contrasts == pca_contrast_set(ii);
-    time_mat = repmat(roi2use(1) + psthbin : psthbin : roi2use(2),...
-        sum(contrast_flags),1);
-    concat_idcs = (1 : roi2use_n_bins) + roi2use_n_bins * (ii - 1);
-    weights(concat_idcs) = sum(time_mat <= pca_alignment(contrast_flags));
-end
-weights = repmat(weights,1,size(pca_design,1)/numel(weights));
+weights = ones(size(pca_design,1),1);
+% for ii = 1 : pca_n_contrasts
+%     i2_flags = pca_contrasts == pca_contrast_set(ii);
+%     time_mat = repmat(roi2use(1) + psthbin : psthbin : roi2use(2),...
+%         sum(i2_flags),1);
+%     concat_idcs = (1 : roi2use_n_bins) + roi2use_n_bins * (ii - 1);
+%     weights(concat_idcs) = sum(time_mat <= pca_alignment(i2_flags));
+% end
+% weights = repmat(weights,1,size(pca_design,1)/numel(weights));
+
+% PCA
 coeff = pca(pca_design,...
     'weights',weights);
 
 % reorder PCs by variance explained
 s1_lat = nanvar(s1_concat_all * coeff)';
 s2_lat = nanvar(s2_concat_all * coeff)';
-[~,pca_idcs] = sort(eval([pca_stimulus_str,'_lat']),'descend');
+post_s2_lat = nanvar(post_s2_concat_all * coeff)';
+[~,pca_idcs] = sort(eval([pca_epoch_str,'_lat']),'descend');
 coeff = coeff(:,pca_idcs);
 s1_exp_pca = s1_lat(pca_idcs) / sum(nanvar(s1_concat_all)) * 100;
 s2_exp_pca = s2_lat(pca_idcs) / sum(nanvar(s2_concat_all)) * 100;
@@ -201,11 +260,11 @@ set(gca,...
     'xtick',0,...
     'ytick',0,...
     'ztick',0);
-xlabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_stimulus_str,1,s1_exp_pca(1)),...
+xlabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_epoch_str,1,s1_exp_pca(1)),...
     'horizontalalignment','center');
-ylabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_stimulus_str,2,s1_exp_pca(2)),...
+ylabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_epoch_str,2,s1_exp_pca(2)),...
     'horizontalalignment','center');
-zlabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_stimulus_str,3,s1_exp_pca(3)),...
+zlabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_epoch_str,3,s1_exp_pca(3)),...
     'horizontalalignment','center');
 
 % iterate through intensities
@@ -282,11 +341,11 @@ set(gca,...
     'xtick',0,...
     'ytick',0,...
     'ztick',0);
-xlabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_stimulus_str,1,s2_exp_pca(1)),...
+xlabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_epoch_str,1,s2_exp_pca(1)),...
     'horizontalalignment','center');
-ylabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_stimulus_str,2,s2_exp_pca(2)),...
+ylabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_epoch_str,2,s2_exp_pca(2)),...
     'horizontalalignment','center');
-zlabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_stimulus_str,3,s2_exp_pca(3)),...
+zlabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_epoch_str,3,s2_exp_pca(3)),...
     'horizontalalignment','center');
 
 % iterate through intensities
@@ -368,7 +427,7 @@ for pc = 1 : n_pcs2plot
     sps(pc) = subplot(n_pcs2plot/2,2,sp_idx);
     xlabel(sps(pc),'Time since T_1 onset (s)');
     ylabel(sps(pc),sprintf('PC_{%s} %i\n%.1f%% variance',...
-        pca_stimulus_str,pc,s1_exp_pca(pc)));
+        pca_epoch_str,pc,s1_exp_pca(pc)));
 end
 xxtick = unique([roi2plot';0;t_set]);
 xxticklabel = num2cell(xxtick);
@@ -456,7 +515,7 @@ for pc = 1 : n_pcs2plot
     sps(pc) = subplot(n_pcs2plot/2,2,sp_idx);
     xlabel(sps(pc),'Time since T_2 onset (s)');
     ylabel(sps(pc),sprintf('PC_{%s} %i\n%.1f%% variance',...
-        pca_stimulus_str,pc,s2_exp_pca(pc)));
+        pca_epoch_str,pc,s2_exp_pca(pc)));
 end
 xxtick = unique([roi2plot';0;t_set]);
 xxticklabel = num2cell(xxtick);
