@@ -12,7 +12,7 @@ stim2test_idcs = [3,4,5];
 stim2test_n = numel(stim2test_idcs);
 
 % contrasts
-contrast2train_idcs = 1 : n_contrasts; % contrast_mode_idx;
+contrast2train_idcs = contrast_mode_idx;
 contrast2train_n = numel(contrast2train_idcs);
 contrast2test_idcs = 1 : n_contrasts;
 contrast2test_n = numel(contrast2test_idcs);
@@ -52,6 +52,7 @@ roi_time = linspace(roi(1),roi(2),roi_n_bins);
 % preallocation
 concat_tensor = nan(roi_n_bins,n_neurons,n_concats);
 concat_contrasts = nan(n_concats,1);
+concat_stimuli = nan(n_concats,1);
 concat_stimuli = nan(n_concats,1);
 concat_choices = nan(n_concats,1);
 concat_evalset = nan(n_concats,1);
@@ -201,6 +202,8 @@ nbdopt = struct();
 nbdopt.n_xpoints = 100;
 nbdopt.condition = concat_contrasts;
 nbdopt.stimulus = concat_stimuli;
+% nbdopt.condition = concat_stimuli; % concat_contrasts;
+% nbdopt.stimulus = concat_contrasts; % concat_stimuli;
 nbdopt.time = roi_time;
 nbdopt.train.trial_idcs = find(concat_evalset == 'train');
 nbdopt.train.n_trials = numel(nbdopt.train.trial_idcs);
@@ -224,7 +227,7 @@ xlabel('Time since T_2 (ms)');
 ylabel('Firing rate (Hz)');
 
 % iterate through units
-for nn = 1 : n_neurons
+for nn = 87%1 : n_neurons
     cla;
     r_bounds = neurons(nn).x_bounds;
     r_bw = neurons(nn).x_bw;

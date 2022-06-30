@@ -147,7 +147,7 @@ function [P_tX,P_Xt,pthat,features] = naivebayesdecoder_simpler(tensor,opt)
             
             % fetch current observations
             x = tensor(tt,feature_flags,test_idx)';
-
+            
             % compute likelihoods of the current observations
             if opt.assumepoissonmdl
                 

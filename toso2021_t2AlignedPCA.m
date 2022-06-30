@@ -8,7 +8,7 @@ shuffle_is_on = 0;
 
 %% construct T1-aligned, Ii-split psths
 pre_padd = 500;
-roi2use = [0,t_set(end-1)];
+roi2use = [-pre_padd,t_set(end-1)];
 roi2plot = [-pre_padd,t_set(end)];
 roi2use_n_bins = range(roi2use) * psthbin;
 roi2plot_n_bins = range(roi2plot) * psthbin;
