@@ -3,10 +3,6 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
-%% TODO
-% should probably add the option to train on choice-split Ti-aligned data,
-% and then project Ii-split data on those PCs...
-
 %% construct Ti-aligned, Ii-split psths
 pre_padd = 500;
 roi2use = [0,t_set(end-1)];
@@ -22,7 +18,6 @@ roi2use_flags = ...
 % preallocation
 s1_psths = nan(roi2plot_n_bins,n_neurons,n_i);
 s2_psths = nan(roi2plot_n_bins,n_neurons,n_i);
-post_s2_psths = nan(post_t2_delay,n_neurons,n_choices);
 
 % iterate through neurons
 for nn = 1 : n_neurons
@@ -96,43 +91,6 @@ for nn = 1 : n_neurons
         s1_psths(:,nn,ii) = nanmean(s1_spkrates,1);
         s2_psths(:,nn,ii) = nanmean(s2_spkrates,1);
     end
-    
-    % iterate through choices
-    for ii = 1 : n_choices
-        choice_flags = choices == choice_set(ii);
-        post_s2_spike_flags = ...
-            spike_flags & ...
-            choice_flags;
-        if sum(post_s2_spike_flags) == 0
-            continue;
-        end
-        
-        % fetch post T2-aligned spike counts & compute spike rates
-        post_s2_spike_counts = data.FR(post_s2_spike_flags,:);
-        post_s2_spike_rates = conv2(...
-            1,kernel.pdf,post_s2_spike_counts,'valid')' / psthbin * 1e3;
-        post_s2_n_trials = size(post_s2_spike_counts,1);
-        
-        % post T2 delay-aligned spike rates
-        post_s2_alignment = ...
-            pre_init_padding + ...
-            pre_t1_delay(post_s2_spike_flags) + ...
-            t1(post_s2_spike_flags) + ...
-            inter_t1t2_delay + ...
-            t2(post_s2_spike_flags);
-        post_s2_alignment_flags = ...
-            valid_time >= post_s2_alignment & ...
-            valid_time < post_s2_alignment + post_t2_delay;
-        post_s2_chunk_flags = post_s2_alignment_flags;
-        post_s2_spkrates = post_s2_spike_rates;
-        post_s2_spkrates(~post_s2_alignment_flags') = nan;
-        post_s2_spkrates = reshape(...
-            post_s2_spkrates(post_s2_chunk_flags'),...
-            [post_t2_delay,post_s2_n_trials])';
-        
-        % compute mean spike density functions
-        post_s2_psths(:,nn,ii) = nanmean(post_s2_spkrates,1);
-    end
 end
 
 % nan handling
@@ -151,11 +109,6 @@ s1_zpsths = (s1_psths - s1_mus) ./ s1_sigs;
 s2_mus = nanmean(s2_psths,[1,3]);
 s2_sigs = nanstd(s2_psths,0,[1,3]);
 s2_zpsths = (s2_psths - s2_mus) ./ s2_sigs;
-
-% z-score post T2-aligned spike density functions
-post_s2_mus = nanmean(post_s2_psths,[1,3]);
-post_s2_sigs = nanstd(post_s2_psths,0,[1,3]);
-post_s2_zpsths = (post_s2_psths - post_s2_mus) ./ post_s2_sigs;
 
 %% cross-condition concatenations
 
@@ -191,68 +144,44 @@ for nn = 1 : n_neurons
     s2_concat_diff(:,nn) = nn_zpsths_diff(:);
 end
 
-% concatenate post T2-aligned psths across conditions
-post_s2_concat_all = nan(post_t2_delay*n_choices,n_neurons);
-post_s2_concat_diff = nan(post_t2_delay,n_neurons);
-for nn = 1 : n_neurons
-    nn_zpsths_all = post_s2_zpsths(:,nn,:);
-    nn_zpsths_diff = post_s2_zpsths(:,nn,end) - post_s2_zpsths(:,nn,1);
-    post_s2_concat_all(:,nn) = nn_zpsths_all(:);
-    post_s2_concat_diff(:,nn) = nn_zpsths_diff(:);
-end
-
-%% PCA
+%% ICA
 
 % training settings
-pca_epoch_str = 's2';
-pca_design_str = 'all';
-%   'all'   ->  vanilla PCA
-%   'extr'  ->  pseudo-demixed PCA
-%   'mode'  ->  robust PCA
-pca_design = eval([pca_epoch_str,'_concat_',pca_design_str]);
-pca_alignment = eval(strrep(pca_epoch_str,'s','t'));
-pca_contrast_str = strrep(pca_epoch_str,'s','i');
-pca_contrasts = eval(pca_contrast_str);
-pca_contrast_set = eval([pca_contrast_str(1:end-1),'_set']);
-pca_n_contrasts = numel(pca_contrast_set);
+ica_epoch_str = 's2';
+ica_design_str = 'mode';
+%   'all'   ->  vanilla ICA
+%   'extr'  ->  pseudo-demixed ICA
+%   'mode'  ->  robust ICA
+ica_design = eval([ica_epoch_str,'_concat_',ica_design_str]);
 
-% compute observation weights
-weights = ones(size(pca_design,1),1);
-for ii = 1 : pca_n_contrasts
-    i2_flags = pca_contrasts == pca_contrast_set(ii);
-    time_mat = repmat(roi2use(1) + psthbin : psthbin : roi2use(2),...
-        sum(i2_flags),1);
-    concat_idcs = (1 : roi2use_n_bins) + roi2use_n_bins * (ii - 1);
-    weights(concat_idcs) = sum(time_mat <= pca_alignment(i2_flags));
-end
-weights = repmat(weights,1,size(pca_design,1)/numel(weights));
+% ICA
+n_ics = n_neurons;
+ricamdl = rica(ica_design,n_ics2use,...
+    'iterationlimit',1e4,...
+    'verbositylevel',1);
+coeff = ricamdl.TransformWeights;
 
-% PCA
-coeff = pca(pca_design,...
-    'weights',weights);
-
-% reorder PCs by variance explained
+% reorder ICs by variance explained
 s1_lat = nanvar(s1_concat_all * coeff)';
 s2_lat = nanvar(s2_concat_all * coeff)';
-post_s2_lat = nanvar(post_s2_concat_all * coeff)';
-[~,pca_idcs] = sort(eval([pca_epoch_str,'_lat']),'descend');
-coeff = coeff(:,pca_idcs);
-s1_exp_pca = s1_lat(pca_idcs) / sum(nanvar(s1_concat_all)) * 100;
-s2_exp_pca = s2_lat(pca_idcs) / sum(nanvar(s2_concat_all)) * 100;
+[~,ica_idcs] = sort(eval([ica_epoch_str,'_lat']),'descend');
+coeff = coeff(:,ica_idcs);
+s1_exp_ica = s1_lat(ica_idcs) / sum(nanvar(s1_concat_all)) * 100;
+s2_exp_ica = s2_lat(ica_idcs) / sum(nanvar(s2_concat_all)) * 100;
 
 % preallocation
-s1_score = nan(roi2plot_n_bins,n_neurons,n_i);
-s2_score = nan(roi2plot_n_bins,n_neurons,n_i);
+s1_score = nan(roi2plot_n_bins,n_ics,n_i);
+s2_score = nan(roi2plot_n_bins,n_ics,n_i);
 
 % iterate through intensities
 for ii = 1 : n_i
     
-    % project onto PCs
+    % project onto ICs
     s1_score(:,:,ii) = s1_zpsths(:,:,ii) * coeff;
     s2_score(:,:,ii) = s2_zpsths(:,:,ii) * coeff;
 end
 
-%% 3D trajectories in PC space (T1-aligned)
+%% 3D trajectories in IC space (T1-aligned)
 fig = figure(figopt,...
     'name',sprintf('pc_trajectories_t1'));
 set(gca,...
@@ -260,11 +189,11 @@ set(gca,...
     'xtick',0,...
     'ytick',0,...
     'ztick',0);
-xlabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_epoch_str,1,s1_exp_pca(1)),...
+xlabel(sprintf('IC_{%s} %i\n%.1f%% variance',ica_epoch_str,1,s1_exp_ica(1)),...
     'horizontalalignment','center');
-ylabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_epoch_str,2,s1_exp_pca(2)),...
+ylabel(sprintf('IC_{%s} %i\n%.1f%% variance',ica_epoch_str,2,s1_exp_ica(2)),...
     'horizontalalignment','center');
-zlabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_epoch_str,3,s1_exp_pca(3)),...
+zlabel(sprintf('IC_{%s} %i\n%.1f%% variance',ica_epoch_str,3,s1_exp_ica(3)),...
     'horizontalalignment','center');
 
 % iterate through intensities
@@ -333,7 +262,7 @@ if want2save
     print(fig,svg_file,'-dsvg','-painters');
 end
 
-%% 3D trajectories in PC space (T2-aligned)
+%% 3D trajectories in IC space (T2-aligned)
 fig = figure(figopt,...
     'name',sprintf('pc_trajectories_t2'));
 set(gca,...
@@ -341,11 +270,11 @@ set(gca,...
     'xtick',0,...
     'ytick',0,...
     'ztick',0);
-xlabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_epoch_str,1,s2_exp_pca(1)),...
+xlabel(sprintf('IC_{%s} %i\n%.1f%% variance',ica_epoch_str,1,s2_exp_ica(1)),...
     'horizontalalignment','center');
-ylabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_epoch_str,2,s2_exp_pca(2)),...
+ylabel(sprintf('IC_{%s} %i\n%.1f%% variance',ica_epoch_str,2,s2_exp_ica(2)),...
     'horizontalalignment','center');
-zlabel(sprintf('PC_{%s} %i\n%.1f%% variance',pca_epoch_str,3,s2_exp_pca(3)),...
+zlabel(sprintf('IC_{%s} %i\n%.1f%% variance',ica_epoch_str,3,s2_exp_ica(3)),...
     'horizontalalignment','center');
 
 % iterate through intensities
@@ -414,20 +343,20 @@ if want2save
     print(fig,svg_file,'-dsvg','-painters');
 end
 
-%% PC projections (T1-aligned)
+%% IC projections (T1-aligned)
 
 % figure initialization
 fig = figure(figopt,...
     'position',[1.8,41.8,766.4,740.8],...
     'name',sprintf('pc_projections_t1'));
-n_pcs2plot = 6;
-sps = gobjects(n_pcs2plot,1);
-for pc = 1 : n_pcs2plot
-    sp_idx = pc * 2 - 1 - (pc > n_pcs2plot / 2) * (n_pcs2plot - 1);
-    sps(pc) = subplot(n_pcs2plot/2,2,sp_idx);
-    xlabel(sps(pc),'Time since T_1 onset (s)');
-    ylabel(sps(pc),sprintf('PC_{%s} %i\n%.1f%% variance',...
-        pca_epoch_str,pc,s1_exp_pca(pc)));
+n_ics2plot = 6;
+sps = gobjects(n_ics2plot,1);
+for ic = 1 : n_ics2plot
+    sp_idx = ic * 2 - 1 - (ic > n_ics2plot / 2) * (n_ics2plot - 1);
+    sps(ic) = subplot(n_ics2plot/2,2,sp_idx);
+    xlabel(sps(ic),'Time since T_1 onset (s)');
+    ylabel(sps(ic),sprintf('IC_{%s} %i\n%.1f%% variance',...
+        ica_epoch_str,ic,s1_exp_ica(ic)));
 end
 xxtick = unique([roi2plot';0;t_set]);
 xxticklabel = num2cell(xxtick);
@@ -444,7 +373,7 @@ set(sps,...
 linkaxes(sps,'x');
 
 % iterate through pcs
-for pc = 1 : n_pcs2plot
+for ic = 1 : n_ics2plot
     
     % graphical object preallocation
     p = gobjects(n_i,1);
@@ -453,8 +382,8 @@ for pc = 1 : n_pcs2plot
     for ii = 1 : n_i
         
         % plot projection
-        p(ii) = plot(sps(pc),roi2plot_time,...
-            s1_score(:,pc,ii),...
+        p(ii) = plot(sps(ic),roi2plot_time,...
+            s1_score(:,ic,ii),...
             'color',i1_clrs(ii,:),...
             'linestyle','-',...
             'linewidth',1.5);
@@ -462,8 +391,8 @@ for pc = 1 : n_pcs2plot
         % plot projection onset
         onset_flags = roi2plot_time <= 0 & ...
             [roi2plot_time(2:end),nan] > 0;
-        plot(sps(pc),roi2plot_time(onset_flags),...
-            s1_score(onset_flags,pc,ii),...
+        plot(sps(ic),roi2plot_time(onset_flags),...
+            s1_score(onset_flags,ic,ii),...
             'linewidth',1.5,...
             'marker','o',...
             'markersize',5,...
@@ -476,8 +405,8 @@ for pc = 1 : n_pcs2plot
             % plot projection offset
             offset_flags = roi2plot_time < t_set(tt) & ...
                 [roi2plot_time(2:end),nan] >= t_set(tt);
-            plot(sps(pc),roi2plot_time(offset_flags),...
-                s1_score(offset_flags,pc,ii),...
+            plot(sps(ic),roi2plot_time(offset_flags),...
+                s1_score(offset_flags,ic,ii),...
                 'linewidth',1.5,...
                 'marker','o',...
                 'markersize',6,...
@@ -487,10 +416,10 @@ for pc = 1 : n_pcs2plot
     end
     
     % update axes
-    set(sps(pc),...
-        'ytick',unique([0,ylim(sps(pc))]),...
+    set(sps(ic),...
+        'ytick',unique([0,ylim(sps(ic))]),...
         'yticklabel',{'','0',''},...
-        'ylim',ylim(sps(pc))+[-1,1]*.1*range(ylim(sps(pc))));
+        'ylim',ylim(sps(ic))+[-1,1]*.1*range(ylim(sps(ic))));
     
     % ui stacking
     uistack(p(:),'bottom');
@@ -502,20 +431,20 @@ if want2save
     print(fig,svg_file,'-dsvg','-painters');
 end
 
-%% PC projections (T2-aligned)
+%% IC projections (T2-aligned)
 
 % figure initialization
 fig = figure(figopt,...
     'position',[769.8,41.8,766.4,740.8],...
     'name',sprintf('pc_projections_t2'));
-n_pcs2plot = 6;
-sps = gobjects(n_pcs2plot,1);
-for pc = 1 : n_pcs2plot
-    sp_idx = pc * 2 - 1 - (pc > n_pcs2plot / 2) * (n_pcs2plot - 1);
-    sps(pc) = subplot(n_pcs2plot/2,2,sp_idx);
-    xlabel(sps(pc),'Time since T_2 onset (s)');
-    ylabel(sps(pc),sprintf('PC_{%s} %i\n%.1f%% variance',...
-        pca_epoch_str,pc,s2_exp_pca(pc)));
+n_ics2plot = 6;
+sps = gobjects(n_ics2plot,1);
+for ic = 1 : n_ics2plot
+    sp_idx = ic * 2 - 1 - (ic > n_ics2plot / 2) * (n_ics2plot - 1);
+    sps(ic) = subplot(n_ics2plot/2,2,sp_idx);
+    xlabel(sps(ic),'Time since T_2 onset (s)');
+    ylabel(sps(ic),sprintf('IC_{%s} %i\n%.1f%% variance',...
+        ica_epoch_str,ic,s2_exp_ica(ic)));
 end
 xxtick = unique([roi2plot';0;t_set]);
 xxticklabel = num2cell(xxtick);
@@ -532,7 +461,7 @@ set(sps,...
 linkaxes(sps,'x');
 
 % iterate through pcs
-for pc = 1 : n_pcs2plot
+for ic = 1 : n_ics2plot
     
     % graphical object preallocation
     p = gobjects(n_i,1);
@@ -541,8 +470,8 @@ for pc = 1 : n_pcs2plot
     for ii = 1 : n_i
         
         % plot projection
-        p(ii) = plot(sps(pc),roi2plot_time,...
-            s2_score(:,pc,ii),...
+        p(ii) = plot(sps(ic),roi2plot_time,...
+            s2_score(:,ic,ii),...
             'color',i2_clrs(ii,:),...
             'linestyle','-',...
             'linewidth',1.5);
@@ -550,8 +479,8 @@ for pc = 1 : n_pcs2plot
         % plot projection onset
         onset_flags = roi2plot_time <= 0 & ...
             [roi2plot_time(2:end),nan] > 0;
-        plot(sps(pc),roi2plot_time(onset_flags),...
-            s2_score(onset_flags,pc,ii),...
+        plot(sps(ic),roi2plot_time(onset_flags),...
+            s2_score(onset_flags,ic,ii),...
             'linewidth',1.5,...
             'marker','o',...
             'markersize',5,...
@@ -564,8 +493,8 @@ for pc = 1 : n_pcs2plot
             % plot projection offset
             offset_flags = roi2plot_time < t_set(tt) & ...
                 [roi2plot_time(2:end),nan] >= t_set(tt);
-            plot(sps(pc),roi2plot_time(offset_flags),...
-                s2_score(offset_flags,pc,ii),...
+            plot(sps(ic),roi2plot_time(offset_flags),...
+                s2_score(offset_flags,ic,ii),...
                 'linewidth',1.5,...
                 'marker','o',...
                 'markersize',6,...
@@ -575,10 +504,10 @@ for pc = 1 : n_pcs2plot
     end
     
     % update axes
-    set(sps(pc),...
-        'ytick',unique([0,ylim(sps(pc))]),...
+    set(sps(ic),...
+        'ytick',unique([0,ylim(sps(ic))]),...
         'yticklabel',{'','0',''},...
-        'ylim',ylim(sps(pc))+[-1,1]*.1*range(ylim(sps(pc))));
+        'ylim',ylim(sps(ic))+[-1,1]*.1*range(ylim(sps(ic))));
     
     % ui stacking
     uistack(p(:),'bottom');

@@ -74,7 +74,7 @@ end
 %% normalization
 mus = nanmean(s2_psths,[1,3]);
 sigs = nanstd(s2_psths,0,[1,3]);
-s2_zpsths = (s2_psths - mus) ./ nanstd(sigs);
+s2_zpsths = (s2_psths - mus) ./ sigs;
 
 %% PCA
 

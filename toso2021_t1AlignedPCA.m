@@ -72,7 +72,7 @@ s1_psths(isnan(s1_psths)) = 0;
 %% normalization
 mus = nanmean(s1_psths,[1,3]);
 sigs = nanstd(s1_psths,0,[1,3]);
-s1_zpsths = (s1_psths - mus) ./ nanstd(sigs);
+s1_zpsths = (s1_psths - mus) ./ sigs;
 
 %% PCA
 

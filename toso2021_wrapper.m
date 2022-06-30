@@ -15,7 +15,7 @@ clc;
 
 %% task selection
 task_str = 'duration';
-% task_str = 'intensity';
+task_str = 'intensity';
 
 %% directory settings
 root_path = fileparts(which(mfilename));
@@ -43,7 +43,7 @@ want2save = true;
 toso2021_preface;
 
 %% contrast settings
-contrast_str = 'i2';
+contrast_str = 't2';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str(1:end-1),'_set']);
 n_contrasts = numel(contrast_set);
@@ -61,6 +61,7 @@ toso2021_neuronSelection;
 toso2021_overallModulation;
 toso2021_t2AlignedPCA;
 toso2021_PCA;
+toso2021_hierarchicalClustering;
 toso2021_neurometricCurves;
 toso2021_naiveBayesDecoder;
 % toso2021_rasters;

@@ -21,7 +21,7 @@ end
 %% construct S2-aligned, Ti- & Ii-split psths
 
 % time settings
-roi = [0,t_set(end)];
+roi = [0,t_set(t2_mode_idx)];
 roi_n_bins = range(roi) * psthbin;
 roi_time = linspace(roi(1),roi(2),roi_n_bins);
 
@@ -29,8 +29,8 @@ roi_time = linspace(roi(1),roi(2),roi_n_bins);
 mean_frs = nan(numel(neuron_idcs),n_t,n_i);
 trial_type_counts = nan(numel(neuron_idcs),n_t,n_i);
 stability_coeffs = nan(numel(neuron_idcs),1);
-timeregression_pvals = nan(numel(neuron_idcs),1);
-timeregression_coeffs = nan(numel(neuron_idcs),1);
+timeregr_pvals = nan(numel(neuron_idcs),1);
+timeregr_coeffs = nan(numel(neuron_idcs),1);
 timecorr_coeffs = nan(numel(neuron_idcs),1);
 
 % iterate through neurons
@@ -40,12 +40,18 @@ for nn = neuron_idcs'
     
     % iterate through durations
     for tt = 1 : n_t
+        t1_flags = t2 == t_set(tt);
         t2_flags = t2 == t_set(tt);
         
         % iterate through intensities
         for ii = 1 : n_i
             i1_flags = i1 == i_set(ii);
             i2_flags = i2 == i_set(ii);
+            s1i1_spike_flags = ...
+                valid_flags & ...
+                neuron_flags & ...
+                t1_flags & ...
+                i1_flags;
             s2i1_spike_flags = ...
                 valid_flags & ...
                 neuron_flags & ...
@@ -56,7 +62,9 @@ for nn = neuron_idcs'
                 neuron_flags & ...
                 t2_flags & ...
                 i2_flags;
-            if (sum(s2i1_spike_flags) == 0) || (sum(s2i2_spike_flags) == 0) 
+            if sum(s1i1_spike_flags) == 0 ||...
+                    sum(s2i1_spike_flags) == 0 || ...
+                    sum(s2i2_spike_flags) == 0
                 continue;
             end
             
@@ -134,8 +142,8 @@ for nn = neuron_idcs'
     
     % compute ramping vs. non-ramping metrics
     mdl = fitlm(roi_time,nanmean(s2_spkrates,1));
-    timeregression_pvals(nn) = mdl.Coefficients.pValue(2);
-    timeregression_coeffs(nn) = mdl.Coefficients.Estimate(2);
+    timeregr_pvals(nn) = mdl.Coefficients.pValue(2);
+    timeregr_coeffs(nn) = mdl.Coefficients.Estimate(2);
     timecorr_coeffs(nn) = corr(roi_time',nanmean(s2_spkrates,1)');
 end
 trial_type_counts(isnan(trial_type_counts)) = 0;
@@ -162,6 +170,3 @@ fprintf('- minimum trial count on all T2-I2 combinations: %i\n',...
     trial_count_cutoff);
 fprintf('- stability assessed by visual inspection\n');
 fprintf('%i/%i neurons passed.\n\n',n_neurons,n_neurons_total);
-
-%% ramping scatter
-
