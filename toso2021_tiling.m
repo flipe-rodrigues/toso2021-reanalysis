@@ -20,8 +20,8 @@ s1_psths = nan(roi2plot_n_bins,n_neurons);
 s2_psths = nan(roi2plot_n_bins,n_neurons);
 
 % distractor flags
-d1_flags = d1 == d_set(d1_mode_idx);
-d2_flags = d2 == d_set(d2_mode_idx);
+i1_flags = i1 == i_set(i1_mode_idx);
+i2_flags = i2 == i_set(i2_mode_idx);
 
 % iterate through neurons
 for nn = 1 : n_neurons
@@ -142,7 +142,7 @@ clrbar = colorbar;
 clrbar.Ticks = unique([0,clim]);
 clrlabel.string = ...
     sprintf('z-score_{I_1 = %i %s}',...
-    contrast_set(contrast_mode_idx),contrast_units);
+    i_set(i1_mode_idx),i_units);
 clrlabel.fontsize = axesopt.default.fontsize * 1.1;
 clrlabel.rotation = 270;
 clrlabel.position = [4.4,0,0];
@@ -191,7 +191,7 @@ clrbar = colorbar;
 clrbar.Ticks = unique([0,clim]);
 clrlabel.string = ...
     sprintf('z-score_{I_2 = %i %s}',...
-    contrast_set(contrast_mode_idx),contrast_units);
+    i_set(i2_mode_idx),i_units);
 clrlabel.fontsize = axesopt.default.fontsize * 1.1;
 clrlabel.rotation = 270;
 clrlabel.position = [4.4,0,0];
