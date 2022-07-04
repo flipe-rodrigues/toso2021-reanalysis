@@ -15,7 +15,7 @@ clc;
 
 %% task selection
 task_str = 'duration';
-task_str = 'intensity';
+% task_str = 'intensity';
 
 %% directory settings
 root_path = fileparts(which(mfilename));
@@ -26,6 +26,7 @@ file_name = sprintf('%c%s_rats.mat',upper(task_str(1)),task_str(2:end));
 data_file = fullfile(data_path,file_name);
 load(data_file);
 data = DataB.Info;
+data.Rts = DataB.RT;
 clear DataB;
 
 %% save settings
@@ -43,7 +44,7 @@ want2save = true;
 toso2021_preface;
 
 %% contrast settings
-contrast_str = 'i1';
+contrast_str = 'i2';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str(1:end-1),'_set']);
 n_contrasts = numel(contrast_set);

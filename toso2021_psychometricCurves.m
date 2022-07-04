@@ -64,8 +64,7 @@ psyopt.fit.stepN = [100,100,20,20,20];
 
 % iterate through contrasts
 for kk = 1 : n_contrasts
-    contrast_flags = contrasts == contrast_set(kk);
-    
+
     % fit psychometric curve
     psycurves(kk).fit = ...
         psignifit([psycurves(kk).x,psycurves(kk).y,psycurves(kk).n],psyopt.fit);
@@ -115,8 +114,7 @@ plot(xlim,[1,1]*.5,':k');
 
 % iterate through contrasts
 for kk = 1 : n_contrasts
-    contrast_flags = contrasts == contrast_set(kk);
-    
+
     % plot psychometric curve
     psyopt.plot.datafaceclr = contrast_clrs(kk,:);
     psyopt.plot.overallvisibility = 'off';
