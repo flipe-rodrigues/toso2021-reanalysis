@@ -16,14 +16,51 @@ rt = data.Rts(:,9);
 rt_i2(rt_i2 == 79) = 80;
 rt_i2(rt_i2 == 149) = 147;
 rt_valid_flags = ...
+    data.Rts(:,1) ~= 1 & ...
+    data.Rts(:,1) ~= 3 & ...
     rt_i1 ~= 0 & ...
     rt_i2 ~= 0 & ...
     rt_i2 ~= 53 & ...
     rt_i2 ~= 65 & ...
     rt_i2 ~= 120;
 
+%% multiplicity
+rt_stimuli = round(rt_t2 * w2 + rt_t1 * w1);
+t2_minus_t1 = rt_stimuli(rt_valid_flags) > ...
+    nanmedian(unique((rt_stimuli(rt_valid_flags))));
+t2_plus_t1 = rt_t2(rt_valid_flags) + rt_t1(rt_valid_flags) > ...
+    nanmedian(unique((rt_t2(rt_valid_flags) + rt_t1(rt_valid_flags))));
+t2_alone = rt_t2(rt_valid_flags) > nanmedian(unique((rt_t2(rt_valid_flags))));
+
+ground_truth = rt_t2(rt_valid_flags) - rt_t1(rt_valid_flags) > 0;
+
+figure; hold on;
+win = 50;
+kernel = expkernel('mus',win,'binwidth',1);
+% plot(smooth(ground_truth == rt_ch(rt_valid_flags),win));
+% plot(smooth(t2_minus_t1 == rt_ch(rt_valid_flags),win));
+% plot(smooth(t2_plus_t1 == rt_ch(rt_valid_flags),win));
+% plot(smooth(t2_alone == rt_ch(rt_valid_flags),win));
+plot(conv(rt_ch(rt_valid_flags) == ground_truth,kernel.pdf,'valid'),...
+    'linewidth',1.5);
+plot(conv(t2_minus_t1 == ground_truth,kernel.pdf,'valid'));
+plot(conv(t2_plus_t1 == ground_truth,kernel.pdf,'valid'));
+plot(conv(t2_alone == ground_truth,kernel.pdf,'valid'));
+
+ylabel('Proportion')
+xlabel('Trial #')
+xlim([win,5000])
+ylim([0,1])
+
+legend({...
+    'choices == T_2 - T_1',...
+    'w_2 \times T_2 + w_1 \times T_1 == T_2 - T_1',...
+    'T_2 + T_1 == T_2 - T_1',...
+    'T_2 > med(T_2) == T_2 - T_1'})
+
 %%
 rt_contrast = eval(['rt_',contrast_str]);
+rt_stim = rt_t2 - rt_t1;
 
 %% compute average reaction times
 
@@ -36,11 +73,11 @@ for kk = 1 : n_contrasts
     
     % iterate through stimuli
     for ii = 1 : n_stimuli
-        stim_flags = rt_t2 == stim_set(ii);
+        stim_flags = rt_stimuli == stim_set(ii);
         
         % iterate through correctness
         for cc = [0,1]
-            correct_flags = (rt_ch == (rt_t2 > nanmedian(rt_t2))) == cc;
+            correct_flags = (rt_ch == (rt_stimuli > nanmedian(rt_stimuli))) == cc;
             trial_flags = ...
                 rt_valid_flags & ...
                 contrast_flags & ...
@@ -79,7 +116,7 @@ markers = {'s','o'};
 for kk = 1 : n_contrasts
 
     % iterate through correctness
-    for cc = 0%[0,1]
+    for cc = 1 % [0,1]
         
         % plot error bars
         errorbar(rts(kk,cc+1).x,rts(kk,cc+1).y,...

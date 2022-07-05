@@ -112,11 +112,17 @@ c_units = 'a.u.';
 choices = data.Action;
 choice_set = unique(choices);
 n_choices = numel(choice_set);
-prev_choices = [nan;choices(1:end)];
-prev_choice_set = unique(choices);
-n_prev_choices = numel(choice_set);
 pre_t1_delay = data.PreDelay + inferred_misalignment;
 trial_idcs = data.Trial;
+
+% previous trial
+prev_t1 = [nan;t1(1:end-1)];
+prev_t2 = [nan;t2(1:end-1)];
+prev_i1 = [nan;i1(1:end-1)];
+prev_i2 = [nan;i2(1:end-1)];
+prev_choices = [nan;choices(1:end-1)];
+prev_choice_set = unique(choices);
+n_prev_choices = numel(choice_set);
 
 %% color scheme
 t1_clrs = cool(n_t);

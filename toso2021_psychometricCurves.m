@@ -7,16 +7,21 @@ end
 w_norm = sum(abs(beta_s1) + abs(beta_s2));
 w1 = beta_s1 / w_norm;
 w2 = beta_s2 / w_norm;
-w1 = 0;
-w2 = 1;
+% w1 = 0;
+% w2 = 1;
 stimuli = round(s2 * w2 + s1 * w1);
+stimuli = [ones(size(design,1),1),design] * coeffs;
+% stimuli = [ones(size(Z,1),1),Z] * betas;
+stimuli = round(stimuli,1);
+% stimuli = design(:,7:end) * coeffs(8:end,:);
+valid_flags = ~isnan(stimuli);
 stim_set = unique(stimuli(valid_flags));
-stim2group_flags = abs(diff(stim_set)) <= range(stim_set) * .01;
-if any(stim2group_flags)
-    for ii = find(stim2group_flags)'
-        stimuli(stimuli == stim_set(ii)) = stim_set(ii + 1);
-    end
-end
+% stim2group_flags = abs(diff(stim_set)) <= range(stim_set) * .01;
+% if any(stim2group_flags)
+%     for ii = find(stim2group_flags)'
+%         stimuli(stimuli == stim_set(ii)) = stim_set(ii + 1);
+%     end
+% end
 stim_set = unique(stimuli(valid_flags));
 n_stimuli = numel(stim_set);
 stim_lbl = sprintf('%.2f \\times %s + %.2f \\times %s (%s)',...
