@@ -97,6 +97,22 @@ scatter(...
     'markeredgecolor','k',...
     'linewidth',1.5);
 
+% iterate through pairs
+for ii = 1 : n_pairs
+    if s_pairset(ii,2) > s_pairset(ii,1)
+        vertical_gain = .865;
+    else
+        vertical_gain = 1.175;
+    end
+    
+    % annotate performance
+    text(tfun(s_pairset(ii,1) * 1.05),tfun(s_pairset(ii,2) * vertical_gain),...
+        sprintf('%.0f%%',p_choice(ii)*100),...
+        'fontsize',axesopt.default.fontsize,...
+        'horizontalalignment','center',...
+        'verticalalignment','middle');
+end
+
 % save figure
 if want2save
     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
@@ -162,6 +178,22 @@ scatter(...
     250,p_choice,'s','filled',...
     'markeredgecolor','none',...
     'linewidth',1.5);
+
+% iterate through pairs
+for ii = 1 : n_pairs
+    if s_pairset(ii,2) > s_pairset(ii,1)
+        vertical_gain = .865;
+    else
+        vertical_gain = 1.175;
+    end
+    
+    % annotate performance
+    text(tfun(s_pairset(ii,1) * 1.05),tfun(s_pairset(ii,2) * vertical_gain),...
+        sprintf('%.0f%%',p_choice(ii)*100),...
+        'fontsize',axesopt.default.fontsize,...
+        'horizontalalignment','center',...
+        'verticalalignment','middle');
+end
 
 % save figure
 if want2save

@@ -1,6 +1,6 @@
 %% initialization
 warning('off');
-% close all;
+close all;
 clear;
 clc;
 
@@ -24,9 +24,11 @@ cd(root_path);
 data_path = fullfile(root_path,'data');
 file_name = sprintf('%c%s_rats.mat',upper(task_str(1)),task_str(2:end));
 data_file = fullfile(data_path,file_name);
+% data_file = fullfile(data_path,'duration','AT4.mat');
 load(data_file);
 data = DataB.Info;
-data.Rts = DataB.RT;
+% data.Rts = DataB.RT;
+% data.Action = 1 - data.Action;
 clear DataB;
 
 %% save settings
@@ -44,16 +46,21 @@ want2save = true;
 toso2021_preface;
 
 %% contrast settings
-contrast_str = 'i2';
+contrast_str = 't2';
 contrasts = eval(contrast_str);
-% contrasts = prev_choices;
 contrast_set = eval([contrast_str(1:end-1),'_set']);
 n_contrasts = numel(contrast_set);
 contrast_mode_idx = find(contrast_set == mode(contrasts));
 contrast_clrs = eval([contrast_str,'_clrs']);
 contrast_units = eval([contrast_str(1),'_units']);
 contrast_lbl = [upper(contrast_str(1)),'_',contrast_str(2)];
-% contrast_lbl = ['prev. ',upper(contrast_str(1)),'_',contrast_str(2)];
+
+contrasts = prev_t2;
+contrast_set = unique(contrasts(valid_flags & ~isnan(contrasts)));
+n_contrasts = numel(contrast_set);
+contrast_mode_idx = find(contrast_set == mode(contrasts));
+contrast_clrs = spring(n_contrasts);
+contrast_lbl = ['prev. ',upper(contrast_str(1)),'_',contrast_str(2)];
 
 %% script execution order
 toso2021_contractionBias;
