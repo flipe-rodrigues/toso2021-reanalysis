@@ -114,6 +114,7 @@ choice_set = unique(choices);
 n_choices = numel(choice_set);
 pre_t1_delay = data.PreDelay + inferred_misalignment;
 trial_idcs = data.Trial;
+subject_ids = data.Subject;
 
 % previous trial
 prev_t1 = [nan;t1(1:end-1)];
