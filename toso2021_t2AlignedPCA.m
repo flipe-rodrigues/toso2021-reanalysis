@@ -133,6 +133,9 @@ for ii = 1 : n_contrasts
     s2_score(:,:,ii) = s2_zpsths(:,:,ii) * coeff;
 end
 
+% s2_score(:,1,:) = -s2_score(:,1,:);
+% s2_score(:,2,:) = -s2_score(:,2,:);
+
 %% 3D trajectories in PC space
 fig = figure(figopt,...
     'name',sprintf('pc_trajectories_t1_%s',contrast_str));
@@ -185,6 +188,17 @@ for ii = 1 : n_contrasts
             'markersize',6,...
             'markerfacecolor',contrast_clrs(ii,:),...
             'markeredgecolor',contrast_clrs(ii,:));
+        
+        % plot cross-condition offset-connecting line
+        if ii == n_contrasts
+            p = plot3(squeeze(s2_score(offset_flags,1,:)),...
+                squeeze(s2_score(offset_flags,2,:)),...
+                squeeze(s2_score(offset_flags,3,:)),...
+                'linewidth',1,...
+                'linestyle','--',...
+                'color',contrast_clrs(contrast_mode_idx,:));
+            uistack(p,'bottom');
+        end
     end
 end
 

@@ -25,42 +25,48 @@ rt_valid_flags = ...
     rt_i2 ~= 120;
 
 %% multiplicity
-rt_stimuli = round(rt_t2 * w2 + rt_t1 * w1);
-t2_minus_t1 = rt_stimuli(rt_valid_flags) > ...
-    nanmedian(unique((rt_stimuli(rt_valid_flags))));
-t2_plus_t1 = rt_t2(rt_valid_flags) + rt_t1(rt_valid_flags) > ...
-    nanmedian(unique((rt_t2(rt_valid_flags) + rt_t1(rt_valid_flags))));
-t2_alone = rt_t2(rt_valid_flags) > nanmedian(unique((rt_t2(rt_valid_flags))));
-
-ground_truth = rt_t2(rt_valid_flags) - rt_t1(rt_valid_flags) > 0;
-
-figure; hold on;
-win = 50;
-kernel = expkernel('mus',win,'binwidth',1);
-% plot(smooth(ground_truth == rt_ch(rt_valid_flags),win));
-% plot(smooth(t2_minus_t1 == rt_ch(rt_valid_flags),win));
-% plot(smooth(t2_plus_t1 == rt_ch(rt_valid_flags),win));
-% plot(smooth(t2_alone == rt_ch(rt_valid_flags),win));
-plot(conv(rt_ch(rt_valid_flags) == ground_truth,kernel.pdf,'valid'),...
-    'linewidth',1.5);
-plot(conv(t2_minus_t1 == ground_truth,kernel.pdf,'valid'));
-plot(conv(t2_plus_t1 == ground_truth,kernel.pdf,'valid'));
-plot(conv(t2_alone == ground_truth,kernel.pdf,'valid'));
-
-ylabel('Proportion')
-xlabel('Trial #')
-xlim([win,5000])
-ylim([0,1])
-
-legend({...
-    'choices == T_2 - T_1',...
-    'w_2 \times T_2 + w_1 \times T_1 == T_2 - T_1',...
-    'T_2 + T_1 == T_2 - T_1',...
-    'T_2 > med(T_2) == T_2 - T_1'})
+% rt_stimuli = round(rt_t2 * w2 + rt_t1 * w1);
+% t2_minus_t1 = rt_stimuli(rt_valid_flags) > ...
+%     nanmedian(unique((rt_stimuli(rt_valid_flags))));
+% t2_plus_t1 = rt_t2(rt_valid_flags) + rt_t1(rt_valid_flags) > ...
+%     nanmedian(unique((rt_t2(rt_valid_flags) + rt_t1(rt_valid_flags))));
+% t2_alone = rt_t2(rt_valid_flags) > nanmedian(unique((rt_t2(rt_valid_flags))));
+% 
+% ground_truth = rt_t2(rt_valid_flags) - rt_t1(rt_valid_flags) > 0;
+% 
+% figure; hold on;
+% win = 50;
+% kernel = expkernel('mus',win,'binwidth',1);
+% % plot(smooth(ground_truth == rt_ch(rt_valid_flags),win));
+% % plot(smooth(t2_minus_t1 == rt_ch(rt_valid_flags),win));
+% % plot(smooth(t2_plus_t1 == rt_ch(rt_valid_flags),win));
+% % plot(smooth(t2_alone == rt_ch(rt_valid_flags),win));
+% plot(conv(rt_ch(rt_valid_flags) == ground_truth,kernel.pdf,'valid'),...
+%     'linewidth',1.5);
+% plot(conv(t2_minus_t1 == ground_truth,kernel.pdf,'valid'));
+% plot(conv(t2_plus_t1 == ground_truth,kernel.pdf,'valid'));
+% plot(conv(t2_alone == ground_truth,kernel.pdf,'valid'));
+% 
+% ylabel('Proportion')
+% xlabel('Trial #')
+% xlim([win,5000])
+% ylim([0,1])
+% 
+% legend({...
+%     'choices == T_2 - T_1',...
+%     'w_2 \times T_2 + w_1 \times T_1 == T_2 - T_1',...
+%     'T_2 + T_1 == T_2 - T_1',...
+%     'T_2 > med(T_2) == T_2 - T_1'})
 
 %%
 rt_contrast = eval(['rt_',contrast_str]);
 rt_stim = rt_t2 - rt_t1;
+rt_stim_set = unique(rt_stim(rt_valid_flags));
+rt_n_stimuli = numel(rt_stim_set);
+
+% normalize stimulus range
+rt_norm_stimuli = (rt_stim - min(rt_stim)) / range(rt_stim);
+rt_normstim_set = unique(rt_norm_stimuli(rt_valid_flags));
 
 %% compute average reaction times
 
@@ -73,20 +79,21 @@ for kk = 1 : n_contrasts
     
     % iterate through stimuli
     for ii = 1 : n_stimuli
-        stim_flags = rt_stimuli == stim_set(ii);
+        stim_flags = rt_stim == stim_set(ii);
         
         % iterate through correctness
         for cc = [0,1]
-            correct_flags = (rt_ch == (rt_stimuli > nanmedian(rt_stimuli))) == cc;
+            correct_flags = (rt_ch == (rt_stim > nanmedian(rt_stim))) == cc;
             trial_flags = ...
                 rt_valid_flags & ...
                 contrast_flags & ...
-                stim_flags & ...
-                correct_flags;
+                stim_flags; % & ...
+                ...correct_flags;
             rts(kk,cc+1).x(ii,1) = normstim_set(ii);
             rts(kk,cc+1).y(ii,1) = nanmedian(rt(trial_flags));
             rts(kk,cc+1).n(ii,1) = sum(trial_flags);
             rts(kk,cc+1).err(ii,:) = ...
+                ...[-1,1] * nanstd(rt(trial_flags)) / sqrt(sum(trial_flags));
                 quantile(rt(trial_flags),[.25,.75]) - nanmedian(rt(trial_flags));
         end
     end
@@ -114,12 +121,13 @@ markers = {'s','o'};
 
 % iterate through contrasts
 for kk = 1 : n_contrasts
-
+    x_offset = (kk - ceil(n_contrasts / 2)) * range(normstim_set) * .01;
+    
     % iterate through correctness
     for cc = 1 % [0,1]
         
         % plot error bars
-        errorbar(rts(kk,cc+1).x,rts(kk,cc+1).y,...
+        errorbar(rts(kk,cc+1).x+x_offset,rts(kk,cc+1).y,...
             rts(kk,cc+1).err(:,1),rts(kk,cc+1).err(:,2),...
             'color',contrast_clrs(kk,:),...
             'marker','none',...
@@ -128,7 +136,7 @@ for kk = 1 : n_contrasts
             'capsize',2);
         
         % plot averages
-        p(kk) = plot(rts(kk,cc+1).x,rts(kk,cc+1).y,...
+        p(kk) = plot(rts(kk,cc+1).x+x_offset,rts(kk,cc+1).y,...
             'color',contrast_clrs(kk,:),...
             'marker',markers{cc+1},...
             'markerfacecolor',contrast_clrs(kk,:),...
@@ -145,7 +153,7 @@ xlim(axesopt.stimulus.xlim);
 ylim(ylim+[-1,1]*.05*range(ylim));
 
 % reference lines
-plot([1,1]*median(normstim_set),ylim,':k');
+plot([1,1]*median(rt_normstim_set),ylim,':k');
 
 % legend
 leg_str = cellfun(@(x,y)sprintf('%s = %i %s',x,y,contrast_units),...

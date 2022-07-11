@@ -5,7 +5,7 @@ end
 
 %% choice GLM (complete model)
 X = [s1,s2,d1,d2];
-X = log(X);
+% X = log(X);
 Z = (X - nanmean(X)) ./ nanstd(X);
 % Z = [Z, Z(:,1) .* Z(:,2), Z(:,2) .* Z(:,4)];
 % mdl = fitglm(Z,choices,'interactions',...

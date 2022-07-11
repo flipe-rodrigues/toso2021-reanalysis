@@ -12,7 +12,7 @@ stim2test_idcs = [3,4,5];
 stim2test_n = numel(stim2test_idcs);
 
 % contrasts
-contrast2train_idcs = 1 : n_contrasts; % contrast_mode_idx;
+contrast2train_idcs = contrast_mode_idx;
 contrast2train_n = numel(contrast2train_idcs);
 contrast2test_idcs = 1 : n_contrasts;
 contrast2test_n = numel(contrast2test_idcs);

@@ -115,6 +115,7 @@ n_choices = numel(choice_set);
 pre_t1_delay = data.PreDelay + inferred_misalignment;
 trial_idcs = data.Trial;
 subject_ids = data.Subject;
+subject_set = unique(subject_ids(~isnan(subject_ids)));
 
 % previous trial
 prev_t1 = [nan;t1(1:end-1)];
@@ -153,6 +154,7 @@ if strcmpi(task_str,'duration')
     d1_lbl = 'I_1';
     d2_lbl = 'I_2';
     s_units = t_units;
+    d_units = i_units;
     
     % colors
     s1_clrs = t1_clrs;
@@ -177,6 +179,7 @@ elseif strcmpi(task_str,'intensity')
     d1_lbl = 'T_1';
     d2_lbl = 'T_2';
     s_units = i_units;
+    d_units = t_units;
     
     % colors
     s1_clrs = i1_clrs;

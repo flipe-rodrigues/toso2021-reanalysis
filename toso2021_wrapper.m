@@ -46,7 +46,7 @@ want2save = true;
 toso2021_preface;
 
 %% contrast settings
-contrast_str = 't1';
+contrast_str = 'i2';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str(1:end-1),'_set']);
 n_contrasts = numel(contrast_set);
@@ -55,24 +55,25 @@ contrast_clrs = eval([contrast_str,'_clrs']);
 contrast_units = eval([contrast_str(1),'_units']);
 contrast_lbl = [upper(contrast_str(1)),'_',contrast_str(2)];
 
-contrasts = eval(['prev_',contrast_str]);
-contrast_set = unique(contrasts(valid_flags & ~isnan(contrasts)));
-n_contrasts = numel(contrast_set);
-contrast_mode_idx = find(contrast_set == mode(contrasts));
-contrast_clrs = spring(n_contrasts);
-contrast_lbl = ['prev. ',upper(contrast_str(1)),'_',contrast_str(2)];
+% contrasts = eval(['prev_',contrast_str]);
+% contrast_set = unique(contrasts(valid_flags & ~isnan(contrasts)));
+% n_contrasts = numel(contrast_set);
+% contrast_mode_idx = find(contrast_set == mode(contrasts));
+% % contrast_clrs = spring(n_contrasts);
+% contrast_lbl = ['prev. ',upper(contrast_str(1)),'_',contrast_str(2)];
 
 %% script execution order
-toso2021_contractionBias;
+toso2021_generalizationMatrix_Si;
+toso2021_generalizationMatrix_Di;
 toso2021_choiceGLM;
 toso2021_GLM_choice_categorical;
-toso2021_psychometricCurves; return;
+toso2021_psychometricCurves;
 toso2021_trialTypeDistributions;
 toso2021_neuronSelection;
 toso2021_overallModulation;
 toso2021_tiling;
 toso2021_t2AlignedPCA;
-toso2021_PCA;
+toso2021_PCA; return;
 toso2021_hierarchicalClustering;
 toso2021_neurometricCurves;
 toso2021_naiveBayesDecoder;
