@@ -70,43 +70,44 @@ toso2021_GLM_choice_categorical;
 toso2021_psychometricCurves;
 toso2021_trialTypeDistributions;
 toso2021_neuronSelection;
+toso2021_getPSTHsByEpoch;
+return;
 toso2021_overallModulation;
 toso2021_tiling;
 toso2021_t2AlignedPCA;
-toso2021_PCA; return;
+toso2021_PCA;
 toso2021_hierarchicalClustering;
 toso2021_neurometricCurves;
 toso2021_naiveBayesDecoder;
 % toso2021_rasters;
-return;
 
 %% multiplicity
-mult_flags = valid_flags;
-stimuli = t2 * w2 + t1 * w1;
-thresh = psycurves(contrast_mode_idx).fit.Fit(1) * range(stimuli) + min(stimuli)
-t2_minus_t1 = stimuli(mult_flags) > thresh;
-t2_plus_t1 = t2(mult_flags) + t1(mult_flags) > ...
-    nanmedian(unique((t2(mult_flags) + t1(mult_flags))));
-t2_alone = t2(mult_flags) > nanmedian(unique((t2(mult_flags))));
-
-ground_truth = t2(mult_flags) - t1(mult_flags) > 0;
-
-figure; hold on;
-win = 50;
-kernel = expkernel('mus',win,'binwidth',1);
-plot(conv(choices(mult_flags) == ground_truth,kernel.pdf,'valid'),...
-    'linewidth',1.5);
-plot(conv(t2_minus_t1 == ground_truth,kernel.pdf,'valid'));
-plot(conv(t2_plus_t1 == ground_truth,kernel.pdf,'valid'));
-plot(conv(t2_alone == ground_truth,kernel.pdf,'valid'));
-
-ylabel('Proportion')
-xlabel('Trial #')
-xlim([win,10e3])
-ylim([0,1])
-
-legend({...
-    'choices == T_2 - T_1',...
-    'w_2 \times T_2 + w_1 \times T_1 == T_2 - T_1',...
-    'T_2 + T_1 == T_2 - T_1',...
-    'T_2 > med(T_2) == T_2 - T_1'})
+% mult_flags = valid_flags;
+% stimuli = t2 * w2 + t1 * w1;
+% thresh = psycurves(contrast_mode_idx).fit.Fit(1) * range(stimuli) + min(stimuli)
+% t2_minus_t1 = stimuli(mult_flags) > thresh;
+% t2_plus_t1 = t2(mult_flags) + t1(mult_flags) > ...
+%     nanmedian(unique((t2(mult_flags) + t1(mult_flags))));
+% t2_alone = t2(mult_flags) > nanmedian(unique((t2(mult_flags))));
+% 
+% ground_truth = t2(mult_flags) - t1(mult_flags) > 0;
+% 
+% figure; hold on;
+% win = 50;
+% kernel = expkernel('mus',win,'binwidth',1);
+% plot(conv(choices(mult_flags) == ground_truth,kernel.pdf,'valid'),...
+%     'linewidth',1.5);
+% plot(conv(t2_minus_t1 == ground_truth,kernel.pdf,'valid'));
+% plot(conv(t2_plus_t1 == ground_truth,kernel.pdf,'valid'));
+% plot(conv(t2_alone == ground_truth,kernel.pdf,'valid'));
+% 
+% ylabel('Proportion')
+% xlabel('Trial #')
+% xlim([win,10e3])
+% ylim([0,1])
+% 
+% legend({...
+%     'choices == T_2 - T_1',...
+%     'w_2 \times T_2 + w_1 \times T_1 == T_2 - T_1',...
+%     'T_2 + T_1 == T_2 - T_1',...
+%     'T_2 > med(T_2) == T_2 - T_1'})

@@ -75,7 +75,7 @@ summary(categorical([data.Duration1,data.Duration2]))
 %% hard-coded task parameters
 inferred_misalignment = 200;
 pre_init_padding = 1e3;
-inter_t1t2_delay = 2e3;
+isi = 2e3;
 post_t2_delay = 500;
 
 %% neuron selection criteria
@@ -123,8 +123,6 @@ prev_t2 = [nan;t2(1:end-1)];
 prev_i1 = [nan;i1(1:end-1)];
 prev_i2 = [nan;i2(1:end-1)];
 prev_choices = [nan;choices(1:end-1)];
-prev_choice_set = unique(choices);
-n_prev_choices = numel(choice_set);
 
 %% color scheme
 t1_clrs = cool(n_t);
