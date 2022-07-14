@@ -5,8 +5,8 @@ end
 
 %% construct T1-offset-aligned, contrast-split psths
 pre_padd = 500;
-roi2use = [0,inter_t1t2_delay];
-roi2plot = [-t_set(end),inter_t1t2_delay+t_set(end)];
+roi2use = [0,isi];
+roi2plot = [-t_set(end),isi+t_set(end)];
 roi2use_n_bins = range(roi2use) * psthbin;
 roi2plot_n_bins = range(roi2plot) * psthbin;
 roi2use_time = linspace(roi2use(1),roi2use(2),roi2use_n_bins);
@@ -47,7 +47,7 @@ for nn = 1 : n_neurons
             t1(spike_flags);
         alignment_flags = ...
             valid_time >= alignment_offset - t1(spike_flags) & ...
-            valid_time < alignment_offset + inter_t1t2_delay + t2(spike_flags);
+            valid_time < alignment_offset + isi + t2(spike_flags);
         chunk_flags = ...
             valid_time >= alignment_offset + roi2plot(1) & ...
             valid_time < alignment_offset + roi2plot(2);
@@ -275,7 +275,7 @@ for cc = 1 : max_n_clusters
         % plot alignment line
         yylim = ylim(sps(kk));
         plot(sps(kk),[1,1]*0,yylim,'--k');
-        plot(sps(kk),[1,1]*inter_t1t2_delay,yylim,'--k');
+        plot(sps(kk),[1,1]*isi,yylim,'--k');
         ylim(sps(kk),yylim);
         
         % text annotation
