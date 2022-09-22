@@ -4,6 +4,7 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 
 ### toso2021_wrapper.m  
 - Loads the data;
+- Selects which task variant to analyze (delayed duration or intensity comparison);
 - Sets _if_ and _where_ to save figures;
 - Sets which experimental variable to use as contrast;
 - Runs all other scripts in sequence (in the same order as they appear below);
@@ -14,6 +15,12 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 - Sets neuron selection criteria;
 - Sets aesthetic preferences for figures & axes;
 - Sets all color schemes;
+
+### toso2021_generalizationMatrix_Si
+
+
+### toso2021_generalizationMatrix_Di
+
 
 ### toso2021_samplingScheme.m
 - Plots stimulus pairs with the corresponding average performance;
