@@ -7,8 +7,8 @@ end
 w_norm = sum(abs(beta_s1) + abs(beta_s2));
 w1 = beta_s1 / w_norm;
 w2 = beta_s2 / w_norm;
-w1 = 0;
-w2 = 1;
+% w1 = 0;
+% w2 = 1;
 stimuli = round(s2 * w2 + s1 * w1);
 % stimuli = [ones(size(design,1),1),design] * coeffs;
 % % stimuli = [ones(size(Z,1),1),Z] * betas;
@@ -55,6 +55,19 @@ for kk = 1 : n_contrasts
     end
 end
 
+% iterate through stimuli
+for ii = 1 : n_stimuli
+    stim_flags = stimuli == stim_set(ii);
+    trial_flags = ...
+        valid_flags & ...
+        stim_flags;
+    bigpsy.x(ii,1) = normstim_set(ii);
+    bigpsy.y(ii,1) = sum(choices(trial_flags));
+    bigpsy.n(ii,1) = sum(trial_flags);
+    bigpsy.err(ii,1) = ...
+        std(choices(trial_flags)) / sqrt(sum(trial_flags));
+end
+
 %% fit psychometric function
 
 % psychometric fit settings
@@ -74,6 +87,10 @@ for kk = 1 : n_contrasts
     psycurves(kk).fit = ...
         psignifit([psycurves(kk).x,psycurves(kk).y,psycurves(kk).n],psyopt.fit);
 end
+
+% fit big psychometric curve
+% bigpsy.fit = ...
+%     psignifit([bigpsy.x,bigpsy.y,bigpsy.n],psyopt.fit);
 
 %% plot phychometric function
 
@@ -127,6 +144,14 @@ for kk = 1 : n_contrasts
     psyopt.plot.plotfit = true;
     p(kk) = plotpsy(psycurves(kk),psycurves(kk).fit,psyopt.plot);
 end
+
+% plot big psychometric curve
+% psyopt.plot.datafaceclr = [0,0,0];
+% psyopt.plot.overallvisibility = 'off';
+% psyopt.plot.normalizemarkersize = true;
+% psyopt.plot.plotfit = true;
+% psyopt.plot.plotdata = false;
+% plotpsy(bigpsy,bigpsy.fit,psyopt.plot);
 
 % legend
 leg_str = cellfun(@(x,y)sprintf('%s = %i %s',x,y,contrast_units),...
