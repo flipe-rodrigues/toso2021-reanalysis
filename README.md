@@ -5,6 +5,7 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 ### toso2021_wrapper.m  
 - Loads the data;
 - Sets _if_ and _where_ to save figures;
+- Sets which experimental variable to use as contrast;
 - Runs all other scripts in sequence (in the same order as they appear below);
 
 ### toso2021_preface.m
