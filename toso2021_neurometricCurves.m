@@ -135,7 +135,7 @@ for rr = 1 : n_runs
                 nanmean(s2_spkrates(rand_idcs,:),2);
             concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
             concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
-            concat_choices(concat_idcs) = choices(flagged_trials(rand_idcs));
+            concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
             concat_evalset(concat_idcs) = 0;
         end
         
@@ -192,7 +192,7 @@ for rr = 1 : n_runs
                 nanmean(s2_spkrates(rand_idcs,:),2);
             concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
             concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
-            concat_choices(concat_idcs) = choices(flagged_trials(rand_idcs));
+            concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
             concat_evalset(concat_idcs) = 1;
         end
     end

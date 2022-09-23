@@ -34,7 +34,7 @@ want2save = true;
 toso2021_preface;
 
 %% contrast settings
-contrast_str = 't2';
+contrast_str = 'i2';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str,'_set']);
 n_contrasts = numel(contrast_set);
@@ -54,7 +54,6 @@ toso2021_psychometricCurves;
 % ephys
 toso2021_neuronSelection;
 toso2021_trialTypeDistributions;
-% toso2021_getPSTHsByEpoch; % not in readme
 toso2021_tiling;
 toso2021_t2AlignedPCA;
 toso2021_neurometricCurves;
