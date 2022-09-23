@@ -20,7 +20,7 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 - Plots stimulus pairs with the corresponding average performance;
 <img src="panels/duration/generalization_matrix_Si.svg" width="500"/>
 - Same as above, plus a gradient representing the hypothesized continuous performance so as to allow for a better visualization of _contraction bias_ on _T1_;
-<img src="panels/duration/contraction_bias.svg" width="500"/>
+<img src="panels/duration/contraction_bias_Si.svg" width="500"/>
 
 ### toso2021_generalizationMatrix_Di
 - Plots distractor pairs with the corresponding average performance;
