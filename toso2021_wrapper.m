@@ -64,7 +64,7 @@ contrast_lbl = [upper(contrast_str(1)),'_',contrast_str(2)];
 
 %% script execution order
 toso2021_generalizationMatrix_Si;
-toso2021_generalizationMatrix_Di; % not in readme
+toso2021_generalizationMatrix_Di;
 toso2021_choiceGLM;
 toso2021_psychometricCurves;
 toso2021_trialTypeDistributions;
