@@ -86,8 +86,10 @@ stability_cutoff = .5;
 %% parse meta data (bhv)
 t1 = data.Duration1;
 t2 = data.Duration2;
-t1_set = unique(t1);
-t2_set = unique(t2);
+t1_set = unique(t1(~isnan(t1)));
+t2_set = unique(t2(~isnan(t2)));
+prev_t1_set = t1_set;
+prev_t2_set = t2_set;
 n_t1 = numel(t1_set);
 n_t2 = numel(t2_set);
 i1 = data.Intensity1;
@@ -106,11 +108,8 @@ i1_max_idx = find(i_set == max(i1));
 i2_max_idx = find(i_set == max(i2));
 n_t = numel(t_set);
 n_i = numel(i_set);
-t_units = 'ms';
-i_units = 'mm.s^{-1}';
-c_units = 'a.u.';
-choices = data.Action;
-choice_set = unique(choices);
+choice = data.Action;
+choice_set = unique(choice);
 n_choices = numel(choice_set);
 pre_t1_delay = data.PreDelay + inferred_misalignment;
 trial_idcs = data.Trial;
@@ -122,14 +121,27 @@ prev_t1 = [nan;t1(1:end-1)];
 prev_t2 = [nan;t2(1:end-1)];
 prev_i1 = [nan;i1(1:end-1)];
 prev_i2 = [nan;i2(1:end-1)];
-prev_choices = [nan;choices(1:end-1)];
+prev_choices = [nan;choice(1:end-1)];
+
+%% units
+t1_units = 'ms';
+t2_units = 'ms';
+prev_t1_units = 'ms';
+prev_t2_units = 'ms';
+i1_units = 'mm.s^{-1}';
+i2_units = 'mm.s^{-1}';
+prev_i1_units = 'mm.s^{-1}';
+prev_i2_units = 'mm.s^{-1}';
+choice_units = 'a.u.';
 
 %% color scheme
 t1_clrs = cool(n_t);
 t2_clrs = colorlerp([.25,.5,1; [1,1,1]*.25; [1,1,0]],n_t);
+prev_t1_clrs = autumn(n_t);
+prev_t2_clrs = spring(n_t);
 i1_clrs = winter(n_i);
 i2_clrs = copper(n_i);
-choices_clrs = [.1,.5,1; .85,.1,.2];
+choice_clrs = [.1,.5,1; .85,.1,.2];
 
 %% task variant adaptations
 
@@ -151,8 +163,8 @@ if strcmpi(task_str,'duration')
     s2_lbl = 'T_2';
     d1_lbl = 'I_1';
     d2_lbl = 'I_2';
-    s_units = t_units;
-    d_units = i_units;
+    s_units = t1_units;
+    d_units = i1_units;
     
     % colors
     s1_clrs = t1_clrs;
@@ -176,8 +188,8 @@ elseif strcmpi(task_str,'intensity')
     s2_lbl = 'I_2';
     d1_lbl = 'T_1';
     d2_lbl = 'T_2';
-    s_units = i_units;
-    d_units = t_units;
+    s_units = i1_units;
+    d_units = t1_units;
     
     % colors
     s1_clrs = i1_clrs;
@@ -191,7 +203,7 @@ d1_mode_idx = find(d_set == mode(d1));
 d2_mode_idx = find(d_set == mode(d2));
 
 % correctness
-correct = choices == (s2 > s1);
+correct = choice == (s2 > s1);
 
 %% kernel settings
 psthbin = 1;

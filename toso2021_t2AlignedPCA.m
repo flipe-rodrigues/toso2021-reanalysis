@@ -100,8 +100,7 @@ pca_design = s2_concat_all;
 %   'all'   ->  vanilla PCA
 %   'extr'  ->  pseudo-demixed PCA
 %   'mode'  ->  robust PCA
-
-% compute observation weights
+% % compute observation weights
 weights = ones(size(pca_design,1),1);
 for ii = 1 : n_contrasts
     contrast_flags = contrasts == contrast_set(ii);
@@ -133,12 +132,9 @@ for ii = 1 : n_contrasts
     s2_score(:,:,ii) = s2_zpsths(:,:,ii) * coeff;
 end
 
-% s2_score(:,1,:) = -s2_score(:,1,:);
-% s2_score(:,2,:) = -s2_score(:,2,:);
-
 %% 3D trajectories in PC space
 fig = figure(figopt,...
-    'name',sprintf('pc_trajectories_t1_%s',contrast_str));
+    'name',sprintf('pc_trajectories_t2_%s',contrast_str));
 set(gca,...
     axesopt.default,...
     'xtick',0,...

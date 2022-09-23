@@ -48,10 +48,10 @@ for kk = 1 : n_contrasts
             contrast_flags & ...
             stim_flags;
         psycurves(kk).x(ii,1) = normstim_set(ii);
-        psycurves(kk).y(ii,1) = sum(choices(trial_flags));
+        psycurves(kk).y(ii,1) = sum(choice(trial_flags));
         psycurves(kk).n(ii,1) = sum(trial_flags);
         psycurves(kk).err(ii,1) = ...
-            std(choices(trial_flags)) / sqrt(sum(trial_flags));
+            std(choice(trial_flags)) / sqrt(sum(trial_flags));
     end
 end
 
@@ -62,10 +62,10 @@ for ii = 1 : n_stimuli
         valid_flags & ...
         stim_flags;
     bigpsy.x(ii,1) = normstim_set(ii);
-    bigpsy.y(ii,1) = sum(choices(trial_flags));
+    bigpsy.y(ii,1) = sum(choice(trial_flags));
     bigpsy.n(ii,1) = sum(trial_flags);
     bigpsy.err(ii,1) = ...
-        std(choices(trial_flags)) / sqrt(sum(trial_flags));
+        std(choice(trial_flags)) / sqrt(sum(trial_flags));
 end
 
 %% fit psychometric function

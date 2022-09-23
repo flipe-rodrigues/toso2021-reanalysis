@@ -5,7 +5,7 @@ end
 
 %% choice GLM (partial model)
 mdl = fitglm([s1(valid_flags),s2(valid_flags)].*[1,1],...
-    choices(valid_flags,:),'linear',...
+    choice(valid_flags,:),'linear',...
     'predictorvars',{s1_lbl,s2_lbl},...
     'distribution','binomial',...
     'intercept',true);
@@ -38,7 +38,7 @@ for ii = 1 : n_pairs
     end
     
     % compute average performance for the current pair
-    p_choice(ii) = mean(choices(trial_flags));
+    p_choice(ii) = mean(choice(trial_flags));
 end
 
 % nan filtering

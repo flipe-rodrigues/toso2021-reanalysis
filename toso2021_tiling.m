@@ -129,7 +129,7 @@ xlabel('Time since T_1 offset (ms)');
 ylabel('Neuron #');
 
 % sort by angular position in PC space
-[theta,rho] = cart2pol(s1_coeff(:,1),s1_coeff(:,2));
+[theta,~] = cart2pol(s1_coeff(:,1),s1_coeff(:,2));
 [~,theta_idcs] = sortrows(theta);
 % theta_idcs = circshift(theta_idcs,sum(theta>0));
 theta_idcs = circshift(theta_idcs,80);
@@ -142,7 +142,7 @@ clrbar = colorbar;
 clrbar.Ticks = unique([0,clim]);
 clrlabel.string = ...
     sprintf('z-score_{I_1 = %i %s}',...
-    i_set(i1_mode_idx),i_units);
+    i_set(i1_mode_idx),i1_units);
 clrlabel.fontsize = axesopt.default.fontsize * 1.1;
 clrlabel.rotation = 270;
 clrlabel.position = [4.4,0,0];
@@ -178,7 +178,7 @@ xlabel('Time since T_2 offset (ms)');
 ylabel('Neuron #');
 
 % sort by angular position in PC space
-[theta,rho] = cart2pol(s2_coeff(:,1),s2_coeff(:,2));
+[theta,~] = cart2pol(s2_coeff(:,1),s2_coeff(:,2));
 [~,theta_idcs] = sortrows(theta);
 % theta_idcs = circshift(theta_idcs,sum(theta>0));
 theta_idcs = flipud(circshift(theta_idcs,-80));
@@ -191,7 +191,7 @@ clrbar = colorbar;
 clrbar.Ticks = unique([0,clim]);
 clrlabel.string = ...
     sprintf('z-score_{I_2 = %i %s}',...
-    i_set(i2_mode_idx),i_units);
+    i_set(i2_mode_idx),i2_units);
 clrlabel.fontsize = axesopt.default.fontsize * 1.1;
 clrlabel.rotation = 270;
 clrlabel.position = [4.4,0,0];

@@ -31,8 +31,8 @@ epochs.contrast.pre_s1 = 'prev_t2';
 epochs.contrast.s1 = 'i1';
 epochs.contrast.isi = 't1';
 epochs.contrast.s2 = 'i2';
-epochs.contrast.post_s2 = 'choices';
-epochs.contrast.go = 'choices';
+epochs.contrast.post_s2 = 'choice';
+epochs.contrast.go = 'choice';
 
 % iterate through epochs
 epoch_labels = fieldnames(epochs.label);
@@ -44,7 +44,7 @@ for ii = 1 : n_epochs
     if contains(epoch_contrast_str,'prev')
         epoch_contrast_str = strrep(epoch_contrast_str,'prev_','');
     end
-    epoch_contrast_set = eval([epoch_contrast_str(1:end-1),'_set']);
+    epoch_contrast_set = eval([epoch_contrast_str,'_set']);
     epoch_n_contrasts = numel(epoch_contrast_set);
     epochs.n_bins.(epoch) = range(epochs.roi.(epoch)) * psthbin;
     epochs.time.(epoch) = linspace(epochs.roi.(epoch)(1),epochs.roi.(epoch)(2),epochs.n_bins.(epoch));
