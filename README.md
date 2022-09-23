@@ -19,15 +19,16 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 ### toso2021_generalizationMatrix_Si
 - Plots stimulus pairs with the corresponding average performance;
 <img src="panels/duration/generalization_matrix_Si.svg" width="500"/>
+
 - Same as above, plus a gradient representing the hypothesized continuous performance so as to allow for a better visualization of _contraction bias_ on _T1_;
-<img src="panels/duration/contraction_bias.svg" width="500"/>
+<img src="panels/duration/contraction_bias_Si.svg" width="500"/>
 
 ### toso2021_generalizationMatrix_Di
 - Plots distractor pairs with the corresponding average performance;
-<img src="panels/duration/generalization_matrix_Di_duration.svg" width="500"/>
+<img src="panels/duration/generalization_matrix_Di.svg" width="500"/>
 
 ### toso2021_choiceGLM.m
-- Fits a generalized linear model (GLM) to _choice_ data using _T1_, _T2_, _I1_ & _I2_ as predictors;
+- Fits a generalized linear model (GLM) to _choice_ data using _T1_, _T2_, _I1_ & _I2_ as predictors, and plots its coefficients;
 <img src="panels/duration/choice_GLM.svg" width="500"/>
 
 ### toso2021_psychometricCurves.m
@@ -57,6 +58,10 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 <img src="rasters/duration/neuron_393.png" width="1000"/>
 <img src="rasters/duration/neuron_459.png" width="1000"/>
 <img src="rasters/duration/neuron_526.png" width="1000"/>
+
+### toso2021_tiling.m
+- Plots a heatmap with average activity from all selected DLS neurons aligned on and during _T2_;
+<img src="rasters/duration/tiling_s2.png" width="1000"/>
 
 ### toso2021_PCA.m
 - Plots activity aligned to the onset of _T2_ and conditioned on _I2_ projected onto the subspace defined by its first 3 principal components (PCs);
