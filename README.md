@@ -27,7 +27,7 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 <img src="panels/duration/generalization_matrix_Di.svg" width="500"/>
 
 ### toso2021_choiceGLM.m
-- Fits a generalized linear model (GLM) to _choice_ data using _T1_, _T2_, _I1_ & _I2_ as predictors;
+- Fits a generalized linear model (GLM) to _choice_ data using _T1_, _T2_, _I1_ & _I2_ as predictors, and plots its coefficients;
 <img src="panels/duration/choice_GLM.svg" width="500"/>
 
 ### toso2021_psychometricCurves.m
