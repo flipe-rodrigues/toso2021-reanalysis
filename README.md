@@ -53,15 +53,15 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 <img src="panels/duration/overall_modulation_t2.svg" width="1000"/>
 <img src="panels/duration/overall_modulation_choices.svg" width="1000"/>
 
-### toso2021_tiling.m
-- Plots a heatmap with average activity from all selected DLS neurons aligned on _T2_ onset;
-<img src="rasters/duration/tiling.png" width="1000"/>
-
 ### toso2021_rasters.m
 - Plots spike rasters & corresponding spike density functions for the selected neurons (3 examples below);
 <img src="rasters/duration/neuron_393.png" width="1000"/>
 <img src="rasters/duration/neuron_459.png" width="1000"/>
 <img src="rasters/duration/neuron_526.png" width="1000"/>
+
+### toso2021_tiling.m
+- Plots a heatmap with average activity from all selected DLS neurons aligned on and during _T2_;
+<img src="rasters/duration/tiling.png" width="1000"/>
 
 ### toso2021_PCA.m
 - Plots activity aligned to the onset of _T2_ and conditioned on _I2_ projected onto the subspace defined by its first 3 principal components (PCs);
