@@ -60,11 +60,11 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 <img src="rasters/duration/neuron_526.png" width="1000"/>
 
 ### toso2021_tiling.m
-- Plots a heatmap with average activity from all selected DLS neurons aligned on and during _T2_, and sorted by angular position in PC space;
+- Plots a heatmap with average activity from all selected DLS neurons aligned on and during _T2_, and sorted by angular position in principal component (PC) space;
 <img src="panels/duration/tiling_s2.svg" width="500"/>
 
 ### toso2021_PCA.m
-- Plots activity aligned to the onset of _T2_ and conditioned on _I2_ projected onto the subspace defined by its first 3 principal components (PCs);
+- Plots activity aligned to the onset of _T2_ and conditioned on _I2_ projected onto the subspace defined by its first 3 PCs;
 <img src="panels/duration/pc_trajectories_i2.svg" width="500"/>
 
 - Plots the same data from above but projected onto individual PCs;
