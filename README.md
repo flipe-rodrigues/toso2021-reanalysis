@@ -64,14 +64,10 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 <img src="panels/duration/tiling_s2.svg" width="500"/>
 
 ### toso2021_t2AlignedPCA.m
-- Plots activity aligned to the onset of _T2_ and conditioned on _I1_ projected onto the subspace defined by its first 3 PCs;
-<img src="panels/duration/pc_trajectories_t2_i1.svg" width="500"/>
+- Plots activity aligned to the onset of _T2_ and conditioned on _I2_ projected onto the subspace defined by its first 3 PCs;
+<img src="panels/duration/pc_trajectories_t2_i2.svg" width="500"/>
 
 - Plots the same data from above but projected onto individual PCs;
-<img src="panels/duration/pc_projections_t2_i1.svg" width="500"/>
-
-- Same as above but conditioned on _I2_;
-<img src="panels/duration/pc_trajectories_t2_i2.svg" width="500"/>
 <img src="panels/duration/pc_projections_t2_i2.svg" width="500"/>
 
 ### toso2021_neurometricCurves.m
