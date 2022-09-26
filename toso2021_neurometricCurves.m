@@ -46,7 +46,7 @@ n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% neurometric curve settings
 spkintegration_window = 250;
-n_runs = 25
+n_runs = 25;
 
 % preallocation
 neurocurves = struct();

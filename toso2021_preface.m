@@ -76,7 +76,7 @@ summary(categorical([data.Duration1,data.Duration2]))
 inferred_misalignment = 200;
 pre_init_padding = 1e3;
 isi = 2e3;
-post_t2_delay = 500;
+post_s2_delay = 500;
 
 %% neuron selection criteria
 trial_count_cutoff = 2;

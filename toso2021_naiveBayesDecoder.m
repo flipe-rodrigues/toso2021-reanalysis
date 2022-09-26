@@ -41,7 +41,7 @@ conditions.test.contrasts = ...
     num2cell(repmat(contrast_set(contrast2test_idcs'),stim2test_n,1));
 
 %% concatenation settings
-n_concatspercond = 2^7;
+n_concatspercond = 2^8;
 n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% construct spike rate tensor (time X neurons X concatenations)
@@ -128,7 +128,7 @@ for nn = 1 : n_neurons
             s2_spkrates(rand_idcs,:)';
         concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
         concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
-        concat_choices(concat_idcs) = choices(flagged_trials(rand_idcs));
+        concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
         concat_evalset(concat_idcs) = 0;
     end
     
@@ -188,7 +188,7 @@ for nn = 1 : n_neurons
             s2_spkrates(rand_idcs,:)';
         concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
         concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
-        concat_choices(concat_idcs) = choices(flagged_trials(rand_idcs));
+        concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
         concat_evalset(concat_idcs) = 1;
     end
 end
@@ -209,8 +209,7 @@ nbdopt.test.n_trials = numel(nbdopt.test.trial_idcs);
 nbdopt.assumepoissonmdl = false;
 
 tic
-[P_tR,P_Rt,pthat,neurons] = ...
-    naivebayesdecoder_simpler(concat_tensor,nbdopt);
+[P_tR,P_Rt,pthat,neurons] = bayesdecoder(concat_tensor,nbdopt);
 n_neurons = numel(neurons);
 toc
 
