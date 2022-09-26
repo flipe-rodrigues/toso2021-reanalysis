@@ -192,16 +192,6 @@ for rr = 1 : n_runs
                 nanmean(s2_spkrates(rand_idcs,:),2);
             concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
             concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
-            
-            % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-%             if all(choice(flagged_trials(rand_idcs)) == 0) && ...
-%                     unique(stimuli(flagged_trials(rand_idcs))) == 372
-%                 [unique(stimuli(flagged_trials(rand_idcs))),...
-%                     unique(contrasts(flagged_trials(rand_idcs))),...
-%                     numel(flagged_trials)]
-%             end
-            % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            
             concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
             concat_evalset(concat_idcs) = 1;
         end
@@ -218,8 +208,7 @@ for rr = 1 : n_runs
     
     % linear discriminant analysis
     X = concat_spkrates(:,train_flags)';
-%     threshold = median(s1(valid_flags));
-    threshold = median(stimuli(valid_flags));
+    threshold = median(s1(valid_flags));
     y = concat_stimuli(train_flags) > threshold;
     lda_mdl = fitcdiscr(X,y,...
         'discrimtype','linear');
@@ -438,10 +427,9 @@ for kk = 1 : n_contrasts
         neurocurve_pools(kk).y,...
         neurocurve_pools(kk).n...
         ];
-%     if kk ~= 2
-%         neuro_triple(6,2) = nan;
-%     end
-% neuro_triple
+    if kk ~= 2
+        neuro_triple(6,2) = nan;
+    end
 
     % fit psychometric curve
     neurocurve_pools(kk).fit = psignifit(neuro_triple,psyopt.fit);
@@ -506,7 +494,7 @@ plot([1,1]*median(normstim_set),ylim,...
     'color','k',...
     'linestyle',':');
 
-% zero level
+% zero level0
 plot(xlim,[0,0],...
     'color','k',...
     'linestyle',':');
