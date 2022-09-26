@@ -85,4 +85,4 @@ Matlab code (tested on versions 2019b and 2020b) for reanalyzing the behavioral 
 
 ### toso2021_naiveBayesDecoder.m
 - Plots decoder point estimates conditioned on _I2_ and averaged across the 3 central _T2_ stimuli;
-<img src="panels/duration/decoder_point_estimates.svg" width="500"/>
+<img src="panels/duration/decoder_point_estimates_i2.svg" width="500"/>
