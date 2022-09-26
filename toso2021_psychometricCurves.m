@@ -7,7 +7,7 @@ end
 w_norm = sum(abs(beta_s1) + abs(beta_s2));
 w1 = beta_s1 / w_norm;
 w2 = beta_s2 / w_norm;
-w1 = -1;
+w1 = 0;
 w2 = 1;
 stimuli = round(s2 * w2 + s1 * w1);
 % stimuli = [ones(size(design,1),1),design] * coeffs;

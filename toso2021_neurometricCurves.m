@@ -46,7 +46,7 @@ n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% neurometric curve settings
 spkintegration_window = 250;
-n_runs = 5; % 25
+n_runs = 25
 
 % preallocation
 neurocurves = struct();
@@ -218,8 +218,8 @@ for rr = 1 : n_runs
     
     % linear discriminant analysis
     X = concat_spkrates(:,train_flags)';
-%     threshold = median(s1(valid_flags));
-    threshold = median(stimuli(valid_flags));
+    threshold = median(s1(valid_flags));
+%     threshold = median(stimuli(valid_flags));
     y = concat_stimuli(train_flags) > threshold;
     lda_mdl = fitcdiscr(X,y,...
         'discrimtype','linear');
