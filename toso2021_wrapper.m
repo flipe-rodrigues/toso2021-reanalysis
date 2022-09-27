@@ -34,7 +34,7 @@ want2save = true;
 toso2021_preface;
 
 %% contrast settings
-contrast_str = 'i2';
+contrast_str = 't2';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str,'_set']);
 n_contrasts = numel(contrast_set);

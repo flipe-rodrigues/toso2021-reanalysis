@@ -8,7 +8,8 @@ n_concatsperchoice = 2^10;
 n_concats = n_concatsperchoice * n_choices;
 
 %% LDA settings
-spkintegration_window = 100;
+lda_roi = [-150,0];
+spkintegration_window = diff(lda_roi);
 
 %% construct concatenations for LDA
 
@@ -52,8 +53,8 @@ for nn = 1 : n_neurons
             isi + ...
             t2(s2_spike_flags);
         s2_alignment_flags = ...
-            valid_time >= s2_alignment + post_s2_delay - spkintegration_window & ...
-            valid_time < s2_alignment + post_s2_delay;
+            valid_time >= s2_alignment + lda_roi(1) & ...
+            valid_time < s2_alignment + lda_roi(2);
         s2_chunk_flags = s2_alignment_flags;
         s2_spkrates = s2_spike_rates;
         s2_spkrates(~s2_alignment_flags') = nan;
@@ -227,12 +228,12 @@ epochs.roi.post_s2 = [0,1] * post_t2_delay;
 epochs.roi.go = [0,450];
 
 % epoch contrasts
-epochs.contrast.pre_s1 = 't1';
-epochs.contrast.s1 = 't1';
-epochs.contrast.isi = 't1';
-epochs.contrast.s2 = 't1';
-epochs.contrast.post_s2 = 't1';
-epochs.contrast.go = 't1';
+epochs.contrast.pre_s1 = 'choice';
+epochs.contrast.s1 = 'choice';
+epochs.contrast.isi = 'choice';
+epochs.contrast.s2 = 'choice';
+epochs.contrast.post_s2 = 'choice';
+epochs.contrast.go = 'choice';
 
 % iterate through epochs
 epoch_labels = fieldnames(epochs.label);
@@ -614,11 +615,11 @@ for ii = 1 : n_epochs
     zpsths.(epoch) = (psths.(epoch) - mus) ./ sigs;
 end
 
-%% plot overall modulation
+%% plot projections onto linear discriminant
 
 % figure initialization
 fig = figure(figopt,...
-    'position',[285,150,1.5392e+03,400],...
+    'position',[285,150,1.5392e+03,285],...
     'name',['overall_modulation_',contrast_str]);
 
 % axes initialization
@@ -677,7 +678,7 @@ for ii = 1 : n_epochs
         repmat(epoch_contrast_str(2),epoch_n_contrasts,1),epoch_contrast_set,...
         'uniformoutput',false);
     leg = legend(p(isgraphics(p)),leg_str(isgraphics(p)),...
-        'location','north',...
+        'location','best',...
         'box','on');
 end
 
@@ -685,7 +686,6 @@ end
 linkaxes(sps,'y');
 
 % highlight spike integration window used in LDA
-lda_roi = post_s2_delay - [spkintegration_window, 0];
 xpatch = [lda_roi,fliplr(lda_roi)];
 ypatch = [[1,1]*min(ylim(sps(5))),[1,1]*max(ylim(sps(5)))];
 p_roi = patch(sps(5),xpatch,ypatch,'k',...
