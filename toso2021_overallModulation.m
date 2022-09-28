@@ -17,7 +17,7 @@ rois.pre_s1 = [-500,unique(pre_t1_delay(valid_flags))];
 rois.s1 = [0,t_set(end)];
 rois.inter_s1s2 = [0,isi];
 rois.s2 = [0,t_set(end)];
-rois.post_s2 = [0,1] * post_t2_delay;
+rois.post_s2 = [0,1] * post_s2_delay;
 rois.go = [0,450];
 
 % roi alignment labels
@@ -133,7 +133,7 @@ for nn = 1 : n_neurons
             t2(spike_flags);
         post_s2_alignment_flags = ...
             valid_time >= post_s2_alignment + rois.post_s2(1) & ...
-            valid_time < post_s2_alignment + post_t2_delay;
+            valid_time < post_s2_alignment + post_s2_delay;
         post_s2_chunk_flags = ...
             valid_time >= post_s2_alignment + rois.post_s2(1) & ...
             valid_time < post_s2_alignment + rois.post_s2(2);
@@ -149,7 +149,7 @@ for nn = 1 : n_neurons
             t1(spike_flags) + ...
             isi + ...
             t2(spike_flags) + ...
-            post_t2_delay;
+            post_s2_delay;
         go_alignment_flags = ...
             valid_time >= go_alignment + rois.go(1) & ...
             valid_time < go_alignment + rois.go(2);
@@ -261,6 +261,9 @@ for ii = 1 : n_epochs
             'edgecolor','none');
         
         % plot mean
+        if isempty(mod_mu)
+            continue;
+        end
         p(jj) = plot(sps(ii),time.(epoch)(~nan_flags),mod_mu,...
             'color',contrast_clrs(jj,:),...
             'linewidth',1.5);

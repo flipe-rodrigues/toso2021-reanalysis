@@ -115,8 +115,14 @@ pre_t1_delay = data.PreDelay + inferred_misalignment;
 trial_idcs = data.Trial;
 subject_ids = data.Subject;
 subject_set = unique(subject_ids(~isnan(subject_ids)));
+n_subjects = numel(subject_set);
 
-% previous trial
+%% interaction terms
+t1t2 = t1 .* t2;
+t1t2_set = unique(t1t2(~isnan(t1t2)));
+n_t1t2 = numel(t1t2_set);
+
+%% previous trial
 prev_t1 = [nan;t1(1:end-1)];
 prev_t2 = [nan;t2(1:end-1)];
 prev_i1 = [nan;i1(1:end-1)];
@@ -126,6 +132,7 @@ prev_choices = [nan;choice(1:end-1)];
 %% units
 t1_units = 'ms';
 t2_units = 'ms';
+t1t2_units = 'ms^{2}';
 prev_t1_units = 'ms';
 prev_t2_units = 'ms';
 i1_units = 'mm.s^{-1}';
@@ -137,6 +144,7 @@ choice_units = 'a.u.';
 %% color scheme
 t1_clrs = cool(n_t);
 t2_clrs = colorlerp([.25,.5,1; [1,1,1]*.25; [1,1,0]],n_t);
+t1t2_clrs = parula(n_t1t2);
 prev_t1_clrs = autumn(n_t);
 prev_t2_clrs = spring(n_t);
 i1_clrs = winter(n_i);
@@ -159,10 +167,10 @@ if strcmpi(task_str,'duration')
     d_set = i_set;
     
     % labels
-    s1_lbl = 'T_1';
-    s2_lbl = 'T_2';
-    d1_lbl = 'I_1';
-    d2_lbl = 'I_2';
+    s1_lbl = 'T1_t';
+    s2_lbl = 'T2_t';
+    d1_lbl = 'I1_t';
+    d2_lbl = 'I2_t';
     s_units = t1_units;
     d_units = i1_units;
     
@@ -184,10 +192,10 @@ elseif strcmpi(task_str,'intensity')
     d_set = t_set;
     
     % labels
-    s1_lbl = 'I_1';
-    s2_lbl = 'I_2';
-    d1_lbl = 'T_1';
-    d2_lbl = 'T_2';
+    s1_lbl = 'I1_t';
+    s2_lbl = 'I2_t';
+    d1_lbl = 'T1_t';
+    d2_lbl = 'T2_t';
     s_units = i1_units;
     d_units = t1_units;
     

@@ -79,10 +79,10 @@ lda_mdl = fitcdiscr(X,y,...
     'discrimtype','linear');
 
 % fisher's linear discriminant
-sig = cov(x0);
-mu0 = mean(x0);
-mu1 = mean(x1);
-w = sig \ (mu0 - mu1)';
+% sig = cov(x0);
+% mu0 = mean(x0);
+% mu1 = mean(x1);
+% w = sig \ (mu0 - mu1)';
 
 %% visualize population state at ROI
 X = concat_spkrates';
@@ -224,16 +224,16 @@ epochs.roi.pre_s1 = [-500,unique(pre_t1_delay(valid_flags))];
 epochs.roi.s1 = [0,t_set(end)];
 epochs.roi.isi = [0,isi];
 epochs.roi.s2 = [0,t_set(end)];
-epochs.roi.post_s2 = [0,1] * post_t2_delay;
+epochs.roi.post_s2 = [0,1] * post_s2_delay;
 epochs.roi.go = [0,450];
 
 % epoch contrasts
-epochs.contrast.pre_s1 = 'choice';
-epochs.contrast.s1 = 'choice';
-epochs.contrast.isi = 'choice';
-epochs.contrast.s2 = 'choice';
-epochs.contrast.post_s2 = 'choice';
-epochs.contrast.go = 'choice';
+epochs.contrast.pre_s1 = 't1t2';
+epochs.contrast.s1 = 't1t2';
+epochs.contrast.isi = 't1t2';
+epochs.contrast.s2 = 't1t2';
+epochs.contrast.post_s2 = 't1t2';
+epochs.contrast.go = 't1t2';
 
 % iterate through epochs
 epoch_labels = fieldnames(epochs.label);
@@ -501,7 +501,7 @@ for nn = 1 : n_neurons
             t2(spike_flags);
         post_s2_alignment_flags = ...
             valid_time >= post_s2_alignment + epochs.roi.post_s2(1) & ...
-            valid_time < post_s2_alignment + post_t2_delay;
+            valid_time < post_s2_alignment + post_s2_delay;
         post_s2_chunk_flags = ...
             valid_time >= post_s2_alignment + epochs.roi.post_s2(1) & ...
             valid_time < post_s2_alignment + epochs.roi.post_s2(2);
@@ -553,7 +553,7 @@ for nn = 1 : n_neurons
             t1(spike_flags) + ...
             isi + ...
             t2(spike_flags) + ...
-            post_t2_delay;
+            post_s2_delay;
         go_alignment_flags = ...
             valid_time >= go_alignment + epochs.roi.go(1) & ...
             valid_time < go_alignment + epochs.roi.go(2);
@@ -569,13 +569,13 @@ for nn = 1 : n_neurons
 end
 
 %% intersectional neuron selection
-psths.pre_s1 = psths.pre_s1(:,surviving_neurons,:);
-psths.s1 = psths.s1(:,surviving_neurons,:);
-psths.isi = psths.isi(:,surviving_neurons,:);
-psths.s2 = psths.s2(:,surviving_neurons,:);
-psths.post_s2 = psths.post_s2(:,surviving_neurons,:);
-psths.go = psths.go(:,surviving_neurons,:);
-n_neurons = sum(surviving_neurons);
+% psths.pre_s1 = psths.pre_s1(:,surviving_neurons,:);
+% psths.s1 = psths.s1(:,surviving_neurons,:);
+% psths.isi = psths.isi(:,surviving_neurons,:);
+% psths.s2 = psths.s2(:,surviving_neurons,:);
+% psths.post_s2 = psths.post_s2(:,surviving_neurons,:);
+% psths.go = psths.go(:,surviving_neurons,:);
+% n_neurons = sum(surviving_neurons);
 
 %% normalization
 total_n_bins = 0;
@@ -620,7 +620,7 @@ end
 % figure initialization
 fig = figure(figopt,...
     'position',[285,150,1.5392e+03,285],...
-    'name',['overall_modulation_',contrast_str]);
+    'name','lda_projections_choice');
 
 % axes initialization
 sps = gobjects(n_epochs,1);
@@ -654,7 +654,6 @@ for ii = 1 : n_epochs
     epoch_contrasts = eval(epoch_contrast_str);
     epoch_contrast_set = eval([epoch_contrast_str,'_set']);
     epoch_n_contrasts = numel(epoch_contrast_set);
-    epoch_contrast_mode_idx = find(epoch_contrast_set == mode(epoch_contrasts));
     epoch_contrast_clrs = eval([epoch_contrast_str,'_clrs']);
 
     % graphical object preallocation

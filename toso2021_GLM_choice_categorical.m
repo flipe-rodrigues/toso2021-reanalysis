@@ -13,7 +13,7 @@ x_i1 = [nan; i1(1:end-1)];
 x_i2 = [nan; i2(1:end-1)];
 x_t1 = [nan; t1(1:end-1)];
 x_t2 = [nan; t2(1:end-1)];
-x_ch = [nan; choices(1:end-1)];
+x_ch = [nan; choice(1:end-1)];
 x_rwd = [nan; correct(1:end-1)];
 
 %
@@ -56,7 +56,7 @@ X_i2_p = prev_i2 == i_set';
 X_t1_p = prev_t1 == t_set';
 X_t2_p = prev_t2 == t_set';
 
-X_c_p = [nan; choices(1:end-1)];
+X_c_p = [nan; choice(1:end-1)];
 X_c_p2 = [nan; X_c_p(1:end-1)];
 
 X_t1t2_p = [nan;t1t2(1:end-1)] == t1t2_set';
@@ -100,7 +100,7 @@ zdesign = (design - mus) ./ sigs;
 %% response variable
 
 % construct response variable
-response = choices;
+response = choice;
 
 %% trial selection
 trial_flags = ...

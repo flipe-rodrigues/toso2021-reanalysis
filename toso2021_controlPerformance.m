@@ -36,8 +36,8 @@ normstim_set = unique(norm_stimuli(valid_flags));
 % preallocation
 psycurves = struct();
 
-% iterate through contrasts
-for kk = 1 : n_contrasts
+% iterate through animals
+for aa = 1 : n_contrasts
     contrast_flags = contrasts == contrast_set(kk);
     contrast_flags = i1 == i_set(i1_mode_idx) & i2 == i_set(i2_mode_idx);
     % iterate through stimuli
@@ -48,10 +48,10 @@ for kk = 1 : n_contrasts
             ...contrast_flags & ...
             stim_flags;
         psycurves(kk).x(ii,1) = normstim_set(ii);
-        psycurves(kk).y(ii,1) = sum(choices(trial_flags));
+        psycurves(kk).y(ii,1) = sum(choice(trial_flags));
         psycurves(kk).n(ii,1) = sum(trial_flags);
         psycurves(kk).err(ii,1) = ...
-            std(choices(trial_flags)) / sqrt(sum(trial_flags));
+            std(choice(trial_flags)) / sqrt(sum(trial_flags));
     end
 end
 
