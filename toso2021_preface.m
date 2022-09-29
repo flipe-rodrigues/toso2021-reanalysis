@@ -113,8 +113,8 @@ choice_set = unique(choice);
 n_choices = numel(choice_set);
 pre_t1_delay = data.PreDelay + inferred_misalignment;
 trial_idcs = data.Trial;
-subject_ids = data.Subject;
-subject_set = unique(subject_ids(~isnan(subject_ids)));
+subjects = data.Subject;
+subject_set = unique(subjects(~isnan(subjects)));
 n_subjects = numel(subject_set);
 
 %% interaction terms
@@ -153,7 +153,7 @@ choice_clrs = [.1,.5,1; .85,.1,.2];
 
 %% task variant adaptations
 
-% delayed duration comparison 
+% delayed duration comparison
 if strcmpi(task_str,'duration')
     
     % stimuli
@@ -165,12 +165,12 @@ if strcmpi(task_str,'duration')
     d1 = i1;
     d2 = i2;
     d_set = i_set;
-    
+
     % labels
-    s1_lbl = 'T1_t';
-    s2_lbl = 'T2_t';
-    d1_lbl = 'I1_t';
-    d2_lbl = 'I2_t';
+    s1_lbl = 'T_1';
+    s2_lbl = 'T_2';
+    d1_lbl = 'I_1';
+    d2_lbl = 'I_2';
     s_units = t1_units;
     d_units = i1_units;
     
@@ -178,7 +178,7 @@ if strcmpi(task_str,'duration')
     s1_clrs = t1_clrs;
     s2_clrs = t2_clrs;
     
-% delayed intensity comparison    
+    % delayed intensity comparison
 elseif strcmpi(task_str,'intensity')
     
     % stimuli
@@ -190,12 +190,12 @@ elseif strcmpi(task_str,'intensity')
     d1 = t1;
     d2 = t2;
     d_set = t_set;
-    
+
     % labels
-    s1_lbl = 'I1_t';
-    s2_lbl = 'I2_t';
-    d1_lbl = 'T1_t';
-    d2_lbl = 'T2_t';
+    s1_lbl = 'I_1';
+    s2_lbl = 'I_2';
+    d1_lbl = 'T_1';
+    d2_lbl = 'T_2';
     s_units = i1_units;
     d_units = t1_units;
     
@@ -238,6 +238,18 @@ valid_flags = ...
     ismember(i2,i_set) & ...
     ismember(t2,t_set);
 
+%% normalized stimulus dimensions
+
+% duration
+ntd = round((t2 - t1) ./ (t2 + t1),2);
+ntd_set = unique(ntd(valid_flags));
+n_ntd = numel(ntd_set);
+
+% intensity
+nid = round((i2 - i1) ./ (i2 + i1),2);
+nid_set = unique(nid(valid_flags));
+n_nid = numel(nid_set);
+
 %% figure options
 figopt.color = 'w';
 figopt.inverthardcopy = 'off';
@@ -268,15 +280,21 @@ axesopt.default.layer = 'top';
 
 % psychometric-specific axes properties
 axesopt.psycurve.ylim = [-.05,1.05];
-axesopt.psycurve.ytick = linspace(0,1,3);
+axesopt.psycurve.ytick = linspace(0,1,5);
 axesopt.psycurve.yticklabel = num2cell(axesopt.psycurve.ytick);
-axesopt.psycurve.yticklabel(2) = {''};
+axesopt.psycurve.yticklabel(~ismember(axesopt.psycurve.ytick,[0,1])) = {''};
 
 % south-east inset properties (southeast)
 axesopt.inset.se.position = [0.13+0.775*4/7,0.25,0.775/3,0.815/3];
 axesopt.inset.se.fontsize = axesopt.default.fontsize * 5/6;
 axesopt.inset.se.xaxislocation = 'bottom';
 axesopt.inset.se.yaxislocation = 'right';
+
+% north-west inset properties
+axesopt.inset.nw.position = [0.13,0.11,0.775,0.815];
+axesopt.inset.nw.fontsize = axesopt.default.fontsize * 5/6;
+axesopt.inset.nw.xaxislocation = 'top';
+axesopt.inset.nw.yaxislocation = 'left';
 
 % color bar properties
 axesopt.colorbar.ticklength = .025;

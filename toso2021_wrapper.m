@@ -34,7 +34,7 @@ want2save = true;
 toso2021_preface;
 
 %% contrast settings
-contrast_str = 'i2';
+contrast_str = 'i1';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str,'_set']);
 n_contrasts = numel(contrast_set);
@@ -48,7 +48,7 @@ contrast_lbl = [upper(contrast_str(1)),'_',contrast_str(2)];
 % behavior
 toso2021_generalizationMatrix_Si;
 toso2021_generalizationMatrix_Di;
-toso2021_choiceGLM;
+toso2021_GLM_choice;
 toso2021_psychometricCurves;
 
 % ephys

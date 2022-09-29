@@ -7,9 +7,10 @@ end
 w_norm = sum(abs(beta_s1) + abs(beta_s2));
 w1 = beta_s1 / w_norm;
 w2 = beta_s2 / w_norm;
-w1 = 0;
-w2 = 1;
+w1 = beta_s1;
+w2 = beta_s2;
 stimuli = round(s2 * w2 + s1 * w1);
+stimuli = s2;
 % stimuli = [ones(size(design,1),1),design] * coeffs;
 % % stimuli = [ones(size(Z,1),1),Z] * betas;
 % stimuli = round(stimuli,1);
@@ -123,7 +124,6 @@ axes(...
     axesopt.default,...
     axesopt.stimulus,...
     axesopt.psycurve);
-title('Psychometric curves');
 xlabel(stim_lbl);
 ylabel(sprintf('P(%s > %s)',s2_lbl,s1_lbl));
 
@@ -160,6 +160,41 @@ leg_str = cellfun(@(x,y)sprintf('%s = %i %s',x,y,contrast_units),...
 legend(p(isgraphics(p)),leg_str(isgraphics(p)),...
     'position',[0.085,0.66,.27,.2],...
     'box','on');
+
+%% inset with threshold marginals
+% axes(...
+%     axesopt.default,...
+%     axesopt.stimulus,...
+%     axesopt.psycurve,...
+%     axesopt.inset.nw,...
+%     'xaxislocation','bottom',...
+%     'ylimmode','auto',...
+%     'ycolor','none');
+% 
+% % plot options
+% marginalplotopt = struct();
+% marginalplotopt.h = gca;
+% marginalplotopt.prior = false;
+% marginalplotopt.lineWidth = psyopt.plot.linewidth;
+% marginalplotopt.labelSize = axesopt.inset.nw.fontsize;
+% marginalplotopt.xLabel = 'Threshold (s)';
+% marginalplotopt.yLabel = 'PDF';
+% 
+% % iterate through contrasts
+% for kk = 1 : n_contrasts
+%     
+%     % threshold marginal
+%     marginalplotopt.lineColor = contrast_clrs(kk,:);
+%     plotMarginal(psycurves(kk).fit,1,marginalplotopt);
+% end
+% 
+% % categorical boundary
+% plot([1,1]*.5,ylim,...
+%     'color','k',...
+%     'linestyle',':');
+% 
+% % axes adjustments
+% ylim([0,max(ylim)*2]);
 
 %% inset with delta P(long)
 axes(...
