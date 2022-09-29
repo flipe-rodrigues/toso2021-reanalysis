@@ -164,7 +164,6 @@ pchoice = 1 - 1 ./ (1 + exp(-beta * (-si_x' + si_x)));
 pchoice = (pchoice - min(pchoice(:))) ./ range(pchoice(:));
 pchoice = pchoice * diff(clims) + min(clims);
 imagesc(xlim,ylim,pchoice,clims);
-% si_x = linspace(min(xlim),max(xlim),1e2);
 % ntd_C = (si_x' - si_x) ./ (si_x' + si_x);
 % ntd_C = (ntd_C - min(ntd_C(:))) ./ range(ntd_C(:));
 % ntd_C = ntd_C .^ .75;

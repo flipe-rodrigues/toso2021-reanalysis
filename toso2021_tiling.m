@@ -125,7 +125,7 @@ axes(axesopt.default,...
     'ytick',[1,n_neurons],...
     'colormap',hot(2^8));
 title('T1-aligned PSTH raster');
-xlabel('Time since T_1 offset (ms)');
+xlabel('Time since T_1 onset (ms)');
 ylabel('Neuron #');
 
 % sort by angular position in PC space
@@ -174,7 +174,7 @@ axes(axesopt.default,...
     'ytick',[1,n_neurons],...
     'colormap',hot(2^8));
 title('T2-aligned PSTH raster');
-xlabel('Time since T_2 offset (ms)');
+xlabel('Time since T_2 onset (ms)');
 ylabel('Neuron #');
 
 % sort by angular position in PC space
