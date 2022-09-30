@@ -150,6 +150,7 @@ prev_t2_clrs = spring(n_t);
 i1_clrs = winter(n_i);
 i2_clrs = copper(n_i);
 choice_clrs = [.1,.5,1; .85,.1,.2];
+subject_clr = [1,1,1] * .75;
 
 %% task variant adaptations
 
