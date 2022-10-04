@@ -141,7 +141,7 @@ for kk = 1 : n_contrasts
     psyopt.plot.datafaceclr = contrast_clrs(kk,:);
     psyopt.plot.overallvisibility = 'off';
     psyopt.plot.normalizemarkersize = true;
-    psyopt.plot.plotfit = true;
+    psyopt.plot.plotfit = sum(psycurves(kk).n ~= 0) >= 2;
     p(kk) = plotpsy(psycurves(kk),psycurves(kk).fit,psyopt.plot);
 end
 
