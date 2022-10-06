@@ -4,9 +4,8 @@ if ~exist('data','var')
 end
 
 %% construct Ti-aligned, Ii-split psths
-pre_padd = 500;
 roi2use = [0,t_set(end)];
-roi2plot = roi2use; % [-pre_padd,t_set(end)];
+roi2plot = [-500,t_set(end)];
 roi2use_n_bins = range(roi2use) * psthbin;
 roi2plot_n_bins = range(roi2plot) * psthbin;
 roi2use_time = linspace(roi2use(1),roi2use(2),roi2use_n_bins);
@@ -111,7 +110,7 @@ s1_coeff = pca(s1_zpsths(roi2use_flags,:));
 s2_coeff = pca(s2_zpsths(roi2use_flags,:));
 
 %% colormap settings
-clim = [-1.5,3];
+clim = [-1.5,3.5];
 
 %% T1-aligned tiling
 
@@ -167,10 +166,16 @@ end
 % figure initialization
 fig = figure(figopt,...
     'name','tiling_s2');
+
+% axes initialization
+xxtick = unique([0;,roi2use';roi2plot';t_set]);
+xxticklabel = num2cell(xxtick);
+xxticklabel(xxtick > 0 & xxtick < t_set(end)) = {''};
 axes(axesopt.default,...
     'xlim',roi2plot,...
     'ylim',[1,n_neurons],...
-    'xtick',unique([0,t_set',roi2use,roi2plot]),...
+    'xtick',xxtick,...
+    'xticklabel',xxticklabel,...
     'ytick',[1,n_neurons],...
     'colormap',hot(2^8));
 title('T2-aligned PSTH raster');
@@ -180,7 +185,6 @@ ylabel('Neuron #');
 % sort by angular position in PC space
 [theta,~] = cart2pol(s2_coeff(:,1),s2_coeff(:,2));
 [~,theta_idcs] = sortrows(theta);
-% theta_idcs = circshift(theta_idcs,sum(theta>0));
 theta_idcs = flipud(circshift(theta_idcs,-80));
 
 % plot selectivity heat map
@@ -189,8 +193,7 @@ imagesc(roi2plot,[1,n_neurons],s2_zpsths(:,theta_idcs)',clim);
 % color bar
 clrbar = colorbar;
 clrbar.Ticks = unique([0,clim]);
-clrlabel.string = ...
-    sprintf('z-score_{I_2 = %i %s}',...
+clrlabel.string = sprintf('z-score_{I_2 = %i %s}',...
     i_set(i2_mode_idx),i2_units);
 clrlabel.fontsize = axesopt.default.fontsize * 1.1;
 clrlabel.rotation = 270;
@@ -198,12 +201,15 @@ clrlabel.position = [4.4,0,0];
 clrlabel.position = [4.4,sum(clim)/2,0];
 set(clrbar,...
     axesopt.colorbar,...
+    'color','k',...
     'fontsize',axesopt.default.fontsize);
 set(clrbar.Label,...
+    'color','k',...
     clrlabel);
 
 % plot alignment line
-plot([1,1]*0,ylim,'--w');
+plot([1,1]*0,ylim,'--w',...
+    'linewidth',1.5);
 
 % save figure
 if want2save

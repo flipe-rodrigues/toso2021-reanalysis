@@ -231,6 +231,39 @@ valid_time = padded_time(validtime_flags);
 neuron_idcs = unique(data.NeuronNumb);
 n_neurons_total = numel(neuron_idcs);
 
+%% flag unique trials
+pseudosession_transition_flags = [diff(data.Trial) ~= 1; true];
+n_pseudosession_transitions = sum(pseudosession_transition_flags);
+n_pseudosession_trialcounts = data.Trial(pseudosession_transition_flags);
+
+% preallocation
+unique_flags = false(size(pseudosession_transition_flags));
+prev_session_rows = [];
+prev_trial_count = 0;
+
+% iterate through neuron transitions
+for ii = 1 : n_pseudosession_transitions
+    if ii > 1
+        prev_trial_count = prev_trial_count + ...
+            n_pseudosession_trialcounts(ii-1);
+    end
+    pseudo_session_rows = ...
+        (1 : n_pseudosession_trialcounts(ii)) + prev_trial_count;
+    if ii == 0
+        unique_flags(pseudo_session_rows) = true;
+    else
+        if numel(pseudo_session_rows) ~= numel(prev_session_rows)
+            unique_flags(pseudo_session_rows) = true;
+        elseif all(t1(pseudo_session_rows) == i2(prev_session_rows)) && ...
+                all(i1(pseudo_session_rows) == i2(prev_session_rows)) && ...
+                all(t2(pseudo_session_rows) == i2(prev_session_rows)) && ...
+                all(i2(pseudo_session_rows) == i2(prev_session_rows))
+            unique_flags(pseudo_session_rows) = true;
+        end
+    end
+    prev_session_rows = pseudo_session_rows;
+end 
+
 %% trial pre-selection
 valid_flags = ...
     pre_t1_delay == 500 + inferred_misalignment & ...

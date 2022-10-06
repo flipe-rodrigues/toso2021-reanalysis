@@ -50,6 +50,7 @@ for ss = 1 : n_subjects
         stim_flags = stimuli == stim_set(ii);
         trial_flags = ...
             valid_flags & ...
+            unique_flags & ...
             subject_flags & ...
             stim_flags;
         
@@ -110,10 +111,10 @@ for ii = 1 : n_ntd
         subject_flags = ...
             ntd_flags & ...
             subjects == subject_set(jj);
-
+        
         % compute performance
         ntd_subj_perf(ii,jj) = ...
-                sum(choice(subject_flags)) / sum(subject_flags);
+            sum(choice(subject_flags)) / sum(subject_flags);
     end
     
     % compute performance
@@ -133,10 +134,10 @@ for ii = 1 : n_stimuli
         subject_flags = ...
             stim_flags & ...
             subjects == subject_set(jj);
-
-            % compute performance
-            stim_subj_perf(ii,jj) = ...
-                nansum(choice(subject_flags)) / nansum(subject_flags);
+        
+        % compute performance
+        stim_subj_perf(ii,jj) = ...
+            nansum(choice(subject_flags)) / nansum(subject_flags);
     end
     
     % compute performance
@@ -333,7 +334,7 @@ plot(xlim,[1,1]*.5,':k');
 % iterate through subjects
 for ss = 1 : n_subjects
     offset = (ss - (n_subjects + 1) / 2) * .025 * range(xlim);
-
+    
     % plot subject's average performance
     plot(ntd_set+offset,ntd_subj_perf(:,ss),...
         'color',subject_clr,...

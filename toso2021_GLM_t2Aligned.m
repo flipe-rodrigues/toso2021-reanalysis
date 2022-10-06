@@ -5,8 +5,8 @@ end
 
 %% GLM settings
 distro = 'normal';
-glm_roi = [-500,t_set(end-2)];
-glm_win = 100;
+glm_roi = [-500,t_set(t2_mode_idx)];
+glm_win = 250;
 glm_step = 25;
 n_glm = floor((diff(glm_roi) - glm_win) / glm_step) + 1
 
@@ -30,10 +30,10 @@ for nn = 1 : n_neurons
     end
     
     % fetch spike counts & compute spike rates
-    spike_counts = data.FR(spike_flags,:);
+    spike_counts = data.FR(spike_flags,:)';
     spike_rates = ...
-        conv2(1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
-    n_trials = size(spike_counts,1);
+        conv2(kernel.pdf,1,spike_counts,'valid') / psthbin * 1e3;
+    n_trials = sum(spike_flags);
     
     % iterate through GLMs
     for gg = 1 : n_glm
@@ -47,17 +47,17 @@ for nn = 1 : n_neurons
             t1(spike_flags) + ...
             isi;
         alignment_flags = ...
-            valid_time >= alignment_onset + glm_roi(1) & ...
-            valid_time < alignment_onset + t2(spike_flags);
+            padded_time >= alignment_onset + glm_roi(1) & ...
+            padded_time < alignment_onset + t2(spike_flags);
         chunk_flags = ...
-            valid_time >= alignment_onset + glm_win_onset & ...
-            valid_time < alignment_onset + glm_win_offset;
-        spkrates = spike_rates;
+            padded_time >= alignment_onset + glm_win_onset & ...
+            padded_time < alignment_onset + glm_win_offset;
+        spkrates = spike_counts;
         spkrates(~alignment_flags') = nan;
         spkrates = reshape(spkrates(chunk_flags'),[glm_win,n_trials])';
 
         % store average spike rates
-        spkcounts(spike_flags,gg) = nanmean(spkrates,2);
+        spkcounts(spike_flags,gg) = nansum(spkrates,2);
     end
 end
 
@@ -109,7 +109,7 @@ n_egneurons = numel(eg_neurons);
 %% GLM coefficient heatmaps
 
 % colormap settings
-clims = [-1,1] * 5;
+clims = [-1,1] * 1;
 
 % significance threshold
 alpha = .05;
@@ -156,7 +156,7 @@ for bb = 2 : n_coefficients
         ...'position',[545+(bb-2)*500,912,500,1310],...
         'name',sprintf('GLM_coefficients_%s',coeff_str));
     axes(axesopt.default,...
-        ...'plotboxaspectratiomode','auto',...
+        'plotboxaspectratiomode','auto',...
         'xlim',glm_roi,...
         'ylim',[1,n_neurons],...
         'xtick',unique([0,t_set',glm_roi]),...
@@ -171,7 +171,8 @@ for bb = 2 : n_coefficients
     % plot selectivity heat map
     sorted_idcs = leaf_idcs;
     coeff_map(~significance_mask) = 0;
-    imagesc(glm_roi,[1,n_neurons],...
+%     coeff_map = medfilt2(coeff_map,[3,1]);
+    imagesc(glm_roi+[1,-1]*glm_step,[1,n_neurons],...
         coeff_map(:,sorted_idcs)',clims);
 
     % plot alignment line
@@ -213,6 +214,7 @@ for bb = 2 : n_coefficients
         print(fig,svg_file,'-dsvg','-painters');
     end
 end
+return;
 
 %% GLM significance heatmaps
 

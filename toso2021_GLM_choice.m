@@ -21,6 +21,7 @@ for ss = 1 : n_subjects
     subject_flags = subjects == subject_set(ss);
     trial_flags = ...
         valid_flags & ...
+        unique_flags & ...
         subject_flags;
     
     % fit GLM to each subject
@@ -60,7 +61,7 @@ ylabel('Weight');
 % iterate through coefficients
 for bb = 1 : n_coefficients
     offset = ((1:n_subjects) - (n_subjects + 1) / 2) * .025 * range(xlim);
-   
+    
     % plot subject coefficients
     grapeplot(bb+offset,betas(:,bb),...
         'marker','o',...
