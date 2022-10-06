@@ -55,6 +55,8 @@ toso2021_psychometricCurves;
 
 % ephys
 toso2021_neuronSelection;
+toso2021_GLM_t2Aligned;
+return;
 toso2021_trialTypeDistributions;
 toso2021_tiling;
 toso2021_overallModulation;

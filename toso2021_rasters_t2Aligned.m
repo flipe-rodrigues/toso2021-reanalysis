@@ -29,7 +29,6 @@ end
 
 %% construct Si-aligned, Ti- & Ii-split psths
 ti_padd = [-500,0];
-action_padd = [-500,450];
 
 % iterate through neurons
 for nn = 1 : n_neurons2plot
