@@ -114,7 +114,7 @@ weights = repmat(weights,1,size(pca_design,1)/numel(weights));
 weights(weights == 0) = nan;
 
 % PCA
-coeff = pca(s2_concat_mode,...
+coeff = pca(pca_design,...
     'weights',weights);
 coeff = coeff_choice;
 
