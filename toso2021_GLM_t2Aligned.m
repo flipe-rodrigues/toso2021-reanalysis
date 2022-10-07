@@ -4,11 +4,12 @@ if ~exist('data','var')
 end
 
 %% GLM settings
-distro = 'normal';
-glm_roi = [-500,t_set(t2_mode_idx)];
+distro = 'poisson';
+glm_roi = [-500,t_set(end-1)];
 glm_win = 250;
 glm_step = 25;
-n_glm = floor((diff(glm_roi) - glm_win) / glm_step) + 1
+n_glm = floor((diff(glm_roi) - glm_win) / glm_step) + 1;
+glm_time = linspace(glm_roi(1),glm_roi(2)-glm_step,n_glm);
 
 %% construct response
 
@@ -64,7 +65,7 @@ end
 %% spike count GLMs
 
 % design matrix
-X = [s1,d1,d2];
+X = [s1,d1,d2,data.Trial];
 n_regressors = size(X,2);
 n_coefficients = n_regressors + 1;
     
@@ -88,7 +89,7 @@ for nn = 1 : n_neurons
 
         % fit GLM to each subject
         mdl = fitglm(Z(trial_flags,:),spkcounts(trial_flags,gg),'linear',...
-            'predictorvars',{s1_lbl,d1_lbl,d2_lbl},...
+            'predictorvars',{s1_lbl,d1_lbl,d2_lbl,'trial #'},...
             'distribution',distro,...
             'intercept',true);
         betas(nn,gg,:) = mdl.Coefficients.Estimate;
@@ -109,7 +110,7 @@ n_egneurons = numel(eg_neurons);
 %% GLM coefficient heatmaps
 
 % colormap settings
-clims = [-1,1] * 1;
+clims = [-1,1] * .75;
 
 % significance threshold
 alpha = .05;
