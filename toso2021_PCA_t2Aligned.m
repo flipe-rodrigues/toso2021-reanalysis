@@ -116,6 +116,7 @@ weights(weights == 0) = nan;
 % PCA
 coeff = pca(pca_design,...
     'weights',weights);
+% coeff_choice = coeff;
 coeff = coeff_choice;
 
 % reorder PCs by variance explained
