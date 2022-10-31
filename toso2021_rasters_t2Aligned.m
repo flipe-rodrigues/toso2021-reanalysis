@@ -39,7 +39,7 @@ for nn = 1 : n_neurons2plot
     % figure initialization
     fig = figure(figopt,...
         ...'windowstate','maximized',...
-        'position',[1000,1200,1525,460],...
+        'position',[1000-750,1200-750,1525,460],...
         'name',sprintf('neuron_%i',neurons2plot(nn)));
     n_rows = 2;
     n_cols = 3;
@@ -121,7 +121,6 @@ for nn = 1 : n_neurons2plot
         t1_sem = t1_std ./ sqrt(t1_trials_throughtime);
         
         % flag current stimulus period
-        time2plot = ti_padd(1) + psthbin : psthbin : max(t_set) + ti_padd(2);
         nan_flags = isnan(t1_mu);
         onset_flags = time2plot <= 0 & [time2plot(2:end),nan] > 0;
         offset_flags = diff([nan_flags,true]) == 1;
@@ -307,7 +306,6 @@ for nn = 1 : n_neurons2plot
         i1_sem = i1_std ./ sqrt(i1_trials_throughtime);
         
         % flag current stimulus period
-        time2plot = ti_padd(1) + psthbin : psthbin : max(t_set) + ti_padd(2);
         nan_flags = isnan(i1_mu);
         onset_flags = time2plot <= 0 & [time2plot(2:end),nan] > 0;
         offset_flags = diff([nan_flags,true]) == 1;
@@ -385,7 +383,6 @@ for nn = 1 : n_neurons2plot
         i2_sem = i2_std ./ sqrt(i2_trials_throughtime);
         
         % flag current stimulus period
-        time2plot = ti_padd(1) + psthbin : psthbin : max(t_set) + ti_padd(2);
         nan_flags = isnan(i2_mu);
         onset_flags = time2plot <= 0 & [time2plot(2:end),nan] > 0;
         offset_flags = diff([nan_flags,true]) == 1;
@@ -448,7 +445,7 @@ for nn = 1 : n_neurons2plot
                 end
                 if significance_mask(gg,sign_neuron_idx)
                     plot(sps(3),glm_time(gg)+[0,glm_step],[0,0],...
-                        'color',clrS,...
+                        'color',clr,...
                         'linestyle','--',...
                         'linewidth',7.5);
                 end
@@ -584,6 +581,7 @@ for nn = 1 : n_neurons2plot
     
     % save figure
     if want2save
+        return
         try
             % save settings
             png_file = fullfile(raster_path,[get(fig,'name'),'.png']);

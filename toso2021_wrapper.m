@@ -63,5 +63,3 @@ toso2021_overallModulation;
 toso2021_PCA_t2Aligned;
 toso2021_neurometricCurves;
 toso2021_naiveBayesDecoder;
-toso2021_selectedRasters
-% toso2021_allRasters;
