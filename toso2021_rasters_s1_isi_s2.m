@@ -11,6 +11,8 @@ if strcmpi(task_str,'duration')
         21,35,38,62,72,100,130,205,206,215,224,...
         234,241,391,393,397,402,406,428,...
         441,459,462,470,473,526,544,566];
+    neurons2plot = [...
+        215,393,402,462,526];
 elseif strcmpi(task_str,'intensity')
     neurons2plot = [...
         19,22,30,61,66,70,100,111,112,115,...
@@ -23,8 +25,10 @@ n_neurons2plot = numel(neurons2plot);
 version = ver('matlab');
 if contains(version.Release,'2019')
     spike_marker = '.';
+    spike_markersize = 1.5;
 else
-    spike_marker = '|';
+    spike_marker = '.';
+    spike_markersize = 1.5;
 end
 
 %% construct Si-aligned, Ti- & Ii-split psths
@@ -38,11 +42,11 @@ for nn = 1 : n_neurons2plot
     % figure initialization
     fig = figure(figopt,...
         ...'windowstate','maximized',...
-        'position',[1000-750,1250-750,1525,460],...
+        'position',[600,1250,2400,460],...
         'name',sprintf('neuron_%i',neurons2plot(nn)));
     n_rows = 2;
-    n_cols = 3;
-    n_sps = (n_rows - 1) * n_cols;
+    n_cols = 4;
+    n_sps = n_rows * n_cols;
     sps = gobjects(n_sps,1);
     for ii = 1 : n_cols
         sps(ii) = subplot(n_rows,n_cols,ii);
@@ -67,23 +71,37 @@ for nn = 1 : n_neurons2plot
         'xlim',[0,max(t_set)]+ti_padd,...
         'xtick',xxtick,...
         'xticklabel',xxticklabel);
+    set(sps(4+[0,n_cols]),...
+        'xlim',[0,post_s2_delay],...
+        'xtick',[0,post_s2_delay]);
     xlabel(sps(1+n_cols),'Time since T_1 onset (s)');
-    xlabel(sps(2+n_cols),'Time since ISI onset (s)');
+    xlabel(sps(2+n_cols),'Time since T_1 offset (s)');
     xlabel(sps(3+n_cols),'Time since T_2 onset (s)');
+    xlabel(sps(4+n_cols),'Time since T_2 offset (s)');
     ylabel(sps(1),'Firing rate (Hz)');
     ylabel(sps(2),'Firing rate (Hz)');
     ylabel(sps(3),'Firing rate (Hz)');
+    ylabel(sps(4),'Firing rate (Hz)');
     ylabel(sps(1+n_cols),'Trial #');
     ylabel(sps(2+n_cols),'Trial #');
     ylabel(sps(3+n_cols),'Trial #');
+    ylabel(sps(4+n_cols),'Trial #');
+    
+    % update aspect ratio
+    for ii = 1 : n_sps
+        set(sps(ii),...
+            'plotboxaspectratio',[range(xlim(sps(ii)))/1e3*1.25,1,1]);
+    end
     
     % preallocation
     s1_n_trial_counter = 0;
     isi_n_trial_counter = 0;
     s2_n_trial_counter = 0;
+    t2_n_trial_counter = 0;
     s1_boundaries = nan(n_i,1);
     isi_boundaries = nan(n_t,1);
     s2_boundaries = nan(n_i,1);
+    t2_boundaries = nan(n_t,1);
     
     % iterate through intensities
     for ii = 1 : n_i
@@ -186,11 +204,11 @@ for nn = 1 : n_neurons2plot
         plot(sps(1+n_cols),s1_spike_times,s1_sorted_trials,...
             'color','k',...
             'marker',spike_marker,...
-            'markersize',2,...
+            'markersize',spike_markersize,...
             'linestyle','none');
         
         % plot raster bands
-        xpatch = ti_padd(1) + [0,.05,.05,0] .* range(xlim(sps(1)));
+        xpatch = ti_padd(1) + [0,1,1,0] .* 50;
         ypatch = [.5,.5,s1_n_trials+.5,s1_n_trials+.5] + s1_n_trial_counter;
         patch(sps(1+n_cols),xpatch,ypatch,i1_clrs(ii,:),...
             'linewidth',1.5,...
@@ -201,9 +219,9 @@ for nn = 1 : n_neurons2plot
         s1_n_trial_counter = s1_n_trial_counter + s1_n_trials;
         s1_boundaries(ii) = s1_n_trials;
     end
-
+    
     % iterate through durations
-    for tt = n_t : -1 : 1
+    for tt = 1 : n_t
         t1_flags = t1 == t_set(tt);
         isi_spike_flags = ...
             valid_flags & ...
@@ -299,11 +317,11 @@ for nn = 1 : n_neurons2plot
         plot(sps(2+n_cols),isi_spike_times,isi_sorted_trials,...
             'color','k',...
             'marker',spike_marker,...
-            'markersize',2,...
+            'markersize',spike_markersize,...
             'linestyle','none');
         
         % plot raster bands
-        xpatch = [0,.05,.05,0] .* range(xlim(sps(2)));
+        xpatch = [0,1,1,0] .* 50;
         ypatch = [.5,.5,isi_n_trials+.5,isi_n_trials+.5] + isi_n_trial_counter;
         patch(sps(2+n_cols),xpatch,ypatch,t1_clrs(tt,:),...
             'linewidth',1.5,...
@@ -333,7 +351,7 @@ for nn = 1 : n_neurons2plot
             1,kernel.pdf,s2_spike_counts,'valid')' / psthbin * 1e3;
         s2_n_trials = size(s2_spike_counts,1);
         s2_n_tbins = n_tbins + range(ti_padd) * psthbin;
-
+        
         % T2-aligned, I2-split spike rates
         s2_alignment_onset = ...
             pre_init_padding + ...
@@ -402,7 +420,7 @@ for nn = 1 : n_neurons2plot
             'markersize',7.5,...
             'markerfacecolor','w',...
             'markeredgecolor',i2_clrs(ii,:));
-
+        
         % plot I2 raster
         s2_time_mat = padded_time - (...
             pre_init_padding + ...
@@ -421,11 +439,11 @@ for nn = 1 : n_neurons2plot
         plot(sps(3+n_cols),s2_spike_times,s2_sorted_trials,...
             'color','k',...
             'marker',spike_marker,...
-            'markersize',2,...
+            'markersize',spike_markersize,...
             'linestyle','none');
         
         % plot raster bands
-        xpatch = ti_padd(1) + [0,.05,.05,0] .* range(xlim(sps(2)));
+        xpatch = ti_padd(1) + [0,1,1,0] .* 50;
         ypatch = [.5,.5,s2_n_trials+.5,s2_n_trials+.5] + s2_n_trial_counter;
         patch(sps(3+n_cols),xpatch,ypatch,i2_clrs(ii,:),...
             'linewidth',1.5,...
@@ -437,9 +455,128 @@ for nn = 1 : n_neurons2plot
         s2_boundaries(ii) = s2_n_trials;
     end
     
+    % iterate through durations
+    for tt = 1 : n_t
+        t2_flags = t2 == t_set(tt);
+        t2_spike_flags = ...
+            valid_flags & ...
+            neuron_flags & ...
+            t2_flags;
+        if sum(t2_spike_flags) == 0
+            continue;
+        end
+        
+        % fetch spike counts & compute spike rates
+        t2_spike_counts = data.FR(t2_spike_flags,:);
+        t2_spike_rates = conv2(...
+            1,kernel.pdf,t2_spike_counts,'valid')' / psthbin * 1e3;
+        t2_n_trials = size(t2_spike_counts,1);
+        t2_n_tbins = post_s2_delay * psthbin;
+        
+        % T2-aligned, T1-split spike rates
+        t2_alignment_onset = ...
+            pre_init_padding + ...
+            pre_t1_delay(t2_spike_flags) + ...
+            t1(t2_spike_flags) + ...
+            isi + ...
+            t2(t2_spike_flags);
+        t2_alignment_flags = ...
+            valid_time >= t2_alignment_onset & ...
+            valid_time < t2_alignment_onset + post_s2_delay;
+        t2_chunk_flags = t2_alignment_flags;
+        t2_spkrates = t2_spike_rates;
+        t2_spkrates(~t2_alignment_flags') = nan;
+        t2_spkrates = reshape(...
+            t2_spkrates(t2_chunk_flags'),[t2_n_tbins,t2_n_trials])';
+        
+        % compute mean spike density function
+        time2plot = psthbin : psthbin : post_s2_delay;
+        time_flags = time2plot <= post_s2_delay;
+        t2_mu = nanmean(t2_spkrates(:,time_flags),1);
+        t2_std = nanstd(t2_spkrates(:,time_flags),0,1);
+        t2_trials_throughtime = sum(~isnan(t2_spkrates),1);
+        t2_sem = t2_std ./ sqrt(t2_trials_throughtime);
+        
+        % flag current stimulus period
+        nan_flags = isnan(t2_mu);
+        onset_flags = time2plot <= 0 & [time2plot(2:end),nan] > 0;
+        offset_flags = diff([nan_flags,true]) == 1;
+        flagged_time = time2plot(~nan_flags);
+        
+        % patch s.e.m.
+        t2_xpatch = [flagged_time,fliplr(flagged_time)];
+        t2_ypatch = [t2_mu(~nan_flags)-t2_sem(~nan_flags),...
+            fliplr(t2_mu(~nan_flags)+t2_sem(~nan_flags))];
+        patch_alpha = [t2_trials_throughtime(~nan_flags),...
+            fliplr(t2_trials_throughtime(~nan_flags))].^0;
+        patch_alpha = patch_alpha * .25 + .05;
+        patch(sps(4),t2_xpatch,t2_ypatch,t2_clrs(tt,:),...
+            'facevertexalphadata',patch_alpha',...
+            'alphadatamapping','none',...
+            'facealpha','interp',...
+            'edgecolor','none');
+        
+        % patch average activity
+        t2_xpatch = flagged_time(~nan_flags);
+        t2_ypatch = t2_mu(~nan_flags);
+        t2_ypatch(end) = nan;
+        patch_alpha = t2_trials_throughtime(~nan_flags).^0;
+        patch_alpha = patch_alpha * .95 + .05;
+        patch(sps(4),t2_xpatch,t2_ypatch,0,...
+            'facevertexalphadata',patch_alpha',...
+            'alphadatamapping','none',...
+            'edgealpha','interp',...
+            'edgecolor',t2_clrs(tt,:),...
+            'linewidth',1.5);
+        
+        % plot onset & offset
+        plot(sps(4),time2plot(onset_flags),t2_mu(onset_flags),...
+            'linewidth',1.5,...
+            'marker','o',...
+            'markersize',7.5,...
+            'markerfacecolor','w',...
+            'markeredgecolor',t2_clrs(tt,:));
+        
+        % plot T1 raster
+        t2_time_mat = padded_time - (...
+            pre_init_padding + ...
+            pre_t1_delay(t2_spike_flags) + ...
+            t1(t2_spike_flags) + ...
+            isi + ...
+            t2(t2_spike_flags));
+        t2_trial_idcs = (1 : t2_n_trials)' + t2_n_trial_counter;
+        t2_trial_mat = repmat(t2_trial_idcs,1,n_paddedtimebins);
+        t2_spike_trials = t2_trial_mat(t2_spike_counts >= 1);
+        t2_spike_times = t2_time_mat(t2_spike_counts >= 1);
+        trial_sorter = [t1(t2_spike_flags),prev_choices(t2_spike_flags)];
+        [~,sorted_idcs] = sortrows(trial_sorter,[1,-2]);
+        [~,resorted_idcs] = sortrows(sorted_idcs);
+        resorted_idcs = resorted_idcs + t2_n_trial_counter;
+        t2_sorted_trials = resorted_idcs(t2_spike_trials - t2_n_trial_counter);
+        plot(sps(4+n_cols),t2_spike_times,t2_sorted_trials,...
+            'color','k',...
+            'marker',spike_marker,...
+            'markersize',2,...
+            'linestyle','none');
+        
+        % plot raster bands
+        xpatch = [0,1,1,0] .* 50;
+        ypatch = [.5,.5,t2_n_trials+.5,t2_n_trials+.5] + t2_n_trial_counter;
+        patch(sps(4+n_cols),xpatch,ypatch,t2_clrs(tt,:),...
+            'linewidth',1.5,...
+            'facealpha',.75,...
+            'edgecolor','none');
+        
+        % update trial counters
+        t2_n_trial_counter = t2_n_trial_counter + t2_n_trials;
+        t2_boundaries(tt) = t2_n_trials;
+    end
+    
+    % check if all conditions have trials
     if all(isnan(s1_boundaries)) || ...
-            all(isnan(isi_boundaries)) || ...
-            all(isnan(s2_boundaries))
+            all(isnan(t2_boundaries)) || ...
+            all(isnan(i2_boundaries)) || ...
+            all(isnan(t2_boundaries))
         continue;
     end
     
@@ -449,10 +586,14 @@ for nn = 1 : n_neurons2plot
         'ytick',unique([1;cumsum(s1_boundaries,'omitnan')]));
     set(sps(2+n_cols),...
         'ylim',[1,nansum(isi_boundaries)]+[-1,1]*.5,...
-        'ytick',unique(1+nansum(isi_boundaries)-[1;cumsum(isi_boundaries,'omitnan')]));
+        'ytick',unique([1;cumsum(isi_boundaries,'omitnan')]));
     set(sps(3+n_cols),...
         'ylim',[1,nansum(s2_boundaries)]+[-1,1]*.5,...
         'ytick',unique([1;cumsum(s2_boundaries,'omitnan')]));
+    set(sps(4+n_cols),...
+        'ylim',[1,nansum(t2_boundaries)]+[-1,1]*.5,...
+        'ytick',unique([1;cumsum(t2_boundaries,'omitnan')]));
+    
     
     % axes linkage
     linkaxes(sps(1:n_cols),'y');
@@ -461,6 +602,13 @@ for nn = 1 : n_neurons2plot
     yylim = [min([ylim(sps(1)),ylim(sps(2)),ylim(sps(3))]),...
         max([ylim(sps(1)),ylim(sps(2)),ylim(sps(3))])];
     yylim = 5 * [floor(yylim(1)/5),floor(yylim(2)/5)];
+    if ismember(neurons2plot(nn),[215,462])
+        yylim = [0,60];
+    elseif ismember(neurons2plot(nn),[402])
+        yylim = [0,50];
+    elseif ismember(neurons2plot(nn),[526])
+        yylim = [0,40];
+    end
     yylim = max(yylim,[0,1]);
     set(sps(1:n_cols),...
         'ylim',yylim,...
@@ -469,13 +617,12 @@ for nn = 1 : n_neurons2plot
     
     % save figure
     if want2save
-        return
         try
             % save settings
             png_file = fullfile(raster_path,[get(fig,'name'),'.png']);
             print(fig,png_file,'-dpng','-r300','-painters');
-                        svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-                        print(fig,svg_file,'-dsvg','-painters');
+            svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+            print(fig,svg_file,'-dsvg','-painters');
             close(fig);
         catch
             close(fig);
