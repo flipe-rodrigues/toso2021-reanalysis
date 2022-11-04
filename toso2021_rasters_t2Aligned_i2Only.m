@@ -596,7 +596,7 @@ for nn = 1 : n_neurons2plot
         yylim = [0,50];
     elseif ismember(neurons2plot(nn),[381])
         yylim = [0,40];
-    elseif ismember(neurons2plot(nn),[205])
+    elseif ismember(neurons2plot(nn),[68,205,441])
         yylim = [0,15];
     elseif ismember(neurons2plot(nn),[72])
         yylim = [0,10];
@@ -608,9 +608,9 @@ for nn = 1 : n_neurons2plot
         'clipping','off');
     
     % update y-labels
-    ylbl_4.Position(1) = ylbl_1.Position(1);
-    ylbl_5.Position(1) = ylbl_2.Position(1);
-    ylbl_6.Position(1) = ylbl_3.Position(1);
+%     ylbl_4.Position(1) = ylbl_1.Position(1);
+%     ylbl_5.Position(1) = ylbl_2.Position(1);
+%     ylbl_6.Position(1) = ylbl_3.Position(1);
     
     % shift psth axes down a bit
     %     for ii = 1 : n_cols
