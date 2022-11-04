@@ -83,7 +83,6 @@ for nn = 1 : n_neurons
     pvals(nn,:) = mdl.Coefficients.pValue;
 end
 
-
 %%
 significance_mask = squeeze(pvals(:,2:end)) < alpha;
 round(nanmean(significance_mask)*100)

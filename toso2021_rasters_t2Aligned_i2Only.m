@@ -11,8 +11,8 @@ if strcmpi(task_str,'duration')
         21,35,38,62,72,100,130,205,206,215,224,...
         234,241,381,391,393,397,402,406,428,...
         441,448,459,462,470,473,526,544,566];
-    %     neurons2plot = [...
-    %         72,215,224,381,393,402,459,462,526];
+        neurons2plot = [...
+            72,205,215,224,391,393,397,402,448,459,462,470,526,566];
 elseif strcmpi(task_str,'intensity')
     neurons2plot = [...
         19,22,30,61,66,70,100,111,112,115,...
@@ -25,10 +25,10 @@ n_neurons2plot = numel(neurons2plot);
 version = ver('matlab');
 if contains(version.Release,'2019')
     spike_marker = '.';
-    spike_markersize = 1.5;
+    spike_markersize = 2;
 else
     spike_marker = '.';
-    spike_markersize = 1.5;
+    spike_markersize = 2;
 end
 
 %% construct Si-aligned, Ti- & Ii-split psths
@@ -588,7 +588,7 @@ for nn = 1 : n_neurons2plot
         yylim = [0,50];
     elseif ismember(neurons2plot(nn),[381])
         yylim = [0,40];
-    elseif ismember(neurons2plot(nn),[72])
+    elseif ismember(neurons2plot(nn),[72,205])
         yylim = [0,15];
     end
     yylim = max(yylim,[0,1]);
