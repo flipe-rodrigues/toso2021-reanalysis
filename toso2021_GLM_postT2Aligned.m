@@ -4,20 +4,18 @@ if ~exist('data','var')
 end
 
 %% GLM settings
-distro = 'normal';
-glm_roi = [-500,t_set(end)]; % t_set(t2_mode_idx+1);
-glm_win = 100;
-glm_step = 25;
-n_glm = floor((diff(glm_roi) - glm_win) / glm_step) + 1
+distro = 'poisson';
+glm_roi = [-t_set(1),post_s2_delay];
+glm_win = diff(glm_roi);
 
 %% construct response
 
 % preallocation
-spkcounts = nan(n_total_trials,n_glm);
+spkcounts = nan(n_total_trials,1);
 
 % iterate through neurons
 for nn = 1 : n_neurons
-    progressreport(nn,n_neurons,'fetching spike counts');
+    progressreport(nn,n_neurons,'fetching spike counts for GLM');
     neuron_flags = data.NeuronNumb == flagged_neurons(nn);
     
     % flag trials for the current condition
@@ -30,284 +28,122 @@ for nn = 1 : n_neurons
     end
     
     % fetch spike counts & compute spike rates
-    spike_counts = data.FR(spike_flags,:);
+    spike_counts = data.FR(spike_flags,:)';
     spike_rates = ...
-        conv2(1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
-    n_trials = size(spike_counts,1);
+        conv2(kernel.pdf,1,spike_counts,'valid') / psthbin * 1e3;
+    n_trials = sum(spike_flags);
     
-    % iterate through GLMs
-    for gg = 1 : n_glm
-        glm_win_onset = glm_roi(1) + (gg - 1) * glm_step;
-        glm_win_offset = glm_win_onset + glm_win;
-        
-        % T2-onset-aligned spike rates
-        alignment_onset = ...
-            pre_init_padding + ...
-            pre_t1_delay(spike_flags) + ...
-            t1(spike_flags) + ...
-            isi;
-        alignment_flags = ...
-            valid_time >= alignment_onset + glm_roi(1) & ...
-            valid_time < alignment_onset + t2(spike_flags);
-        chunk_flags = ...
-            valid_time >= alignment_onset + glm_win_onset & ...
-            valid_time < alignment_onset + glm_win_offset;
-        spkrates = spike_rates;
-        spkrates(~alignment_flags') = nan;
-        spkrates = reshape(spkrates(chunk_flags'),[glm_win,n_trials])';
+    % T2-offset-aligned spike rates
+    alignment_onset = ...
+        pre_init_padding + ...
+        pre_t1_delay(spike_flags) + ...
+        t1(spike_flags) + ...
+        isi + ...
+        t2(spike_flags);
+    alignment_flags = ...
+        padded_time >= alignment_onset + glm_roi(1) & ...
+        padded_time < alignment_onset + glm_roi(2);
+    chunk_flags = alignment_flags;
+    spkrates = spike_counts;
+    spkrates(~alignment_flags') = nan;
+    spkrates = reshape(spkrates(chunk_flags'),[glm_win,n_trials])';
 
-        % store average spike rates
-        spkcounts(spike_flags,gg) = nanmean(spkrates,2);
-    end
+    % store average spike rates
+    spkcounts(spike_flags) = nansum(spkrates,2);
 end
 
-%% spike count GLMs
+%% spike count GLM
 
 % design matrix
-X = [s1,d1,d2];
+X = [s1,s2,d1,d2];
 n_regressors = size(X,2);
 n_coefficients = n_regressors + 1;
-    
-% preallocation
-betas = nan(n_neurons,n_glm,n_coefficients);
-pvals = nan(n_neurons,n_glm,n_coefficients);
 
 % feature normalization
 Z = (X - nanmean(X)) ./ nanstd(X);
 
+% preallocation
+betas = nan(n_neurons,n_coefficients);
+pvals = nan(n_neurons,n_coefficients);
+
 % iterate through neurons
 for nn = 1 : n_neurons
-    progressreport(nn,n_neurons,'fitting neuron-wise GLMs');
+    progressreport(nn,n_neurons,'fitting neuron-wise GLM');
     neuron_flags = data.NeuronNumb == flagged_neurons(nn);
     trial_flags = ...
         valid_flags & ...
         neuron_flags;
     
-    % iterate through GLMs
-    for gg = 1 : n_glm
-        
-        figure; histogram(spkcounts(trial_flags,gg))
-        
-        % fit GLM to each subject
-        mdl = fitglm(Z(trial_flags,:),spkcounts(trial_flags,gg),'linear',...
-            'predictorvars',{s1_lbl,d1_lbl,d2_lbl},...
-            'distribution',distro,...
-            'intercept',true);
-        betas(nn,gg,:) = mdl.Coefficients.Estimate;
-        pvals(nn,gg,:) = mdl.Coefficients.pValue;
-    end
+    % fit GLM to each subject
+    mdl = fitglm(Z(trial_flags,:),spkcounts(trial_flags),'linear',...
+        'predictorvars',{s1_lbl,s2_lbl,d1_lbl,d2_lbl},...
+        'distribution',distro,...
+        'intercept',true);
+    betas(nn,:) = mdl.Coefficients.Estimate;
+    pvals(nn,:) = mdl.Coefficients.pValue;
 end
 
-%% color settings
-r_clr = [.95, .25, .25];
-w_clr = [1, 1, 1] * 1;
-b_clr = [.15, .35, .75];
-clrmap = colorlerp([b_clr; w_clr; r_clr], 2^8);
 
-%% neuron highlights
-eg_neurons = [215,393,526];
-n_egneurons = numel(eg_neurons);
+%%
+significance_mask = squeeze(pvals(:,2:end)) < alpha;
+round(nanmean(significance_mask)*100)
 
-%% GLM coefficient heatmaps
+%% rectification
+rectified_betas = abs(betas);
+% rectified_betas = rectified_betas ./ nansum(rectified_betas(:,2:end),2);
 
-% colormap settings
-clims = [-1,1] * 5;
+%% significance
+significant_betas = rectified_betas;
+significant_betas(pvals>=.05) = nan;
+insignificant_betas = rectified_betas;
+insignificant_betas(pvals<.05) = nan;
 
-% significance threshold
-alpha = .05;
+%% plot GLM coefficients
+fig = figure(figopt,...
+    'name','choice_GLM');
+axes(axesopt.default,...
+    'xlim',[0,n_coefficients+1],...
+    'ylim',[-3,3]+[-1,1]*.05*6,...
+    'xtick',1:n_coefficients,...
+    'xticklabelrotation',0,...
+    'xticklabel',beta_labels,...
+    'clipping','off',...
+    'plotboxaspectratio',[1,1,1]);
+title(sprintf('%s>%s~%s(\\phi(\\betaX))',s2_lbl,s1_lbl,capitalize(distro)));
+xlabel('Regressor');
+ylabel('|Weight|');
 
 % iterate through coefficients
-for bb = 2 : n_coefficients
-    coeff_lbl = mdl.Coefficients.Properties.RowNames{bb};
-    coeff_flags = ismember(mdl.Coefficients.Properties.RowNames,coeff_lbl);
-
-    % coefficient map
-    coeff_map = betas(:,:,coeff_flags)';
-    
-    % coefficient significance
-    significance_mask = pvals(:,:,coeff_flags)' < alpha;
-  
-    % pca
-    [pc_coeff,~,~,~,exp] = pca(coeff_map);
-    exp_cutoff = 80;
-    n_pcs2use = max(sum(cumsum(exp) <= exp_cutoff),2);
-    
-    % average sorting
-    avg_coeffs = mean(coeff_map);
-    [~,avg_idcs] = sort(avg_coeffs);
-    
-    % sort by angular position in PC space
-    [theta,~] = cart2pol(pc_coeff(:,1),pc_coeff(:,2));
-    [~,theta_idcs] = sortrows(theta);
-    
-    % agglomerative hierarchical clustering
-    diss = pdist(pc_coeff(:,1:n_pcs2use),'euclidean');
-    diss = pdist(coeff_map','euclidean');
-    tree = linkage(diss,'ward');
-    leaf_idcs = optimalleaforder(tree,diss);
-
-    % color map settings
-    coeff_str = strrep(lower(coeff_lbl),'_','');
-    coeff_clrs = eval([coeff_str,'_clrs']);
-    clrmap = colorlerp(...
-        [coeff_clrs(1,:); [1,1,1]; coeff_clrs(end,:)], 2^8);
-    
-    % figure initialization
-    fig = figure(figopt,...
-        ...'windowstyle','docked',...
-        'position',[545+(bb-2)*500,912,500,1310],...
-        'name',sprintf('GLM_coefficients_%s',coeff_str));
-    axes(axesopt.default,...
-        'plotboxaspectratiomode','auto',...
-        'xlim',glm_roi,...
-        'ylim',[1,n_neurons],...
-        'xtick',unique([0,t_set',glm_roi]),...
-        'ytick',[1,n_neurons],...
-        'colormap',clrmap);
-    title(coeff_lbl);
-    xlabel('Time since T_2 onset (ms)');
-    ylabel('Neuron #');
-
-    % plot selectivity heat map
-    sorted_idcs = leaf_idcs;
-    coeff_map(~significance_mask) = 0;
-    imagesc(glm_roi,[1,n_neurons],...
-        coeff_map(:,sorted_idcs)',clims);
-    
-    % plot alignment line
-    plot([1,1]*0,ylim,...
-        'color','k',...
-        'linestyle','--',...
-        'linewidth',1);
-    
-    % iterate through example neurons
-    for ee = 1 : n_egneurons
-        eg_neuron_flags = flagged_neurons(sorted_idcs) == eg_neurons(ee);
-        
-        % highlight example neuron
-        plot(min(xlim),find(eg_neuron_flags),...
-            'marker','>',...
-            'markersize',10,...
-            'markeredgecolor','k',...
-            'markerfacecolor',[1,1,1]*(ee-1)/(n_egneurons-1));
-    end
-    
-    % color bar
-    clrbar = colorbar;
-    clrbar.Ticks = unique([0,clims]);
-    clrlabel.string = 'Regression weight';
-    clrlabel.fontsize = axesopt.default.fontsize * 1.1;
-    clrlabel.rotation = 270;
-    clrlabel.position = [4.4,0,0];
-    clrlabel.position = [4.4,sum(clims)/2,0];
-    set(clrbar,...
-        axesopt.colorbar,...
-        'fontsize',axesopt.default.fontsize);
-    set(clrbar.Label,...
-        clrlabel);
-
-    % save figure
-    if want2save
-        svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-        print(fig,svg_file,'-dsvg','-painters');
-    end
+for bb = 1 : n_coefficients
+    offset = ((1:n_neurons) - (n_neurons + 1) / 2) * .0001 * range(xlim);
+   
+    % plot subject coefficients
+    grapeplot(bb+offset,insignificant_betas(:,bb),...
+        'marker','o',...
+        'markersize',5,...
+        'markerfacecolor',subject_clr,...
+        'markeredgecolor','w',...
+        'linewidth',1.5);
+    grapeplot(bb+offset,significant_betas(:,bb),...
+        'marker','o',...
+        'markersize',5,...
+        'markerfacecolor','k',...
+        'markeredgecolor','w',...
+        'linewidth',1.5);
 end
 
-%% GLM significance heatmaps
+% plot animal-pool coefficients
+p = stem(1:n_coefficients,nanmean(rectified_betas,1),...
+    'color','k',...
+    'marker','o',...
+    'markersize',12,...
+    'markerfacecolor','k',...
+    'markeredgecolor','w',...
+    'linewidth',1.5);
+p.BaseLine.LineWidth = p.LineWidth;
 
-% colormap settings
-clims = [0,1];
-
-% significance threshold
-alpha = .05;
-
-% iterate through coefficients
-for bb = 2 : n_coefficients
-    coeff_lbl = mdl.Coefficients.Properties.RowNames{bb};
-    coeff_flags = ismember(mdl.Coefficients.Properties.RowNames,coeff_lbl);
-
-    % coefficient map
-    coeff_map = betas(:,:,coeff_flags)';
-    
-    % significance map
-    significance_mask = pvals(:,:,coeff_flags)' < alpha;
-    
-    % pca
-    [pc_coeff,~,~,~,exp] = pca(coeff_map);
-    exp_cutoff = 80;
-    n_pcs2use = max(sum(cumsum(exp) <= exp_cutoff),2);
-    
-    % average sorting
-    avg_coeffs = mean(coeff_map);
-    [~,avg_idcs] = sort(avg_coeffs);
-    
-    % sort by angular position in PC space
-    [theta,~] = cart2pol(pc_coeff(:,1),pc_coeff(:,2));
-    [~,theta_idcs] = sortrows(theta);
-    
-    % agglomerative hierarchical clustering
-    diss = pdist(pc_coeff(:,1:n_pcs2use),'euclidean');
-    diss = pdist(coeff_map','euclidean');
-    tree = linkage(diss,'ward');
-    leaf_idcs = optimalleaforder(tree,diss);
-
-    % figure initialization
-    fig = figure(figopt,...
-        ...'windowstyle','docked',...
-        'position',[545+(bb-2)*500,912,500,1310],...
-        'name',sprintf('GLM_significance_%s',...
-        strrep(lower(coeff_lbl),'_','')));
-    axes(axesopt.default,...
-        'plotboxaspectratiomode','auto',...
-        'xlim',glm_roi,...
-        'ylim',[1,n_neurons],...
-        'xtick',unique([0,t_set',glm_roi]),...
-        'ytick',[1,n_neurons],...
-        'colormap',flipud(gray(2)));
-    title(coeff_lbl);
-    xlabel('Time since T_2 onset (ms)');
-    ylabel('Neuron #');
-
-    % plot selectivity heat map
-    sorted_idcs = leaf_idcs;
-    imagesc(glm_roi,[1,n_neurons],...
-        significance_mask(:,sorted_idcs)',clims);
- 
-    % plot alignment line
-    plot([1,1]*0,ylim,...
-        'color','k',...
-        'linestyle','--',...
-        'linewidth',1);
-        
-    % iterate through example neurons
-    for ee = 1 : n_egneurons
-        eg_neuron_flags = flagged_neurons(sorted_idcs) == eg_neurons(ee);
-        
-        % highlight example neuron
-        plot(min(xlim),find(eg_neuron_flags),...
-            'marker','>',...
-            'markersize',10,...
-            'markeredgecolor','k',...
-            'markerfacecolor',[1,1,1]*(ee-1)/(n_egneurons-1));
-    end
-    
-    % color bar
-    clrbar = colorbar;
-    clrbar.Ticks = unique([0,clims]);
-    clrlabel.string = 'Regression weight';
-    clrlabel.fontsize = axesopt.default.fontsize * 1.1;
-    clrlabel.rotation = 270;
-    clrlabel.position = [4.4,0,0];
-    clrlabel.position = [4.4,sum(clims)/2,0];
-    set(clrbar,...
-        axesopt.colorbar,...
-        'fontsize',axesopt.default.fontsize);
-    set(clrbar.Label,...
-        clrlabel);
-    
-    % save figure
-    if want2save
-        svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-        print(fig,svg_file,'-dsvg','-painters');
-    end
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
 end
