@@ -81,6 +81,7 @@ post_s2_delay = 500;
 %% neuron selection criteria
 trial_count_cutoff = 2;
 mean_fr_cutoff = 1;
+stability_cutoff = .25;
 
 %% parse meta data (bhv)
 t1 = data.Duration1;
