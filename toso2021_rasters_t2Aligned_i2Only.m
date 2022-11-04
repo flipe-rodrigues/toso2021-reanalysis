@@ -25,10 +25,10 @@ n_neurons2plot = numel(neurons2plot);
 version = ver('matlab');
 if contains(version.Release,'2019')
     spike_marker = '.';
-    spike_markersize = 2;
+    spike_markersize = 2.5;
 else
     spike_marker = '.';
-    spike_markersize = 2;
+    spike_markersize = 2.5;
 end
 
 %% construct Si-aligned, Ti- & Ii-split psths
