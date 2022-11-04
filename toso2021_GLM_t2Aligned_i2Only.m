@@ -13,6 +13,9 @@ glm_win = diff(glm_roi);
 % preallocation
 spkcounts = nan(n_total_trials,1);
 
+% I1 clamping
+i1_flags = i1 == i_set(i1_mode_idx);
+
 % T2 selection
 t2_flags = t2 >= glm_roi(2);
 
@@ -25,6 +28,7 @@ for nn = 1 : n_neurons
     spike_flags = ...
         valid_flags & ...
         neuron_flags & ...
+        i1_flags & ...
         t2_flags;
     flagged_trials = find(spike_flags);
     if sum(spike_flags) == 0
@@ -58,7 +62,7 @@ end
 %% spike count GLM
 
 % design matrix
-X = [d1,d2];
+X = [d2];
 n_regressors = size(X,2);
 n_coefficients = n_regressors + 1;
 
@@ -79,7 +83,7 @@ for nn = 1 : n_neurons
     
     % fit GLM to each subject
     mdl = fitglm(Z(trial_flags,:),spkcounts(trial_flags),'linear',...
-        'predictorvars',{d1_lbl,d2_lbl},...
+        'predictorvars',{d2_lbl},...
         'distribution',distro,...
         'intercept',true);
     betas(nn,:) = mdl.Coefficients.Estimate;
