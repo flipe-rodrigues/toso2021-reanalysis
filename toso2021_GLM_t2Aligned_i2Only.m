@@ -58,7 +58,7 @@ end
 %% spike count GLM
 
 % design matrix
-X = [s1,d1,d2];
+X = [d1,d2];
 n_regressors = size(X,2);
 n_coefficients = n_regressors + 1;
 
@@ -79,7 +79,7 @@ for nn = 1 : n_neurons
     
     % fit GLM to each subject
     mdl = fitglm(Z(trial_flags,:),spkcounts(trial_flags),'linear',...
-        'predictorvars',{s1_lbl,d1_lbl,d2_lbl},...
+        'predictorvars',{d1_lbl,d2_lbl},...
         'distribution',distro,...
         'intercept',true);
     betas(nn,:) = mdl.Coefficients.Estimate;

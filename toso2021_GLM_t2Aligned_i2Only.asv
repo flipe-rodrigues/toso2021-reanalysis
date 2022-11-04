@@ -5,7 +5,7 @@ end
 
 %% GLM settings
 distro = 'poisson';
-glm_roi = [0,t_set(t2_mode_idx)];
+glm_roi = [0,t_set(1)];
 glm_win = diff(glm_roi);
 
 %% construct response
