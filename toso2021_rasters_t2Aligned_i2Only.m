@@ -46,15 +46,15 @@ for nn = 1 : n_neurons2plot
     % figure initialization
     fig = figure(figopt,...
         ...'windowstate','maximized',...
-        'position',[340,340,1540,630],...
+        'position',[125,1200-750,1750,460],...
         'name',sprintf('neuron_%i',neurons2plot(nn)));
-    n_rows = 3;
+    n_rows = 2;
     n_cols = 3;
     n_sps = (n_rows - 1) * n_cols;
     sps = gobjects(n_sps,1);
     for ii = 1 : n_cols
         sps(ii) = subplot(n_rows,n_cols,ii);
-        sps(ii+n_cols) = subplot(n_rows,n_cols,n_cols*[1,2]+ii);
+        sps(ii+n_cols) = subplot(n_rows,n_cols,n_cols+ii);
     end
     xxtick = unique([ti_padd(1);-pre_t1_delay;0;t_set;t_set(end)+ti_padd(2)]);
     xxticklabel = num2cell(xxtick);
@@ -63,7 +63,7 @@ for nn = 1 : n_neurons2plot
         axesopt.default,...
         'layer','top',...
         'plotboxaspectratiomode','auto',...
-        ...'plotboxaspectratio',[2.25,1,1],...
+        'plotboxaspectratio',[2.25,1,1],...
         'xlim',[0,max(t_set)]+ti_padd,...+[-1,1]*.05*(max(t_set)+range(ti_padd)),...
         'xtick',xxtick,...
         'xticklabel',xxticklabel,...
@@ -586,7 +586,7 @@ for nn = 1 : n_neurons2plot
     % update y-axis limits
     yylim = [min([ylim(sps(1)),ylim(sps(2)),ylim(sps(3))]),...
         max([ylim(sps(1)),ylim(sps(2)),ylim(sps(3))])];
-    yylim = ylim(sps(3));
+    yylim = [0,max(ylim(sps(3)))];
     yylim = 5 * [floor(yylim(1)/5),floor(yylim(2)/5)];
     if ismember(neurons2plot(nn),[215])
         yylim = [0,65];
@@ -607,16 +607,18 @@ for nn = 1 : n_neurons2plot
         'ytick',yylim,...
         'clipping','off');
     
+    drawnow;
+    
     % update y-labels
-%     ylbl_4.Position(1) = ylbl_1.Position(1);
-%     ylbl_5.Position(1) = ylbl_2.Position(1);
-%     ylbl_6.Position(1) = ylbl_3.Position(1);
+    ylbl_4.Position(1) = ylbl_1.Position(1);
+    ylbl_5.Position(1) = ylbl_2.Position(1);
+    ylbl_6.Position(1) = ylbl_3.Position(1);
     
     % shift psth axes down a bit
-    %     for ii = 1 : n_cols
-    %         set(sps(ii),...
-    %             'position',get(sps(ii),'position')-[0,.075,0,0]);
-    %     end
+    for ii = 1 : n_cols
+        set(sps(ii),...
+            'position',get(sps(ii),'position')-[0,.075,0,0]);
+    end
     
     % save figure
     if want2save
