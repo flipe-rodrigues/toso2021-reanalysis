@@ -80,7 +80,7 @@ post_s2_delay = 500;
 
 %% neuron selection criteria
 trial_count_cutoff = 2;
-mean_fr_cutoff = 1;
+mean_fr_cutoff = 1/3;
 stability_cutoff = .25;
 
 %% parse meta data (bhv)
@@ -308,6 +308,7 @@ axesopt.default.fontsize = 12;
 axesopt.default.color = 'none';
 axesopt.default.xcolor = 'k';
 axesopt.default.ycolor = 'k';
+axesopt.default.zcolor = 'k';
 axesopt.default.nextplot = 'add';
 axesopt.default.tickdir = 'out';
 axesopt.default.box = 'off';

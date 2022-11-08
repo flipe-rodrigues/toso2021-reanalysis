@@ -5,7 +5,7 @@ end
 
 %% GLM settings
 distro = 'poisson';
-glm_roi = [0,100];%t_set(t2_mode_idx)];
+glm_roi = [0,t_set(t2_mode_idx)];
 glm_win = diff(glm_roi);
 
 %% construct response
@@ -106,9 +106,9 @@ end
 %% plot spike count distribution
 
 % bin settings
-n_bins = 1e2;
-binspan = [0,25];
-binedges = binspan(1) : binspan(2);
+n_bins = 21;
+binspan = [0,20];
+binedges = linspace(binspan(1),binspan(2),n_bins);
 egneuron_flags = ismember(data.NeuronNumb,...
     [68,72,215,391,393,428,459,470,526]);
 bincounts = histcounts(spkcounts(valid_flags),... & egneuron_flags),...
@@ -116,16 +116,19 @@ bincounts = histcounts(spkcounts(valid_flags),... & egneuron_flags),...
 bincounts = bincounts / nansum(bincounts);
 
 % figure initialization
-fig = figure(figopt,...
-    'name','GLM_spikeCountDistro');
-axes(axesopt.default,...
-    'xlim',binspan,...+[-1,1]*.05*range(binspan),...
+if glm_roi(2) ~= 100
+    fig = figure(figopt,...
+        'name','GLM_spikeCountDistro');
+end
+set(gca,...
+    axesopt.default,...
+    'xlim',binspan+[-1,1]*.05*range(binspan),...
     'ylimspec','tight',...
     'ytick',0,...
     'ycolor','k',...
     'clipping','off',...
-    'plotboxaspectratio',[1,1,1]);
-xlabel('Spike counts');
+    'plotboxaspectratio',[2.25,1,1]);
+xlabel('Spike count');
 ylabel('PDF');
 
 % plot spike count distribution
@@ -147,11 +150,14 @@ else
         'linewidth',1.5);
 end
 
+% update y-axis
+ylim(ylim+[0,1]*.05*range(ylim));
+
 % legend
-leg = legend({'334 ms','100 ms'},...
-    'position',[0.085,0.66,.27,.2],...
-    'box','off');
-title(leg,'Spike integration window:');
+% leg = legend({'334 ms','100 ms'},...
+%     'position',[0.085,0.66,.27,.2],...
+%     'box','off');
+% title(leg,'Spike integration window:');
 
 % save figure
 if want2save

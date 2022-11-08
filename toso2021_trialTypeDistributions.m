@@ -67,14 +67,21 @@ end
 
 % figure & axes initialization
 fig = figure(figopt,...
-    'name',sprintf('trial_type_distributions_%s',contrast_str));
+    'name',sprintf('trial_type_distributions_%s',contrast_str),...
+    'position',[440,230,640,500]);
 axes(axesopt.default,...
+    'xlim',[0,60],...
+    'xtick',[1,2,3,5,10,20,30,50],...
     'ylim',[1,n_stimuli] + [-1,1] * .05 * n_stimuli,...
+    'zlim',[0,150],...
+    'ztick',linspace(0,150,4),...
     'ytick',1:n_stimuli,...
     'yticklabel',num2cell(stim_set),...
     'xscale','log');
-xlabel('Trial count');
-ylabel(stim_lbl);
+xlabel('Trial count',...
+    'rotation',-30);
+ylabel('T2 (ms)',...
+    'rotation',60);
 zlabel('Neuron count');
 view(30,80);
 
@@ -100,9 +107,95 @@ for kk = 1 : n_contrasts
             'ybinedges',y_edges,...
             'bincounts',bin_counts,...
             'edgecolor','none',...
-            'facecolor',contrast_clrs(kk,:));
+            'facecolor',contrast_clrs(kk,:),...
+            'facealpha',1);
     end
 end
+
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
+end
+
+%% plot surviving trial counts
+
+% figure & axes initialization
+fig = figure(figopt,...
+    'name',sprintf('surviving_trial_count_%s',contrast_str));
+ti_padd = [-500,0];
+xxtick = unique([ti_padd(1);-pre_t1_delay;0;t_set;t_set(end)+ti_padd(2)]);
+xxticklabel = num2cell(xxtick);
+xxticklabel(~ismember(xxtick,[ti_padd,0,1e3,t_set(t2_mode_idx)])) = {''};
+axes(axesopt.default,...
+    'layer','top',...
+    'plotboxaspectratio',[1,1,1],...
+    'xlim',[0,max(t_set)]+ti_padd,...+[-1,1]*.05*range([0,max(t_set)]+ti_padd),...
+    'xtick',xxtick,...
+    'xticklabel',xxticklabel,...
+    'ylim',[1,200],...
+    'ytick',[1,3,5,10,30,50,100,200],...
+    'yscale','log');
+xlabel('Time since S_2 onset (ms)');
+ylabel('Trial count');
+
+% preallocation
+surviving_trial_counts = nan(n_neurons,n_i,n_t);
+
+% iterate through neurons
+for nn = 1 : n_neurons
+    neuron_idx = flagged_neurons(nn);
+    
+    % iterate through intensities
+    for ii = 1 : n_i
+        
+        % compute surviving trial counts
+        surviving_trial_counts(nn,ii,:) = ...
+            cumsum(trial_type_counts(neuron_idx,:,ii),'reverse');
+    end
+end
+
+% graphical object preallocation
+p = gobjects(n_i,1);
+
+% reference lines
+plot(xlim,[1,1]*30,'--k');
+plot([1,1]*t_set(t2_mode_idx),ylim,'--k');
+
+% iterate through intensities
+for ii = 1 : n_i
+    
+    % plot surviving trial counts
+    counts = squeeze(surviving_trial_counts(:,ii,:));
+    counts = [counts,counts(:,end)];
+    avg = nanmedian(counts);
+    sig = std(counts);
+    sem = sig ./ sqrt(n_neurons);
+    iqr = quantile(counts,[.25,.75]) - nanmedian(counts);
+    err = iqr;
+    
+    % stair-patch hack
+    xx = [ti_padd(1);sort(repmat(t_set,2,1))];
+    xx = xx(1:end-1);
+    yy1 = upsample(avg+err(1,:),2)';
+    yy1(2:2:end) = yy1(1:2:end-1);
+    yy1 = yy1(1:end-2);
+    yy2 = upsample(avg+err(2,:),2)';
+    yy2(2:2:end) = yy2(1:2:end-1);
+    yy2 = yy2(1:end-2);
+    xpatch = [xx;flipud(xx)];
+    ypatch = [yy1;flipud(yy2)];
+    patch(xpatch,ypatch,i2_clrs(ii,:),...
+        'facealpha',1/n_i,...
+        'facecolor',i2_clrs(ii,:),...
+        'edgecolor','none');
+    p(ii) = stairs([ti_padd(1);t_set],avg,...
+        'color',i2_clrs(ii,:),...
+        'linewidth',1.5);
+end
+
+% ui restacking
+uistack(p,'top');
 
 % save figure
 if want2save
