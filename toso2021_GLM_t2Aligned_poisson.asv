@@ -5,7 +5,7 @@ end
 
 %% GLM settings
 distro = 'poisson';
-glm_roi = [-800,t_set(end-1)];
+glm_roi = [-500,t_set(end-1)];
 glm_win = 300;
 glm_step = 25;
 n_glm = floor((diff(glm_roi) - glm_win) / glm_step) + 1;
@@ -96,8 +96,8 @@ n_regressors = size(X,2);
 n_coefficients = n_regressors + 1;
     
 % preallocation
-betas = zeros(n_neurons2use,n_glm,n_coefficients);
-pvals = zeros(n_neurons2use,n_glm,n_coefficients);
+betas = nan(n_neurons2use,n_glm,n_coefficients);
+pvals = nan(n_neurons2use,n_glm,n_coefficients);
 
 % feature normalization
 Z = (X - nanmean(X)) ./ nanstd(X);
@@ -126,6 +126,10 @@ for nn = 1 : n_neurons2use
         pvals(nn,gg,:) = mdl.Coefficients.pValue;
     end
 end
+
+% 
+betas = betas(~isnan(betas));
+betas = betas(~isnan(betas));
 
 %% print percentage of significantly modulated neurons
 alpha = .01;
@@ -298,7 +302,7 @@ for bb = n_coefficients
     coeff_str = strrep(lower(coeff_lbl),'_','');
     coeff_clrs = eval([coeff_str,'_clrs']);
     clrmap = colorlerp(...
-        [coeff_clrs(1,:); [1,1,1]; coeff_clrs(end,:)], 5);
+        [coeff_clrs(1,:); [1,1,1]; coeff_clrs(end,:)], 3);
     
     % figure initialization
     fig = figure(figopt,...
@@ -306,9 +310,9 @@ for bb = n_coefficients
         ...'position',[545+(bb-2)*500,912,500,1310],...
         'name',sprintf('GLM_significance_%s',...
         strrep(lower(coeff_lbl),'_','')));
-    xxtick = unique([glm_roi';glm_roi(1)+glm_win;0;t_set]);
+    xxtick = unique([ti_padd(1);-pre_t1_delay;0;t_set;t_set(end)+ti_padd(2)]);
     xxticklabel = num2cell(xxtick);
-    xxticklabel(~ismember(xxtick,[glm_roi,glm_roi(1)+glm_win,0])) = {''};
+    xxticklabel(xxtick > 0 & xxtick < 1e3) = {''};
     axes(axesopt.default,...
         'plotboxaspectratiomode','auto',...
         'ticklength',[0.0250 0.0250]/3,...
@@ -327,7 +331,7 @@ for bb = n_coefficients
     % plot selectivity heat map
     sorted_idcs = leaf_idcs;
 %     significance_mask = medfilt2(significance_mask,[3,1]);
-    imagesc(glm_roi+[1,0]*glm_win,[1,n_neurons2use],...
+    imagesc(glm_roi,[1,n_neurons2use],...
         significance_mask(:,sorted_idcs)',clims);
  
     % plot alignment line

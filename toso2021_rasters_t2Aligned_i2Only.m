@@ -441,24 +441,24 @@ for nn = 1 : n_neurons2plot
         %             'markeredgecolor','w');
         
         % plot significance
-        %         significance_mask = pvals(:,:,4)' < alpha;
-        %         coeff_map = betas(:,:,4)';
-        %         sign_neuron_idx = find(flagged_neurons == neurons2plot(nn));
-        %         if ii == n_i && any(significance_mask(:,sign_neuron_idx))
-        %             for gg = 1 : n_glm
-        %                 if sign(coeff_map(gg,sign_neuron_idx)) > 0
-        %                     clr = i2_clrs(end,:);
-        %                 else
-        %                     clr = i2_clrs(1,:);
-        %                 end
-        %                 if significance_mask(gg,sign_neuron_idx)
-        %                     plot(sps(3),glm_time(gg)+[0,glm_step],[0,0],...
-        %                         'color',clr,...
-        %                         'linestyle','--',...
-        %                         'linewidth',7.5);
-        %                 end
-        %             end
-        %         end
+%         significance_mask = pvals(:,:,4)' < alpha;
+%         coeff_map = betas(:,:,4)';
+%         sign_neuron_idx = find(flagged_neurons == neurons2plot(nn));
+%         if ii == n_i && any(significance_mask(:,sign_neuron_idx))
+%             for gg = 1 : n_glm
+%                 if sign(coeff_map(gg,sign_neuron_idx)) > 0
+%                     clr = i2_clrs(end,:);
+%                 else
+%                     clr = i2_clrs(1,:);
+%                 end
+%                 if significance_mask(gg,sign_neuron_idx)
+%                     plot(sps(3),glm_time(gg)+[0,glm_step],[0,0],...
+%                         'color',clr,...
+%                         'linestyle','--',...
+%                         'linewidth',7.5);
+%                 end
+%             end
+%         end
         
 %         sign_neuron_idx = find(flagged_neurons == neurons2plot(nn));
 %         if ~significance_mask(sign_neuron_idx,2)
@@ -620,6 +620,28 @@ for nn = 1 : n_neurons2plot
     for ii = 1 : n_cols
         set(sps(ii),...
             'position',get(sps(ii),'position')-[0,.075,0,0]);
+    end
+    
+    % plot significance
+    significance_mask = pvals(:,:,end)' < .05;
+    coeff_map = betas(:,:,end)';
+    if any(significance_mask(:,nn))
+        for gg = 1 : n_glm
+            if sign(coeff_map(gg,nn)) > 0
+                clr = i2_clrs(end,:);
+            else
+                clr = i2_clrs(1,:);
+            end
+            linewidth = 2.5 * (1 + (pvals(nn,gg,end)' < .01));
+            if significance_mask(gg,nn)
+                plot(sps(3),...
+                    glm_time(gg)+[0,glm_step],...
+                    [1,1]*max(ylim(sps(3)))*1.05,...
+                    'color',clr,...
+                    'linestyle','--',...
+                    'linewidth',linewidth);
+            end
+        end
     end
     
     % save figure
