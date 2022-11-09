@@ -40,7 +40,7 @@ i1_clamp_flags = i1 == i_set(i1_mode_idx);
 i2_clamp_flags = i2 == i_set(i2_mode_idx);
 
 % iterate through neurons
-for nn = 1 : n_neurons2plot
+for nn = 393 % 1 : n_neurons2plot
     progressreport(nn,n_neurons2plot,'parsing neural data');
     neuron_flags = data.NeuronNumb == neurons2plot(nn);
     
@@ -82,6 +82,12 @@ for nn = 1 : n_neurons2plot
     ylbl_4 = ylabel(sps(1+n_cols),'Trial #');
     ylbl_5 = ylabel(sps(2+n_cols),'Trial #');
     ylbl_6 = ylabel(sps(3+n_cols),'Trial #');
+    
+    % waveform axes
+        axwav = axes('position',[.9,.5,.075,.15],...
+        'box','off',...
+        'xcolor','none',...
+        'ycolor','none');
     
     % time selection
     time2plot = min(xlim(sps(1))) + psthbin : psthbin : max(xlim(sps(1)));
@@ -223,8 +229,7 @@ for nn = 1 : n_neurons2plot
         [~,resorted_idcs] = sortrows(sorted_idcs);
         resorted_idcs = resorted_idcs + t1_n_trial_counter;
         t1_sorted_trials = resorted_idcs(t1_spike_trials - t1_n_trial_counter);
-        t1_sorted_trials = t1_trial_idcs(t1_spike_trials - t1_n_trial_counter);
-        plot(sps(1+n_cols),t1_spike_times,t1_sorted_trials,...
+        plot(sps(1+n_cols),t1_spike_times,t1_spike_trials,...
             'color','k',...
             'marker',spike_marker,...
             'markersize',spike_markersize,...
@@ -623,26 +628,37 @@ for nn = 1 : n_neurons2plot
     end
     
     % plot significance
-    significance_mask_05 = pvals(:,:,end)' < .05;
-    significance_mask_01 = pvals(:,:,end)' < .01;
-    coeff_map = betas(:,:,4)';
-    sign_neuron_idx = find(flagged_neurons == neurons2plot(nn));
-    if any(significance_mask_05(:,sign_neuron_idx))
+    significance_mask = pvals(:,:,end)' < .05;
+    coeff_map = betas(:,:,end)';
+    if any(significance_mask(:,neurons2plot(nn)))
         for gg = 1 : n_glm
-            if sign(coeff_map(gg,sign_neuron_idx)) > 0
+            if sign(coeff_map(gg,neurons2plot(nn))) > 0
                 clr = i2_clrs(end,:);
-                linewidth = 1 + significance_mask_01(gg,sign_neuron_idx);
             else
                 clr = i2_clrs(1,:);
             end
-            if significance_mask_05(gg,sign_neuron_idx)
-                plot(sps(3),glm_time(gg)+[0,glm_step],[0,0],...
+            linewidth = 2.5 * (1 + (pvals(neurons2plot(nn),gg,end)' < .01));
+            if significance_mask(gg,neurons2plot(nn))
+                plot(sps(3),...
+                    glm_time(gg)+[0,glm_step],...
+                    [1,1]*max(ylim(sps(3)))*1.05,...
                     'color',clr,...
                     'linestyle','--',...
-                    'linewidth',7.5);
+                    'linewidth',linewidth);
             end
         end
     end
+    
+    % plot whether or not this passed selection
+    plot(sps(3),max(xlim(sps(3))),max(ylim(sps(3))),...
+        'marker','.',...
+        'markersize',15,...
+        'color','k');
+    
+    % plot waveform
+    plot(axwav,data.Shape(neurons2plot(nn),:),...
+        'color','k',...
+        'linewidth',1.5);
     
     % save figure
     if want2save

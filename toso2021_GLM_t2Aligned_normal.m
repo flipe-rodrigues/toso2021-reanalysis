@@ -5,11 +5,30 @@ end
 
 %% GLM settings
 distro = 'normal';
-glm_roi = [-500,t_set(t2_mode_idx+2)];
-glm_win = 250;
+glm_win = 100;
+glm_roi = [ti_padd(1)-glm_win,t_set(end-1)];
 glm_step = 25;
 n_glm = floor((diff(glm_roi) - glm_win) / glm_step) + 1;
-glm_time = linspace(glm_roi(1),glm_roi(2)-glm_step,n_glm);
+glm_time = linspace(glm_roi(1)+glm_win,glm_roi(2)-glm_step,n_glm);
+
+%% neuron selection
+
+% selected for being good examples of i2-modulation
+if strcmpi(task_str,'duration')
+    neurons2use = [...
+        21,24,35,38,62,65,68,72,100,130,205,206,215,224,...
+        234,241,356,381,391,393,397,402,406,428,441,448,...
+        459,461,462,470,473,493,526,544,553,555,566];
+%     neurons2use = [...
+%         38,72,205,215,224,391,393,397,402,448,459,462,470,526,566];
+elseif strcmpi(task_str,'intensity')
+    neurons2use = [...
+        19,22,30,61,66,70,100,111,112,115,...
+        166,238,243,260,344,408,410];
+end
+neurons2use = flagged_neurons;
+neurons2use = neuron_idcs;
+n_neurons2use = numel(neurons2use);
 
 %% construct response
 
@@ -20,9 +39,9 @@ spkcounts = nan(n_total_trials,n_glm);
 i1_flags = i1 == i_set(i1_mode_idx);
 
 % iterate through neurons
-for nn = 1 : n_neurons
-    progressreport(nn,n_neurons,'fetching spike counts');
-    neuron_flags = data.NeuronNumb == flagged_neurons(nn);
+for nn = 1 : n_neurons2use
+    progressreport(nn,n_neurons2use,'fetching spike counts');
+    neuron_flags = data.NeuronNumb == neurons2use(nn);
     
     % flag trials for the current condition
     spike_flags = ...
@@ -77,26 +96,30 @@ n_regressors = size(X,2);
 n_coefficients = n_regressors + 1;
     
 % preallocation
-betas = nan(n_neurons,n_glm,n_coefficients);
-pvals = nan(n_neurons,n_glm,n_coefficients);
+betas = zeros(n_neurons2use,n_glm,n_coefficients);
+pvals = zeros(n_neurons2use,n_glm,n_coefficients);
 
 % feature normalization
 Z = (X - nanmean(X)) ./ nanstd(X);
 
 % iterate through neurons
-for nn = 1 : n_neurons
-    progressreport(nn,n_neurons,'fitting neuron-wise GLMs');
-    neuron_flags = data.NeuronNumb == flagged_neurons(nn);
+for nn = 1 : n_neurons2use
+    progressreport(nn,n_neurons2use,'fitting neuron-wise GLMs');
+    neuron_flags = data.NeuronNumb == neurons2use(nn);
     trial_flags = ...
         valid_flags & ...
         neuron_flags;
-    
+    if sum(trial_flags) == 0
+        continue;
+    end
+
     % iterate through GLMs
     for gg = 1 : n_glm
 
         % fit GLM to each subject
         mdl = fitglm(Z(trial_flags,:),spkcounts(trial_flags,gg),'linear',...
-            'predictorvars',{s1_lbl,d1_lbl,d2_lbl},...{s1_lbl,d1_lbl,d2_lbl,'trial #'},...
+            ...'predictorvars',{s1_lbl,d1_lbl,d2_lbl,'trial #'},...
+            'predictorvars',{s1_lbl,d1_lbl,d2_lbl},...
             'distribution',distro,...
             'intercept',true);
         betas(nn,gg,:) = mdl.Coefficients.Estimate;
@@ -105,7 +128,7 @@ for nn = 1 : n_neurons
 end
 
 %% print percentage of significantly modulated neurons
-alpha = .05;
+alpha = .01;
 significance_mask = squeeze(pvals(:,:,2:end)) < alpha;
 n_significant = sum(squeeze(nansum(significance_mask(:,glm_time>=0,:),2)) >= 1);
 
@@ -113,8 +136,8 @@ n_significant = sum(squeeze(nansum(significance_mask(:,glm_time>=0,:),2)) >= 1);
 for bb = 1 : n_regressors
     fprintf('%s-modulated: %i/%i (%.1f%%)\n',...
         mdl.Coefficients.Properties.RowNames{bb+1},...
-        n_significant(bb),n_neurons,...
-        n_significant(bb)/n_neurons*100);
+        n_significant(bb),n_neurons2use,...
+        n_significant(bb)/n_neurons2use*100);
 end
 
 %% color settings
@@ -124,7 +147,7 @@ b_clr = [.15, .35, .75];
 clrmap = colorlerp([b_clr; w_clr; r_clr], 2^8);
 
 %% neuron highlights
-eg_neurons = [215,393,526];
+% eg_neurons = [215,393,526];
 eg_neurons = [68,72,215,391,393,428,459,470,526];
 n_egneurons = numel(eg_neurons);
 
@@ -177,9 +200,9 @@ for bb = 2 : n_coefficients
     axes(axesopt.default,...
         'plotboxaspectratiomode','auto',...
         'xlim',glm_roi,...
-        'ylim',[1,n_neurons],...
+        'ylim',[1,n_neurons2use],...
         'xtick',unique([0,t_set',glm_roi]),...
-        'ytick',[1,n_neurons],...
+        'ytick',[1,n_neurons2use],...
         'layer','top',...
         'clipping','off',...
         'colormap',clrmap);
@@ -191,7 +214,7 @@ for bb = 2 : n_coefficients
     sorted_idcs = leaf_idcs;
     coeff_map(~significance_mask) = 0;
 %     coeff_map = medfilt2(coeff_map,[3,1]);
-    imagesc(glm_roi+[1,-1]*glm_step,[1,n_neurons],...
+    imagesc(glm_roi+[1,-1]*glm_step,[1,n_neurons2use],...
         coeff_map(:,sorted_idcs)',clims);
 
     % plot alignment line
@@ -202,7 +225,7 @@ for bb = 2 : n_coefficients
 
     % iterate through example neurons
     for ee = 1 : n_egneurons
-        eg_neuron_flags = flagged_neurons(sorted_idcs) == eg_neurons(ee);
+        eg_neuron_flags = neurons2use(sorted_idcs) == eg_neurons(ee);
         
         % highlight example neuron
         plot(min(xlim)-range(xlim)*.0275,find(eg_neuron_flags),...
@@ -233,15 +256,14 @@ for bb = 2 : n_coefficients
         print(fig,svg_file,'-dsvg','-painters');
     end
 end
-return;
 
 %% GLM significance heatmaps
 
 % colormap settings
-clims = [-1,1];
+clims = [-2,2];
 
 % iterate through coefficients
-for bb = 2 : n_coefficients
+for bb = n_coefficients
     coeff_lbl = mdl.Coefficients.Properties.RowNames{bb};
     coeff_flags = ismember(mdl.Coefficients.Properties.RowNames,coeff_lbl);
 
@@ -249,7 +271,9 @@ for bb = 2 : n_coefficients
     coeff_map = betas(:,:,coeff_flags)';
     
     % significance map
-    significance_mask = pvals(:,:,coeff_flags)' < alpha;
+    significance_mask = ...
+        double(pvals(:,:,coeff_flags)' < .05) .* sign(coeff_map) + ...
+        double(pvals(:,:,coeff_flags)' < .01) .* sign(coeff_map);
     
     % pca
     [pc_coeff,~,~,~,exp] = pca(coeff_map);
@@ -266,7 +290,7 @@ for bb = 2 : n_coefficients
     
     % agglomerative hierarchical clustering
     diss = pdist(pc_coeff(:,1:n_pcs2use),'euclidean');
-    diss = pdist((double(significance_mask) .* sign(coeff_map))','euclidean');
+    diss = pdist(significance_mask','euclidean');
     tree = linkage(diss,'ward');
     leaf_idcs = optimalleaforder(tree,diss);
 
@@ -274,7 +298,7 @@ for bb = 2 : n_coefficients
     coeff_str = strrep(lower(coeff_lbl),'_','');
     coeff_clrs = eval([coeff_str,'_clrs']);
     clrmap = colorlerp(...
-        [coeff_clrs(1,:); [1,1,1]; coeff_clrs(end,:)], 3);
+        [coeff_clrs(1,:); [1,1,1]; coeff_clrs(end,:)], 5);
     
     % figure initialization
     fig = figure(figopt,...
@@ -282,13 +306,17 @@ for bb = 2 : n_coefficients
         ...'position',[545+(bb-2)*500,912,500,1310],...
         'name',sprintf('GLM_significance_%s',...
         strrep(lower(coeff_lbl),'_','')));
+    xxtick = unique([glm_roi';glm_roi(1)+glm_win;0;t_set]);
+    xxticklabel = num2cell(xxtick);
+    xxticklabel(~ismember(xxtick,[glm_roi,glm_roi(1)+glm_win,0])) = {''};
     axes(axesopt.default,...
         'plotboxaspectratiomode','auto',...
         'ticklength',[0.0250 0.0250]/3,...
-        'xlim',glm_roi,...
-        'ylim',[1,n_neurons],...
-        'xtick',unique([0,t_set',glm_roi]),...
-        'ytick',[1,n_neurons],...
+        'xlim',glm_roi+[1,0]*glm_win,...
+        'ylim',[1,n_neurons2use],...
+        'xtick',xxtick,...
+        'xticklabel',xxticklabel,...
+        'ytick',[1,n_neurons2use],...
         'layer','top',...
         'clipping','off',...
         'colormap',clrmap);
@@ -298,9 +326,8 @@ for bb = 2 : n_coefficients
 
     % plot selectivity heat map
     sorted_idcs = leaf_idcs;
-    significance_mask = double(significance_mask) .* sign(coeff_map);
 %     significance_mask = medfilt2(significance_mask,[3,1]);
-    imagesc(glm_roi,[1,n_neurons],...
+    imagesc(glm_roi+[1,0]*glm_win,[1,n_neurons2use],...
         significance_mask(:,sorted_idcs)',clims);
  
     % plot alignment line
@@ -311,7 +338,7 @@ for bb = 2 : n_coefficients
         
     % iterate through example neurons
 %     for ee = 1 : n_egneurons
-%         eg_neuron_flags = flagged_neurons(sorted_idcs) == eg_neurons(ee);
+%         eg_neuron_flags = neurons2use(sorted_idcs) == eg_neurons(ee);
 %         
 %         % highlight example neuron
 %         plot(min(xlim)-range(xlim)*.0275,find(eg_neuron_flags),...
