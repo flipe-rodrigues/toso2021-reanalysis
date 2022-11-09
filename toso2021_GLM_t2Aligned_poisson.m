@@ -5,7 +5,7 @@ end
 
 %% GLM settings
 distro = 'poisson';
-glm_win = 300;
+glm_win = 100;
 glm_roi = [ti_padd(1)-glm_win,t_set(end-1)];
 glm_step = 25;
 n_glm = floor((diff(glm_roi) - glm_win) / glm_step) + 1;
