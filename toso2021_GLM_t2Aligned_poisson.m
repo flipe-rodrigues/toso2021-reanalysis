@@ -6,7 +6,7 @@ end
 %% GLM settings
 distro = 'poisson';
 glm_win = 100;
-glm_roi = [ti_padd(1)-glm_win,t_set(end-1)];
+glm_roi = [-500-glm_win,t_set(end-1)];
 glm_step = 25;
 n_glm = floor((diff(glm_roi) - glm_win) / glm_step) + 1;
 glm_time = linspace(glm_roi(1)+glm_win,glm_roi(2)-glm_step,n_glm);
@@ -27,7 +27,7 @@ elseif strcmpi(task_str,'intensity')
         166,238,243,260,344,408,410];
 end
 neurons2use = flagged_neurons;
-neurons2use = neuron_idcs;
+% neurons2use = neuron_idcs;
 n_neurons2use = numel(neurons2use);
 
 %% construct response
