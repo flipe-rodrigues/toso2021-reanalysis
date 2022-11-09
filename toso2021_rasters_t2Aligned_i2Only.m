@@ -34,7 +34,7 @@ else
 end
 
 %% construct Si-aligned, Ti- & Ii-split psths
-ti_padd = [-500,0];
+ti_padd = [-500,500];
 
 % clamping
 i1_clamp_flags = i1 == i_set(i1_mode_idx);
@@ -225,14 +225,16 @@ for nn = 1 : n_neurons2plot
             t1(t1_spike_flags) + ...
             isi);
         t1_trial_idcs = (1 : t1_n_trials)' + t1_n_trial_counter;
-        t1_trial_mat = repmat(t1_trial_idcs,1,n_paddedtimebins);
+        t1_trial_idcs_global = data.Trial(t1_spike_flags);
+        t1_trial_mat = repmat(t1_trial_idcs_global,1,n_paddedtimebins);
         t1_spike_trials = t1_trial_mat(t1_spike_counts >= 1);
         t1_spike_times = t1_time_mat(t1_spike_counts >= 1);
-        trial_sorter = [t1(t1_spike_flags),prev_choices(t1_spike_flags)];
-        [~,sorted_idcs] = sortrows(trial_sorter,[1,-2]);
-        [~,resorted_idcs] = sortrows(sorted_idcs);
-        resorted_idcs = resorted_idcs + t1_n_trial_counter;
-        t1_sorted_trials = resorted_idcs(t1_spike_trials - t1_n_trial_counter);
+%         trial_sorter = [t1(t1_spike_flags),prev_choices(t1_spike_flags)];
+%         [~,sorted_idcs] = sortrows(trial_sorter,[1,-2]);
+%         [~,resorted_idcs] = sortrows(sorted_idcs);
+%         resorted_idcs = resorted_idcs + t1_n_trial_counter;
+%         t1_sorted_trials = resorted_idcs(t1_spike_trials - t1_n_trial_counter);
+%         t1_unsorted_trials = t1_trial_idcs_global(t1_spike_flags);
         plot(sps(1+n_cols),t1_spike_times,t1_spike_trials,...
             'color','k',...
             'marker',spike_marker,...
