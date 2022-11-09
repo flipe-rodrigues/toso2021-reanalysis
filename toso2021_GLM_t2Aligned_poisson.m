@@ -34,7 +34,6 @@ n_neurons2use = numel(neurons2use);
 
 % preallocation
 spkcounts = nan(n_total_trials,n_glm);
-valid_glms = nan(n_neurons2use,n_glms);
 
 % clamping
 i1_flags = i1 == i_set(i1_mode_idx);
@@ -81,13 +80,39 @@ for nn = 1 : n_neurons2use
         spkrates(~alignment_flags') = nan;
         spkrates = reshape(spkrates(chunk_flags'),[glm_win,n_trials])';
 
-        % assess validity
-        valid_glms(nn,gg) = all(sum(~isnan(spkrates)) > trial_count_cutoff);
-        
         % store average spike rates
         spkcounts(spike_flags,gg) = nansum(spkrates,2);
     end
 end
+
+%% assess glm validity through time
+
+% preallocation
+valid_glms = nan(n_neurons2use,n_glm);
+
+% iterate through neurons
+for nn = 1 : n_neurons2use
+    progressreport(nn,n_neurons2use,'asessing validity');
+    
+    % fetch current neuron index
+    nn_idx = neurons2use(nn);
+    
+    % iterate through GLMs
+    for gg = 1 : n_glm
+        glm_win_onset = glm_roi(1) + (gg - 1) * glm_step;
+        glm_win_offset = glm_win_onset + glm_win;
+        
+        % fetch current stimulus index
+        t2_idx = find(glm_win_offset <= t_set,1);
+        
+        % assess validity
+        valid_glms(nn,gg) = ...
+            all(surviving_trial_counts(nn_idx,t2_idx,:) > trial_count_cutoff);
+    end
+end
+
+figure;
+imagesc(valid_glms);
 
 %% spike count GLMs
 
