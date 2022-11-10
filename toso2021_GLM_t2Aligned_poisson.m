@@ -27,7 +27,7 @@ elseif strcmpi(task_str,'intensity')
         166,238,243,260,344,408,410];
 end
 neurons2use = flagged_neurons;
-neurons2use = neuron_idcs;
+% neurons2use = neuron_idcs;
 n_neurons2use = numel(neurons2use);
 
 %% construct response
@@ -197,7 +197,7 @@ for bb = n_coefficients
 %     significance_mask(~valid_glms') = max(clims);
     
     % pca
-    [pc_coeff,~,~,~,exp] = pca(coeff_map);
+    [pc_coeff,~,~,~,exp] = pca(significance_mask(glm_time>=0,:));
     exp_cutoff = 80;
     n_pcs2use = max(sum(cumsum(exp) <= exp_cutoff),2);
     
@@ -206,12 +206,12 @@ for bb = n_coefficients
     [~,avg_idcs] = sort(avg_coeffs);
     
     % sort by angular position in PC space
-%     [theta,~] = cart2pol(pc_coeff(:,1),pc_coeff(:,2));
-%     [~,theta_idcs] = sortrows(theta);
+    [theta,~] = cart2pol(pc_coeff(:,1),pc_coeff(:,2));
+    [~,theta_idcs] = sortrows(theta);
     
     % agglomerative hierarchical clustering
 %     diss = pdist(pc_coeff(:,1:n_pcs2use),'euclidean');
-    diss = pdist(significance_mask','euclidean');
+    diss = pdist(significance_mask(glm_time>=0,:)','euclidean');
     tree = linkage(diss,'ward');
     leaf_idcs = optimalleaforder(tree,diss);
 
@@ -225,7 +225,7 @@ for bb = n_coefficients
     % figure initialization
     fig = figure(figopt,...
         ...'windowstyle','docked',...
-        ...'position',[545+(bb-2)*500,912,500,1310],...
+        'position',[1.8000 41.8000 405 1.0288e+03],...
         'name',sprintf('GLM_significance_%s',...
         strrep(lower(coeff_lbl),'_','')));
     xxtick = unique([glm_roi';glm_roi(1)+glm_win;0;t_set]);
@@ -242,12 +242,13 @@ for bb = n_coefficients
         'layer','top',...
         'clipping','off',...
         'colormap',clrmap);
-    title(coeff_lbl);
+%     title(coeff_lbl);
     xlabel('Time since S_2 onset (ms)');
     ylabel('Neuron #');
 
     % plot selectivity heat map
     sorted_idcs = leaf_idcs;
+%     significance_mask(valid_glms') = 0;
 %     significance_mask(~valid_glms') = max(clims);
 %     significance_mask = medfilt2(significance_mask,[3,1]);
     imagesc(glm_roi+[1,0]*glm_win,[1,n_neurons2use],...
@@ -261,6 +262,7 @@ for bb = n_coefficients
         
     % iterate through example neurons
 %     for ee = 1 : n_egneurons
+%         try
 %         eg_neuron_flags = neurons2use(sorted_idcs) == eg_neurons(ee);
 %         
 %         % highlight example neuron
@@ -270,8 +272,7 @@ for bb = n_coefficients
 %             'markeredgecolor','k',...
 %             'markerfacecolor',[1,1,1]*(ee-1)/(n_egneurons-1),...
 %             'linewidth',1.5);
-%         if bb == 4
-%             a=1
+%         catch
 %         end
 %     end
     
@@ -288,6 +289,7 @@ for bb = n_coefficients
         'fontsize',axesopt.default.fontsize);
     set(clrbar.Label,...
         clrlabel);
+    delete(clrbar);
     
     % save figure
     if want2save

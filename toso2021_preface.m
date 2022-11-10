@@ -79,7 +79,7 @@ isi = 2e3;
 post_s2_delay = 500;
 
 %% neuron selection criteria
-trial_count_cutoff = 5;
+trial_count_cutoff = 2;
 mean_fr_cutoff = 1/3;
 stability_cutoff = .25;
 

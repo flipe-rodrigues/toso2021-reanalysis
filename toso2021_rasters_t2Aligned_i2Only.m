@@ -20,7 +20,7 @@ elseif strcmpi(task_str,'intensity')
         166,238,243,260,344,408,410];
 end
 neurons2plot = flagged_neurons;
-neurons2plot = neuron_idcs;
+% neurons2plot = neuron_idcs;
 n_neurons2plot = numel(neurons2plot);
 
 %% version-dependent spike marker
@@ -34,7 +34,7 @@ else
 end
 
 %% construct Si-aligned, Ti- & Ii-split psths
-ti_padd = [-1000,500];
+ti_padd = [-500,0];
 
 % clamping
 i1_clamp_flags = i1 == i_set(i1_mode_idx);
@@ -226,15 +226,15 @@ for nn = 1 : n_neurons2plot
             isi);
         t1_trial_idcs = (1 : t1_n_trials)' + t1_n_trial_counter;
         t1_trial_idcs_global = data.Trial(t1_spike_flags);
-        t1_trial_mat = repmat(t1_trial_idcs_global,1,n_paddedtimebins);
+        t1_trial_mat = repmat(t1_trial_idcs,1,n_paddedtimebins);
         t1_spike_trials = t1_trial_mat(t1_spike_counts >= 1);
         t1_spike_times = t1_time_mat(t1_spike_counts >= 1);
-%         trial_sorter = [t1(t1_spike_flags),prev_choices(t1_spike_flags)];
-%         [~,sorted_idcs] = sortrows(trial_sorter,[1,-2]);
-%         [~,resorted_idcs] = sortrows(sorted_idcs);
-%         resorted_idcs = resorted_idcs + t1_n_trial_counter;
-%         t1_sorted_trials = resorted_idcs(t1_spike_trials - t1_n_trial_counter);
-%         t1_unsorted_trials = t1_trial_idcs_global(t1_spike_flags);
+        trial_sorter = [t1(t1_spike_flags),prev_choices(t1_spike_flags)];
+        [~,sorted_idcs] = sortrows(trial_sorter,[1,-2]);
+        [~,resorted_idcs] = sortrows(sorted_idcs);
+        resorted_idcs = resorted_idcs + t1_n_trial_counter;
+        t1_sorted_trials = resorted_idcs(t1_spike_trials - t1_n_trial_counter);
+        t1_unsorted_trials = t1_trial_idcs(t1_spike_trials - t1_n_trial_counter);
         plot(sps(1+n_cols),t1_spike_times,t1_spike_trials,...
             'color','k',...
             'marker',spike_marker,...
@@ -662,12 +662,15 @@ for nn = 1 : n_neurons2plot
     
     % plot whether or not this passed selection
     if ismember(neurons2plot(nn),flagged_neurons)
-        plot(axwav,max(xlim(axwav)),min(ylim(axwav)),...
-            'marker','.',...
-            'markersize',15,...
-            'color','g');
+        clr = [0,1,0];
+    else 
+        clr = [1,0,0];
     end
-    
+    plot(axwav,max(xlim(axwav)),min(ylim(axwav)),...
+        'marker','.',...
+        'markersize',15,...
+        'color',clr);
+        
     % save figure
     if want2save
         try
