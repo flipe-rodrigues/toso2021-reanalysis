@@ -140,37 +140,46 @@ xlabel('Time since S_2 onset (ms)');
 ylabel('Trial count');
 
 % preallocation
-surviving_trial_counts = nan(n_neurons,n_i,n_t);
+surviving_trial_counts = nan(n_neurons_total,n_contrasts,n_t);
 
 % iterate through neurons
-for nn = 1 : n_neurons
-    neuron_idx = flagged_neurons(nn);
+for nn = 1 : n_neurons_total
+    neuron_idx = neuron_idcs(nn);
     
-    % iterate through intensities
-    for ii = 1 : n_i
+    % iterate through contrasts
+    for ii = 1 : n_contrasts
         
         % compute surviving trial counts
         surviving_trial_counts(nn,ii,:) = ...
-            cumsum(trial_type_counts(neuron_idx,:,ii),'reverse');
+            cumsum(trial_type_numbers(neuron_idx,:,ii),'reverse','omitnan');
     end
 end
 
 % graphical object preallocation
-p = gobjects(n_i,1);
+p = gobjects(n_contrasts,1);
 
 % reference lines
-plot(xlim,[1,1]*30,'--k');
-plot([1,1]*t_set(t2_mode_idx),ylim,'--k');
+plot(xlim,[1,1]*trial_count_cutoff,'--k');
+% plot([1,1]*t_set(t2_mode_idx),ylim,'--k');
 
-% iterate through intensities
-for ii = 1 : n_i
+% iterate through contrasts
+for ii = 1 : n_contrasts
+    
+    % iterate through neurons
+%     for nn = 1 : n_neurons_total
+%         stairs([ti_padd(1);t_set],...
+%             [surviving_trial_counts(nn,ii,1);...
+%             squeeze(surviving_trial_counts(nn,ii,:))],...
+%             'color',contrast_clrs(ii,:),...
+%             'linewidth',.1);
+%     end
     
     % plot surviving trial counts
     counts = squeeze(surviving_trial_counts(:,ii,:));
     counts = [counts,counts(:,end)];
     avg = nanmedian(counts);
     sig = std(counts);
-    sem = sig ./ sqrt(n_neurons);
+    sem = sig ./ sqrt(n_neurons_total);
     iqr = quantile(counts,[.25,.75]) - nanmedian(counts);
     err = iqr;
     
@@ -185,12 +194,12 @@ for ii = 1 : n_i
     yy2 = yy2(1:end-2);
     xpatch = [xx;flipud(xx)];
     ypatch = [yy1;flipud(yy2)];
-    patch(xpatch,ypatch,i2_clrs(ii,:),...
-        'facealpha',1/n_i,...
-        'facecolor',i2_clrs(ii,:),...
+    patch(xpatch,ypatch,contrast_clrs(ii,:),...
+        'facealpha',1/n_contrasts,...
+        'facecolor',contrast_clrs(ii,:),...
         'edgecolor','none');
     p(ii) = stairs([ti_padd(1);t_set],avg,...
-        'color',i2_clrs(ii,:),...
+        'color',contrast_clrs(ii,:),...
         'linewidth',1.5);
 end
 
