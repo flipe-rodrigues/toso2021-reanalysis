@@ -7,7 +7,7 @@ end
 distro = 'poisson';
 glm_win = 250;
 glm_roi = [-500-glm_win,t_set(end)];
-glm_step = 50;
+glm_step = 25;
 n_glm = floor((diff(glm_roi) - glm_win) / glm_step) + 1;
 glm_time = linspace(glm_roi(1)+glm_win,glm_roi(2)-glm_step,n_glm);
 
@@ -88,7 +88,7 @@ end
 %% assess glm validity through time
 
 % preallocation
-valid_glms = nan(n_neurons2use,n_glm);
+valid_glms = false(n_neurons2use,n_glm);
 
 % iterate through neurons
 for nn = 1 : n_neurons2use
@@ -111,9 +111,6 @@ for nn = 1 : n_neurons2use
     end
 end
 
-figure;
-imagesc(valid_glms);
-
 %% spike count GLMs
 
 % design matrix
@@ -125,8 +122,8 @@ n_regressors = size(X,2);
 n_coefficients = n_regressors + 1;
     
 % preallocation
-betas = nan(n_neurons2use,n_glm,n_coefficients);
-pvals = nan(n_neurons2use,n_glm,n_coefficients);
+betas = zeros(n_neurons2use,n_glm,n_coefficients);
+pvals = zeros(n_neurons2use,n_glm,n_coefficients);
 
 % feature normalization
 Z = (X - nanmean(X)) ./ nanstd(X);
@@ -144,11 +141,7 @@ for nn = 1 : n_neurons2use
 
     % iterate through GLMs
     for gg = 1 : n_glm
-        if numel(spkcounts(trial_flags,gg)) < trial_count_cutoff
-            gg
-            continue;
-        end
-        
+
         % fit GLM to each subject
         mdl = fitglm(Z(trial_flags,:),spkcounts(trial_flags,gg),'linear',...
             ...'predictorvars',{s1_lbl,d1_lbl,d2_lbl,'trial #'},...
@@ -201,7 +194,7 @@ for bb = n_coefficients
     significance_mask = ...
         double(pvals(:,:,coeff_flags)' < .05) .* sign(coeff_map) + ...
         double(pvals(:,:,coeff_flags)' < .01) .* sign(coeff_map);
-    significance_mask(isnan(nan)) = max(clims);
+%     significance_mask(~valid_glms') = max(clims);
     
     % pca
     [pc_coeff,~,~,~,exp] = pca(coeff_map);
@@ -255,6 +248,7 @@ for bb = n_coefficients
 
     % plot selectivity heat map
     sorted_idcs = leaf_idcs;
+%     significance_mask(~valid_glms') = max(clims);
 %     significance_mask = medfilt2(significance_mask,[3,1]);
     imagesc(glm_roi+[1,0]*glm_win,[1,n_neurons2use],...
         significance_mask(:,sorted_idcs)',clims);
