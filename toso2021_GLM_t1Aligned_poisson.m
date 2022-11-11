@@ -35,9 +35,6 @@ n_neurons2use = numel(neurons2use);
 % preallocation
 spkcounts = nan(n_total_trials,n_glm);
 
-% clamping
-i1_flags = i1 == i_set(i1_mode_idx);
-
 % iterate through neurons
 for nn = 1 : n_neurons2use
     progressreport(nn,n_neurons2use,'fetching spike counts');
@@ -46,7 +43,6 @@ for nn = 1 : n_neurons2use
     % flag trials for the current condition
     spike_flags = ...
         valid_flags & ...
-        ...i1_flags & ...
         neuron_flags;
     flagged_trials = find(spike_flags);
     if sum(spike_flags) == 0
@@ -64,15 +60,13 @@ for nn = 1 : n_neurons2use
         glm_win_onset = glm_roi(1) + (gg - 1) * glm_step;
         glm_win_offset = glm_win_onset + glm_win;
         
-        % T2-onset-aligned spike rates
+        % T1-onset-aligned spike rates
         alignment_onset = ...
             pre_init_padding + ...
-            pre_t1_delay(spike_flags) + ...
-            t1(spike_flags) + ...
-            isi;
+            pre_t1_delay(spike_flags);
         alignment_flags = ...
             padded_time >= alignment_onset + glm_roi(1) & ...
-            padded_time < alignment_onset + t2(spike_flags);
+            padded_time < alignment_onset + t1(spike_flags);
         chunk_flags = ...
             padded_time >= alignment_onset + glm_win_onset & ...
             padded_time < alignment_onset + glm_win_offset;
@@ -114,10 +108,7 @@ end
 %% spike count GLMs
 
 % design matrix
-X = [s1,d1,d2,data.Trial];
-X = [s1,d1,d2];
-% X = [d1,d2];
-% X = [d2];
+X = d1;
 n_regressors = size(X,2);
 n_coefficients = n_regressors + 1;
     
@@ -144,8 +135,7 @@ for nn = 1 : n_neurons2use
 
         % fit GLM to each subject
         mdl = fitglm(Z(trial_flags,:),spkcounts(trial_flags,gg),'linear',...
-            ...'predictorvars',{s1_lbl,d1_lbl,d2_lbl,'trial #'},...
-            'predictorvars',{s1_lbl,d1_lbl,d2_lbl},...
+            'predictorvars',{d1_lbl},...
             'distribution',distro,...
             'intercept',true);
         betas(nn,gg,:) = mdl.Coefficients.Estimate;
@@ -173,7 +163,6 @@ b_clr = [.15, .35, .75];
 clrmap = colorlerp([b_clr; w_clr; r_clr], 2^8);
 
 %% neuron highlights
-% eg_neurons = [215,393,526];
 eg_neurons = [68,72,215,391,393,428,459,470,526];
 n_egneurons = numel(eg_neurons);
 
@@ -183,7 +172,7 @@ n_egneurons = numel(eg_neurons);
 clims = [-2,3];
 
 % iterate through coefficients
-for bb = 2 : n_coefficients
+for bb = n_coefficients
     coeff_lbl = mdl.Coefficients.Properties.RowNames{bb};
     coeff_flags = ismember(mdl.Coefficients.Properties.RowNames,coeff_lbl);
 
@@ -243,7 +232,7 @@ for bb = 2 : n_coefficients
         'clipping','off',...
         'colormap',clrmap);
 %     title(coeff_lbl);
-    xlabel('Time since T_2 onset (ms)');
+    xlabel('Time since T_1 onset (ms)');
     ylabel('Neuron #');
 
     % plot selectivity heat map
