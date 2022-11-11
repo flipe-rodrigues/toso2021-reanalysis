@@ -27,7 +27,7 @@ elseif strcmpi(task_str,'intensity')
         166,238,243,260,344,408,410];
 end
 neurons2use = flagged_neurons;
-% neurons2use = neuron_idcs;
+neurons2use = neuron_idcs;
 n_neurons2use = numel(neurons2use);
 
 %% construct response
