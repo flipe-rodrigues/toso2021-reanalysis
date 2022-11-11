@@ -81,7 +81,7 @@ post_s2_delay = 500;
 %% neuron selection criteria
 trial_count_cutoff = 2;
 mean_fr_cutoff = 1/3;
-stability_cutoff = .25;
+stability_cutoff = .15;
 
 %% parse meta data (bhv)
 t1 = data.Duration1;
@@ -111,7 +111,7 @@ n_i = numel(i_set);
 choice = data.Action;
 choice_set = unique(choice);
 n_choices = numel(choice_set);
-pre_t1_delay = data.PreDelay + inferred_misalignment;
+pre_s1_delay = data.PreDelay + inferred_misalignment;
 trial_idcs = data.Trial;
 subjects = data.Subject;
 subject_set = unique(subjects(~isnan(subjects)));
@@ -127,7 +127,7 @@ prev_t1 = [nan;t1(1:end-1)];
 prev_t2 = [nan;t2(1:end-1)];
 prev_i1 = [nan;i1(1:end-1)];
 prev_i2 = [nan;i2(1:end-1)];
-prev_choices = [nan;choice(1:end-1)];
+prev_choice = [nan;choice(1:end-1)];
 
 %% units
 t1_units = 'ms';
@@ -213,6 +213,7 @@ d2_mode_idx = find(d_set == mode(d2));
 
 % correctness
 correct = choice == (s2 > s1);
+prev_correct = [nan;correct(1:end-1)];
 
 %% kernel settings
 psthbin = 1;
@@ -266,7 +267,7 @@ end
 
 %% trial pre-selection
 valid_flags = ...
-    pre_t1_delay == 500 + inferred_misalignment & ...
+    pre_s1_delay == 500 + inferred_misalignment & ...
     ismember(i1,i_set) & ...
     ismember(t1,t_set) & ...
     ismember(i2,i_set) & ...

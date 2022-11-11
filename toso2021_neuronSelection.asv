@@ -163,11 +163,8 @@ for nn = neuron_idcs'
     stability_coeffs(nn) = corr(...
         first_third_mu(~isnan(first_third_mu)&~isnan(last_third_mu)),...
         last_third_mu(~isnan(first_third_mu)&~isnan(last_third_mu)));
-%     coeffs = abs(corrcoef(isi_spkrates'));
-%     coeffs_triu = triu(coeffs,1);
-%     coeffs_triu(coeffs == tril(coeffs)) = nan;
-%     stability_coeffs(nn) = nanmean(coeffs_triu,[1,2]);
-    
+    coeffs = triu(corrcoef(isi_spkrates',1));
+%     stability_coeffs(nn) = abs(corr_coeffs(1,2));
 %     figure; hold on;
 %     title(sprintf('Neuron: %i, corr. coeff %.2f:',nn,stability_coeffs(nn)));
 %     plot(first_third_mu(~isnan(first_third_mu)&~isnan(last_third_mu)));

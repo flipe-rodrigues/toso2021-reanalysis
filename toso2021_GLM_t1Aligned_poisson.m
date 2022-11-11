@@ -6,7 +6,7 @@ end
 %% GLM settings
 distro = 'poisson';
 glm_win = 250;
-glm_roi = [-500-glm_win,t_set(end)];
+glm_roi = [-500-glm_win,t_set(end)*0];
 glm_step = 25;
 n_glm = floor((diff(glm_roi) - glm_win) / glm_step) + 1;
 glm_time = linspace(glm_roi(1)+glm_win,glm_roi(2)-glm_step,n_glm);
@@ -27,7 +27,7 @@ elseif strcmpi(task_str,'intensity')
         166,238,243,260,344,408,410];
 end
 neurons2use = flagged_neurons;
-% neurons2use = neuron_idcs;
+neurons2use = neuron_idcs;
 n_neurons2use = numel(neurons2use);
 
 %% construct response
@@ -63,7 +63,7 @@ for nn = 1 : n_neurons2use
         % T1-onset-aligned spike rates
         alignment_onset = ...
             pre_init_padding + ...
-            pre_t1_delay(spike_flags);
+            pre_s1_delay(spike_flags);
         alignment_flags = ...
             padded_time >= alignment_onset + glm_roi(1) & ...
             padded_time < alignment_onset + t1(spike_flags);
@@ -97,18 +97,20 @@ for nn = 1 : n_neurons2use
         glm_win_offset = glm_win_onset + glm_win;
         
         % fetch current stimulus index
-        t2_idx = find(glm_win_offset <= t_set,1);
+        t1_idx = find(glm_win_offset <= t_set,1);
         
         % assess validity
         valid_glms(nn,gg) = ...
-            all(surviving_trial_counts(nn_idx,t2_idx,:) > trial_count_cutoff);
+            all(surviving_trial_counts(nn_idx,t1_idx,:) > trial_count_cutoff);
     end
 end
 
 %% spike count GLMs
 
 % design matrix
-X = d1;
+X = [d1,d2,trial_idcs];
+% X = [d1,d2];
+% X = [d1];
 n_regressors = size(X,2);
 n_coefficients = n_regressors + 1;
     
@@ -135,18 +137,21 @@ for nn = 1 : n_neurons2use
 
         % fit GLM to each subject
         mdl = fitglm(Z(trial_flags,:),spkcounts(trial_flags,gg),'linear',...
-            'predictorvars',{d1_lbl},...
+            'predictorvars',{d1_lbl,d2_lbl,'trial #'},...
+            ...'predictorvars',{d1_lbl},...
             'distribution',distro,...
             'intercept',true);
         betas(nn,gg,:) = mdl.Coefficients.Estimate;
         pvals(nn,gg,:) = mdl.Coefficients.pValue;
+%         pvals(nn,gg,:) = anovan(...
+%             spkcounts(trial_flags,gg),X(trial_flags,:));
     end
 end
 
 %% print percentage of significantly modulated neurons
 alpha = .01;
 significance_mask = squeeze(pvals(:,:,2:end)) < alpha;
-n_significant = sum(squeeze(nansum(significance_mask(:,glm_time>=0,:),2)) >= 1);
+n_significant = sum(squeeze(nansum(significance_mask,2)) >= 1);
 
 % iterate through coefficients
 for bb = 1 : n_regressors
@@ -172,26 +177,27 @@ n_egneurons = numel(eg_neurons);
 clims = [-2,3];
 
 % iterate through coefficients
-for bb = n_coefficients
+for bb = 2 : n_coefficients
     coeff_lbl = mdl.Coefficients.Properties.RowNames{bb};
     coeff_flags = ismember(mdl.Coefficients.Properties.RowNames,coeff_lbl);
+    coeff_lbl = strrep(coeff_lbl,' #','');
 
     % coefficient map
-    coeff_map = betas(:,:,coeff_flags)';
+    coeff_map_s1.(coeff_lbl) = betas(:,:,coeff_flags)';
     
     % significance map
-    significance_mask = ...
-        double(pvals(:,:,coeff_flags)' < .05) .* sign(coeff_map) + ...
-        double(pvals(:,:,coeff_flags)' < .01) .* sign(coeff_map);
+    significance_mask_s1.(coeff_lbl) = ...
+        double(pvals(:,:,coeff_flags)' < .05) .* sign(coeff_map_s1.(coeff_lbl)) + ...
+        double(pvals(:,:,coeff_flags)' < .01) .* sign(coeff_map_s1.(coeff_lbl));
 %     significance_mask(~valid_glms') = max(clims);
     
     % pca
-    [pc_coeff,~,~,~,exp] = pca(significance_mask(glm_time>=0,:));
+    [pc_coeff,~,~,~,exp] = pca(significance_mask_s1.(coeff_lbl));
     exp_cutoff = 80;
     n_pcs2use = max(sum(cumsum(exp) <= exp_cutoff),2);
     
     % average sorting
-    avg_coeffs = mean(coeff_map);
+    avg_coeffs = mean(coeff_map_s1.(coeff_lbl));
     [~,avg_idcs] = sort(avg_coeffs);
     
     % sort by angular position in PC space
@@ -200,7 +206,7 @@ for bb = n_coefficients
     
     % agglomerative hierarchical clustering
 %     diss = pdist(pc_coeff(:,1:n_pcs2use),'euclidean');
-    diss = pdist(significance_mask(glm_time>=0,:)','euclidean');
+    diss = pdist(significance_mask_s1.(coeff_lbl)','euclidean');
     tree = linkage(diss,'ward');
     leaf_idcs = optimalleaforder(tree,diss);
 
@@ -213,8 +219,7 @@ for bb = n_coefficients
     
     % figure initialization
     fig = figure(figopt,...
-        ...'windowstyle','docked',...
-        'position',[1.8000 41.8000 405 1.0288e+03],...
+        'position',[1.8+(bb-2)*405,41.8,405,1.0288e+03],...
         'name',sprintf('GLM_significance_%s',...
         strrep(lower(coeff_lbl),'_','')));
     xxtick = unique([glm_roi';glm_roi(1)+glm_win;0;t_set]);
@@ -239,16 +244,30 @@ for bb = n_coefficients
     sorted_idcs = leaf_idcs;
 %     significance_mask(valid_glms') = 0;
 %     significance_mask(~valid_glms') = max(clims);
-%     significance_mask = medfilt2(significance_mask,[3,1]);
-    imagesc(glm_roi+[1,0]*glm_win,[1,n_neurons2use],...
-        significance_mask(:,sorted_idcs)',clims);
+    significance_mask_s1.(coeff_lbl) = ...
+        medfilt2(significance_mask_s1.(coeff_lbl),[3,1]);
+    imagesc(glm_roi+[1,0]*glm_win+[1,-1]*glm_step/2,[1,n_neurons2use],...
+        significance_mask_s1.(coeff_lbl)(:,sorted_idcs)',clims);
  
     % plot alignment line
     plot([1,1]*0,ylim,...
         'color','k',...
         'linestyle','--',...
         'linewidth',1);
-        
+     
+    % iterate through selected neurons
+%     for nn = 1 : n_neurons
+%         neuron_flags = neurons2use(sorted_idcs) == flagged_neurons(nn);
+%         
+%         % highlight selected neuron
+%         plot(min(xlim)-range(xlim)*.0275,find(neuron_flags),...
+%             'marker','>',...
+%             'markersize',5,...
+%             'markeredgecolor','k',...
+%             'markerfacecolor','k',...
+%             'linewidth',1);
+%     end
+    
     % iterate through example neurons
 %     for ee = 1 : n_egneurons
 %         try
