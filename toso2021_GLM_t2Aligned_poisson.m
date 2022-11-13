@@ -6,7 +6,7 @@ end
 %% GLM settings
 distro = 'poisson';
 glm_win = 250;
-glm_roi = [-500-glm_win,t_set(end)*0];
+glm_roi = [-500-glm_win,t_set(end)];
 glm_step = 25;
 n_glm = floor((diff(glm_roi) - glm_win) / glm_step) + 1;
 glm_time = linspace(glm_roi(1)+glm_win,glm_roi(2)-glm_step,n_glm);
@@ -118,8 +118,8 @@ n_regressors = size(X,2);
 n_coefficients = n_regressors + 1;
     
 % preallocation
-betas = zeros(n_neurons2use,n_glm,n_coefficients);
-pvals = zeros(n_neurons2use,n_glm,n_coefficients);
+betas_s2 = zeros(n_neurons2use,n_glm,n_coefficients);
+pvals_s2 = zeros(n_neurons2use,n_glm,n_coefficients);
 
 % feature normalization
 Z = (X - nanmean(X)) ./ nanstd(X);
@@ -144,14 +144,14 @@ for nn = 1 : n_neurons2use
             'predictorvars',{s1_lbl,d1_lbl,d2_lbl,'trial #'},...
             'distribution',distro,...
             'intercept',true);
-        betas(nn,gg,:) = mdl.Coefficients.Estimate;
-        pvals(nn,gg,:) = mdl.Coefficients.pValue;
+        betas_s2(nn,gg,:) = mdl.Coefficients.Estimate;
+        pvals_s2(nn,gg,:) = mdl.Coefficients.pValue;
     end
 end
 
 %% print percentage of significantly modulated neurons
 alpha = .01;
-significance_mask = squeeze(pvals(:,:,2:end)) < alpha;
+significance_mask = squeeze(pvals_s2(:,:,2:end)) < alpha;
 n_significant = sum(squeeze(nansum(significance_mask,2)) >= 1);
 
 % iterate through coefficients
@@ -184,12 +184,12 @@ for bb = 2 : n_coefficients
     coeff_lbl = strrep(coeff_lbl,' #','');
 
     % coefficient map
-    coeff_map_s2.(coeff_lbl) = betas(:,:,coeff_flags)';
+    coeff_map_s2.(coeff_lbl) = betas_s2(:,:,coeff_flags)';
     
     % significance map
     significance_mask_s2.(coeff_lbl) = ...
-        double(pvals(:,:,coeff_flags)' < .05) .* sign(coeff_map_s2.(coeff_lbl)) + ...
-        double(pvals(:,:,coeff_flags)' < .01) .* sign(coeff_map_s2.(coeff_lbl));
+        double(pvals_s2(:,:,coeff_flags)' < .05) .* sign(coeff_map_s2.(coeff_lbl)) + ...
+        double(pvals_s2(:,:,coeff_flags)' < .01) .* sign(coeff_map_s2.(coeff_lbl));
 %     significance_mask(~valid_glms') = max(clims);
     
     % pca
