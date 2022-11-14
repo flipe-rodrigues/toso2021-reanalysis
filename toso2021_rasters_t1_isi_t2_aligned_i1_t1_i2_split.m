@@ -84,8 +84,8 @@ for nn = 1 : n_neurons2plot
         'xcolor','none');
     %     set(sps((1:n_cols)+n_cols),...
     %         'plotboxaspectratio',[1,1,1]);
-    xlabel(sps(1+n_cols),'Time since T_2 onset (s)');
-    xlabel(sps(2+n_cols),'Time since T_2 onset (s)');
+    xlabel(sps(1+n_cols),'Time since T_1 onset (s)');
+    xlabel(sps(2+n_cols),'Time since ISI onset (s)');
     xlabel(sps(3+n_cols),'Time since T_2 onset (s)');
     ylbl_1 = ylabel(sps(1),'Firing rate (Hz)');
     ylbl_2 = ylabel(sps(2),'Firing rate (Hz)');

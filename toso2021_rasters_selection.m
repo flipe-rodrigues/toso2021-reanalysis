@@ -20,7 +20,7 @@ elseif strcmpi(task_str,'intensity')
         166,238,243,260,344,408,410];
 end
 neurons2plot = flagged_neurons;
-% neurons2plot = neuron_idcs;
+neurons2plot = neuron_idcs;
 n_neurons2plot = numel(neurons2plot);
 
 %% version-dependent spike marker
