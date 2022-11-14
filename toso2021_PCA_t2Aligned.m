@@ -117,7 +117,7 @@ weights(weights == 0) = nan;
 coeff = pca(pca_design,...
     'weights',weights);
 % coeff_choice = coeff;
-coeff = coeff_choice;
+% coeff = coeff_choice;
 
 % reorder PCs by variance explained
 lat_pca = nanvar(s2_concat_all * coeff)';

@@ -460,7 +460,7 @@ for nn = 1 : n_neurons2plot
             'linestyle','none');
         
         % plot raster bands
-        xpatch = min(xlim(sps(3))) + [0,1,1,0] .* range(xlim(sps(2))) * .1/3;
+        xpatch = min(xlim(sps(3))) + [0,1,1,0] .* range(xlim(sps(3))) * .1/3;
         ypatch = [.5,.5,s2_n_trials+.5,s2_n_trials+.5] + s2_n_trial_counter;
         patch(sps(3+n_cols),xpatch,ypatch,i2_clrs(ii,:),...
             'linewidth',1.5,...
