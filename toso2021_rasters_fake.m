@@ -43,7 +43,8 @@ for nn = 1 : n_neurons2plot
     
     % figure initialization
     fig = figure(figopt,...
-        'windowstate','maximized',...
+        ...'windowstate','maximized',...
+        'position',[541.8000 905 2560 1.3248e+03],...
         'name',sprintf('neuron_%i',neurons2plot(nn)));
     n_rows = 4;
     n_cols = 3;
@@ -113,11 +114,13 @@ for nn = 1 : n_neurons2plot
     isit1_n_trial_counter = 0;
     isit2_n_trial_counter = 0;
     s2i2_n_trial_counter = 0;
+    s2i1_n_trial_counter = 0;
     s1i1_boundaries = nan(n_i,1);
     s1i2_boundaries = nan(n_i,1);
     isit1_boundaries = nan(n_t,1);
     isit2_boundaries = nan(n_t,1);
     s2i2_boundaries = nan(n_i,1);
+    s2i1_boundaries = nan(n_i,1);
     
     % iterate through intensities
     for ii = 1 : n_i
@@ -131,7 +134,7 @@ for nn = 1 : n_neurons2plot
         end
         
         % fetch spike counts & compute spike rates
-        s1i1_spike_counts = data.FR(s1i1_spike_flags,:);
+        s1i1_spike_counts = data.FakeFR(s1i1_spike_flags,:);
         s1i1_spike_rates = conv2(...
             1,kernel.pdf,s1i1_spike_counts,'valid')' / psthbin * 1e3;
         s1i1_n_trials = size(s1i1_spike_counts,1);
@@ -251,7 +254,7 @@ for nn = 1 : n_neurons2plot
         end
         
         % fetch spike counts & compute spike rates
-        s1i2_spike_counts = data.FR(s1i2_spike_flags,:);
+        s1i2_spike_counts = data.FakeFR(s1i2_spike_flags,:);
         s1i2_spike_rates = conv2(...
             1,kernel.pdf,s1i2_spike_counts,'valid')' / psthbin * 1e3;
         s1i2_n_trials = size(s1i2_spike_counts,1);
@@ -371,7 +374,7 @@ for nn = 1 : n_neurons2plot
         end
         
         % fetch spike counts & compute spike rates
-        isit1_spike_counts = data.FR(isit1_spike_flags,:);
+        isit1_spike_counts = data.FakeFR(isit1_spike_flags,:);
         isit1_spike_rates = conv2(...
             1,kernel.pdf,isit1_spike_counts,'valid')' / psthbin * 1e3;
         isit1_n_trials = size(isit1_spike_counts,1);
@@ -491,7 +494,7 @@ for nn = 1 : n_neurons2plot
         end
         
         % fetch spike counts & compute spike rates
-        isit2_spike_counts = data.FR(isit2_spike_flags,:);
+        isit2_spike_counts = data.FakeFR(isit2_spike_flags,:);
         isit2_spike_rates = conv2(...
             1,kernel.pdf,isit2_spike_counts,'valid')' / psthbin * 1e3;
         isit2_n_trials = size(isit2_spike_counts,1);
@@ -611,7 +614,7 @@ for nn = 1 : n_neurons2plot
         end
         
         % fetch spike counts & compute spike rates
-        s2i2_spike_counts = data.FR(s2i2_spike_flags,:);
+        s2i2_spike_counts = data.FakeFR(s2i2_spike_flags,:);
         s2i2_spike_rates = conv2(...
             1,kernel.pdf,s2i2_spike_counts,'valid')' / psthbin * 1e3;
         s2i2_n_trials = size(s2i2_spike_counts,1);
@@ -735,7 +738,7 @@ for nn = 1 : n_neurons2plot
         end
         
         % fetch spike counts & compute spike rates
-        s2i1_spike_counts = data.FR(s2i1_spike_flags,:);
+        s2i1_spike_counts = data.FakeFR(s2i1_spike_flags,:);
         s2i1_spike_rates = conv2(...
             1,kernel.pdf,s2i1_spike_counts,'valid')' / psthbin * 1e3;
         s2i1_n_trials = size(s2i1_spike_counts,1);
@@ -783,7 +786,7 @@ for nn = 1 : n_neurons2plot
         patch_alpha = (patch_alpha - min(s2i1_trials_throughtime)) / ...
             range(s2i1_trials_throughtime);
         patch_alpha = patch_alpha * .25 + .05;
-        patch(sps(3),s2i1_xpatch,s2i1_ypatch,i2_clrs(ii,:),...
+        patch(sps(3+n_cols*2),s2i1_xpatch,s2i1_ypatch,i1_clrs(ii,:),...
             'facevertexalphadata',patch_alpha',...
             'alphadatamapping','none',...
             'facealpha','interp',...
@@ -797,20 +800,20 @@ for nn = 1 : n_neurons2plot
         patch_alpha = (patch_alpha - min(s2i1_trials_throughtime)) / ...
             range(s2i1_trials_throughtime);
         patch_alpha = patch_alpha * .95 + .05;
-        patch(sps(3),s2i1_xpatch,s2i1_ypatch,0,...
+        patch(sps(3+n_cols*2),s2i1_xpatch,s2i1_ypatch,0,...
             'facevertexalphadata',patch_alpha',...
             'alphadatamapping','none',...
             'edgealpha','interp',...
-            'edgecolor',i2_clrs(ii,:),...
+            'edgecolor',i1_clrs(ii,:),...
             'linewidth',1.5);
         
         % plot onset & offset
-        plot(sps(3),time2plot(onset_flags),s2i1_mu(onset_flags),...
+        plot(sps(3+n_cols*2),time2plot(onset_flags),s2i1_mu(onset_flags),...
             'linewidth',1.5,...
             'marker','o',...
             'markersize',7.5,...
             'markerfacecolor','w',...
-            'markeredgecolor',i2_clrs(ii,:));
+            'markeredgecolor',i1_clrs(ii,:));
         
         % plot I2 raster
         s2i1_time_mat = padded_time - (...
@@ -827,17 +830,17 @@ for nn = 1 : n_neurons2plot
         [~,resorted_idcs] = sortrows(sorted_idcs);
         resorted_idcs = resorted_idcs + s2i1_n_trial_counter;
         s2i1_sorted_trials = resorted_idcs(s2i1_spike_trials - s2i1_n_trial_counter);
-        plot(sps(3+n_cols),s2i1_spike_times,s2i1_sorted_trials,...
+        plot(sps(3+n_cols*3),s2i1_spike_times,s2i1_sorted_trials,...
             'color','k',...
             'marker',spike_marker,...
             'markersize',spike_markersize,...
             'linestyle','none');
         
         % plot raster bands
-        xpatch = min(xlim(sps(3))) + ...
-            [0,1,1,0] .* range(xlim(sps(3))) * .1/3;
+        xpatch = min(xlim(sps(3+n_cols*2))) + ...
+            [0,1,1,0] .* range(xlim(sps(3+n_cols*2))) * .1/3;
         ypatch = [.5,.5,s2i1_n_trials+.5,s2i1_n_trials+.5] + s2i1_n_trial_counter;
-        patch(sps(3+n_cols),xpatch,ypatch,i2_clrs(ii,:),...
+        patch(sps(3+n_cols*3),xpatch,ypatch,i1_clrs(ii,:),...
             'linewidth',1.5,...
             'facealpha',.75,...
             'edgecolor','none');
@@ -890,6 +893,10 @@ for nn = 1 : n_neurons2plot
         continue;
     end
     
+    % axes linkage
+%     linkaxes(sps((1:n_cols)+n_cols*[0;2]),'y');
+%     drawnow;
+    
     % axes updates
     set(sps(1+n_cols),...
         'ylim',[1,nansum(s1i1_boundaries)]+[-1,1]*.5,...
@@ -907,74 +914,82 @@ for nn = 1 : n_neurons2plot
         'ylim',[1,nansum(s2i2_boundaries)]+[-1,1]*.5,...
         'ytick',unique([1;cumsum(s2i2_boundaries,'omitnan')]));
     set(sps(3+n_cols*3),...
-        'ylim',[1,nansum(s2i2_boundaries)]+[-1,1]*.5,...
-        'ytick',unique([1;cumsum(s2i2_boundaries,'omitnan')]));
-    
-    % axes linkage
-    %     linkaxes(sps(1:n_cols),'y');
-    
-    % update y-axis limits
-    yylim = [min([ylim(sps(1)),ylim(sps(2)),ylim(sps(3))]),...
-        max([ylim(sps(1)),ylim(sps(2)),ylim(sps(3))])];
-    %     yylim = [0,max(ylim(sps(3)))];
-    yylim = 5 * [floor(yylim(1)/5),ceil(yylim(2)/5)];
-    if ismember(neurons2plot(nn),[215])
-        yylim = [0,65];
-    elseif ismember(neurons2plot(nn),[462])
-        yylim = [0,60];
-    elseif ismember(neurons2plot(nn),[402])
-        yylim = [0,50];
-    elseif ismember(neurons2plot(nn),[381])
-        yylim = [0,40];
-    elseif ismember(neurons2plot(nn),[68,205,441])
-        yylim = [0,15];
-    elseif ismember(neurons2plot(nn),[72])
-        yylim = [0,10];
-    end
-    yylim = max(yylim,[0,1]);
-    set(sps(1:n_cols),...
-        'ylim',yylim,...+[-1,1]*.1*range(yylim),...
-        'ytick',yylim,...
-        'clipping','off');
-    drawnow;
+        'ylim',[1,nansum(s2i1_boundaries)]+[-1,1]*.5,...
+        'ytick',unique([1;cumsum(s2i1_boundaries,'omitnan')]));
     
     % plot significance
-    if any(significance_mask_s1.I_1(:,neurons2plot(nn)))
-        for gg = 1 : n_glm
-            if sign(coeff_map_s1.I_1(gg,neurons2plot(nn))) > 0
-                clr = i1_clrs(end,:);
-            else
-                clr = i1_clrs(1,:);
-            end
-            linewidth = 2.5 * abs(significance_mask_s1.I_1(gg,neurons2plot(nn)));
-            if significance_mask_s1.I_1(gg,neurons2plot(nn))
-                plot(sps(1),...
-                    glm_time(gg)+[0,glm_step],...
-                    [1,1]*max(ylim(sps(1)))*1.05,...
-                    'color',clr,...
-                    'linestyle','--',...
-                    'linewidth',linewidth);
-            end
-        end
-    end
-    if any(significance_mask_s2.I_2(:,neurons2plot(nn)))
-        for gg = 1 : n_glm
-            if sign(coeff_map_s2.I_2(gg,neurons2plot(nn))) > 0
-                clr = i2_clrs(end,:);
-            else
-                clr = i2_clrs(1,:);
-            end
-            linewidth = 2.5 * abs(significance_mask_s2.I_2(gg,neurons2plot(nn)));
-            if significance_mask_s2.I_2(gg,neurons2plot(nn))
-                plot(sps(3),...
-                    glm_time(gg)+[0,glm_step],...
-                    [1,1]*max(ylim(sps(3)))*1.05,...
-                    'color',clr,...
-                    'linestyle','--',...
-                    'linewidth',linewidth);
-            end
-        end
-    end
+%     if any(significance_mask_s1.I_1(:,neurons2plot(nn)))
+%         for gg = 1 : n_glm
+%             if sign(coeff_map_s1.I_1(gg,neurons2plot(nn))) > 0
+%                 clr = i1_clrs(end,:);
+%             else
+%                 clr = i1_clrs(1,:);
+%             end
+%             linewidth = 2.5 * abs(significance_mask_s1.I_1(gg,neurons2plot(nn)));
+%             if significance_mask_s1.I_1(gg,neurons2plot(nn))
+%                 plot(sps(1),...
+%                     glm_time(gg)+[0,glm_step],...
+%                     [1,1]*max(ylim(sps(1)))*1,...
+%                     'color',clr,...
+%                     'linestyle','--',...
+%                     'linewidth',linewidth);
+%             end
+%         end
+%     end
+%     if any(significance_mask_s1.I_2(:,neurons2plot(nn)))
+%         for gg = 1 : n_glm
+%             if sign(coeff_map_s1.I_2(gg,neurons2plot(nn))) > 0
+%                 clr = i2_clrs(end,:);
+%             else
+%                 clr = i2_clrs(1,:);
+%             end
+%             linewidth = 2.5 * abs(significance_mask_s1.I_2(gg,neurons2plot(nn)));
+%             if significance_mask_s1.I_2(gg,neurons2plot(nn))
+%                 plot(sps(1+n_cols*2),...
+%                     glm_time(gg)+[0,glm_step],...
+%                     [1,1]*max(ylim(sps(1)))*1,...
+%                     'color',clr,...
+%                     'linestyle','--',...
+%                     'linewidth',linewidth);
+%             end
+%         end
+%     end
+%     if any(significance_mask_s2.I_2(:,neurons2plot(nn)))
+%         for gg = 1 : n_glm
+%             if sign(coeff_map_s2.I_2(gg,neurons2plot(nn))) > 0
+%                 clr = i2_clrs(end,:);
+%             else
+%                 clr = i2_clrs(1,:);
+%             end
+%             linewidth = 2.5 * abs(significance_mask_s2.I_2(gg,neurons2plot(nn)));
+%             if significance_mask_s2.I_2(gg,neurons2plot(nn))
+%                 plot(sps(3),...
+%                     glm_time(gg)+[0,glm_step],...
+%                     [1,1]*max(ylim(sps(3)))*1,...
+%                     'color',clr,...
+%                     'linestyle','--',...
+%                     'linewidth',linewidth);
+%             end
+%         end
+%     end
+%     if any(significance_mask_s2.I_1(:,neurons2plot(nn)))
+%         for gg = 1 : n_glm
+%             if sign(coeff_map_s2.I_1(gg,neurons2plot(nn))) > 0
+%                 clr = i1_clrs(end,:);
+%             else
+%                 clr = i1_clrs(1,:);
+%             end
+%             linewidth = 2.5 * abs(significance_mask_s2.I_1(gg,neurons2plot(nn)));
+%             if significance_mask_s2.I_1(gg,neurons2plot(nn))
+%                 plot(sps(3+n_cols*2),...
+%                     glm_time(gg)+[0,glm_step],...
+%                     [1,1]*max(ylim(sps(3+n_cols*2)))*1,...
+%                     'color',clr,...
+%                     'linestyle','--',...
+%                     'linewidth',linewidth);
+%             end
+%         end
+%     end
     
     % plot waveform
     plot(axwav,data.Shape(neurons2plot(nn),:),...
@@ -996,10 +1011,8 @@ for nn = 1 : n_neurons2plot
     if want2save
         try
             % save settings
-            png_file = fullfile(raster_path,[get(fig,'name'),'.png']);
+            png_file = fullfile(raster_path,'fake',[get(fig,'name'),'.png']);
             print(fig,png_file,'-dpng','-r300','-painters');
-            %             svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-            %             print(fig,svg_file,'-dsvg','-painters');
             close(fig);
         catch
             close(fig);
