@@ -20,7 +20,7 @@ elseif strcmpi(task_str,'intensity')
         166,238,243,260,344,408,410];
 end
 neurons2plot = flagged_neurons;
-neurons2plot = neuron_idcs;
+% neurons2plot = neuron_idcs;
 n_neurons2plot = numel(neurons2plot);
 
 %% version-dependent spike marker
@@ -113,7 +113,7 @@ for nn = 1 : n_neurons2plot
     
     % iterate through intensities
     for ii = 1 : n_i
-        i1_flags = i1 == i_set(ii);
+        i1_flags = i2 == i_set(ii);
         s1_spike_flags = ...
             valid_flags & ...
             neuron_flags & ...
