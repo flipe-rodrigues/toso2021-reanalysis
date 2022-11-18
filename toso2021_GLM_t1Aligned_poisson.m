@@ -33,7 +33,7 @@ n_neurons2use = numel(neurons2use);
 %% construct response
 
 % preallocation
-spkcounts = nan(n_total_trials,n_glm);
+spkcounts_s1 = nan(n_total_trials,n_glm);
 
 % iterate through neurons
 for nn = 1 : n_neurons2use
@@ -50,7 +50,7 @@ for nn = 1 : n_neurons2use
     end
     
     % fetch spike counts & compute spike rates
-    spike_counts = data.FR(spike_flags,:)';
+    spike_counts = data.FakeFR(spike_flags,:)';
     spike_rates = ...
         conv2(kernel.pdf,1,spike_counts,'valid') / psthbin * 1e3;
     n_trials = sum(spike_flags);
@@ -75,7 +75,7 @@ for nn = 1 : n_neurons2use
         spkrates = reshape(spkrates(chunk_flags'),[glm_win,n_trials])';
 
         % store average spike rates
-        spkcounts(spike_flags,gg) = nansum(spkrates,2);
+        spkcounts_s1(spike_flags,gg) = nansum(spkrates,2);
     end
 end
 
@@ -136,7 +136,7 @@ for nn = 1 : n_neurons2use
     for gg = 1 : n_glm
 
         % fit GLM to each subject
-        mdl = fitglm(Z(trial_flags,:),spkcounts(trial_flags,gg),'linear',...
+        mdl = fitglm(Z(trial_flags,:),spkcounts_s1(trial_flags,gg),'linear',...
             'predictorvars',{d1_lbl,d2_lbl,'trial #'},...
             ...'predictorvars',{d1_lbl},...
             'distribution',distro,...

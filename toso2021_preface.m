@@ -143,13 +143,15 @@ choice_units = 'a.u.';
 
 %% color scheme
 t1_clrs = cool(n_t);
-t2_clrs = colorlerp([.25,.5,1; [1,1,1]*.25; [1,1,0]],n_t);
+% t2_clrs = colorlerp([.25,.5,1; [1,1,1]*.25; [1,1,0]],n_t);
+t2_clrs = summer(n_t);
 t1t2_clrs = parula(n_t1t2);
 prev_t1_clrs = autumn(n_t);
 prev_t2_clrs = spring(n_t);
 i1_clrs = winter(n_i);
 i2_clrs = copper(n_i);
 choice_clrs = [.1,.5,1; .85,.1,.2];
+prev_choice_clrs = turbo(n_choices);
 subject_clr = [1,1,1] * .75;
 
 %% task variant adaptations

@@ -37,21 +37,23 @@ for ii = 1 : n_epochs
     epoch = task_epochs{ii};
     n_bins.(epoch) = range(rois.(epoch)) * psthbin;
     time.(epoch) = linspace(rois.(epoch)(1),rois.(epoch)(2),n_bins.(epoch));
-    psths.(epoch) = nan(n_bins.(epoch),n_neurons,n_i);
+    psths.(epoch) = nan(n_bins.(epoch),n_neurons_total,n_i);
 end
 
 %% construct T1-aligned, Ii-split psths
 
 % iterate through neurons
-for nn = 1 : n_neurons
-    progressreport(nn,n_neurons,'parsing neural data');
+for nn = 1 : n_neurons_total
+    progressreport(nn,n_neurons_total,'parsing neural data');
     
     % trial selection
-    neuron_flags = data.NeuronNumb == flagged_neurons(nn);
+    neuron_flags = data.NeuronNumb == nn;
+    i1_flags = i1 == i_set(i1_mode_idx);
     i2_flags = i2 == i_set(i2_mode_idx);
     spike_flags = ...
         valid_flags & ...
         neuron_flags & ...
+        i1_flags & ...
         i2_flags;
     if sum(spike_flags) == 0
         continue;
@@ -60,7 +62,7 @@ for nn = 1 : n_neurons
     % fetch spike counts & compute spike rates
     spike_counts = data.FR(spike_flags,:);
     spike_rates = conv2(...
-        1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
+        1,gauss_kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
     n_trials = size(spike_counts,1);
     
     % pre S1 delay-aligned spike rates
@@ -177,8 +179,8 @@ scaling = modulation * 1;
 gain = modulation * 1;
 
 % iterate through neurons
-for nn = 1 : n_neurons
-    progressreport(nn,n_neurons,'generating fake rates');
+for nn = 1 : n_neurons_total
+    progressreport(nn,n_neurons_total,'generating fake rates');
     
     % iterate through intensities
     for ii = 1 : n_i
@@ -186,19 +188,19 @@ for nn = 1 : n_neurons
             continue;
         end
         
-        %
-        psths.pre_s1(:,nn,ii) = psths.pre_s1(:,nn,i2_mode_idx);
-        psths.isi(:,nn,ii) = psths.isi(:,nn,i2_mode_idx);
-        psths.post_s2(:,nn,ii) = psths.post_s2(:,nn,i2_mode_idx);
-        psths.go(:,nn,ii) = psths.go(:,nn,i2_mode_idx);
-        
         % apply I1 modulation at S1 presentation
-        psths.s1(:,nn,ii) = 1 / gain(ii) * ...
+        psths.s1(:,nn,ii) = 1  * ... / gain(ii) * ...
             psths.s1(:,nn,i1_mode_idx);
         
         % apply I2 modulation at S2 presentation
         psths.s2(:,nn,ii) = gain(ii) * ...
             interp1(time.s2,psths.s2(:,nn,i2_mode_idx),time.s2*scaling(ii));
+        
+        % no intensity modulation in the remaining epochs
+        psths.pre_s1(:,nn,ii) = psths.pre_s1(:,nn,i2_mode_idx);
+        psths.isi(:,nn,ii) = psths.isi(:,nn,i2_mode_idx);
+        psths.post_s2(:,nn,ii) = psths.post_s2(:,nn,i2_mode_idx);
+        psths.go(:,nn,ii) = psths.go(:,nn,i2_mode_idx);
     end
 end
 
@@ -211,13 +213,10 @@ end
 data.FakeFR = nan(size(data.FR));
 
 % iterate through neurons
-for nn = 1 : n_neurons
-    progressreport(nn,n_neurons,'generating fake spikes');
-    neuron_flags = data.NeuronNumb == flagged_neurons(nn);
-    
-    %     figure;
-    %     hold on;
-    
+for nn = 1 : n_neurons_total
+    progressreport(nn,n_neurons_total,'generating fake spikes');
+    neuron_flags = data.NeuronNumb == nn;
+
     % trial selection
     spike_flags = ...
         valid_flags & ...
@@ -226,56 +225,33 @@ for nn = 1 : n_neurons
     n_trials = numel(spike_trials);
     
     % iterate through trials
-    for kk = 1 : i2_n_trials
+    for kk = 1 : n_trials
         trial_idx = spike_trials(kk);
+        
+        lambda_pre_s1 = psths.pre_s1(:,nn,i1(trial_idx)==i_set);
+        lambda_s1 = psths.s1(time.s1<=t1(trial_idx),nn,i1(trial_idx)==i_set);
+        lambda_isi = psths.isi(:,nn,i1(trial_idx)==i_set) + ...
+            lambda_s1(end) - psths.isi(1,nn,i1(trial_idx)==i_set);
+        lambda_s2 = psths.s2(time.s2<=t2(trial_idx),nn,i2(trial_idx)==i_set) + ...
+            lambda_isi(end) - psths.s2(1,nn,i2(trial_idx)==i_set);
+        lambda_post_s2 = psths.post_s2(:,nn,i2(trial_idx)==i_set) + ...
+            lambda_s2(end) - psths.post_s2(1,nn,i2(trial_idx)==i_set);
+        lambda_go = psths.go(:,nn,i2(trial_idx)==i_set) + ...
+            lambda_post_s2(end) - psths.go(1,nn,i2(trial_idx)==i_set);
         
         lambda = [...
-            pre_
+            lambda_pre_s1;...
+            lambda_s1;...
+            lambda_isi;...
+            lambda_s2;...
+            lambda_post_s2;...
+            lambda_go];
         
-        time_flags = roi_time <= t2(trial_idx);
-        lambda = i2_psths(time_flags,nn,i2(trial_idx)==i_set);
-        dur = (abs(roi(1)) + t2(trial_idx)) / 1e3;
-        [n,ts] = poissonprocess(lambda,dur);
-        offset = ...
-            pre_init_padding + ...
-            pre_s1_delay(trial_idx) + ...
-            t1(trial_idx) + ...
-            isi + ...
-            roi(1);
+        dur = numel(lambda) * psthbin;
+        
+        [n,ts] = poissonprocess(lambda,dur / 1e3);
+        offset = pre_init_padding + rois.pre_s1(1);
         data.FakeFR(trial_idx,:) = ...
             histcounts(ts*1e3,[padded_time,n_paddedtimebins]-offset);
     end
-end
-
-% iterate through intensities
-for ii = 1 : n_i
-    i2_flags = i2 == i_set(ii);
-    i2_spike_flags = ...
-        valid_flags & ...
-        neuron_flags & ...
-        i2_flags;
-    spike_trials = find(i2_spike_flags);
-    i2_n_trials = numel(spike_trials);
-    
-    %         plot(time.s2,psths.s2(:,nn,ii),...
-    %             'color',i2_clrs(ii,:));
-    %         continue;
-    
-    % iterate through trials
-    for kk = 1 : i2_n_trials
-        trial_idx = spike_trials(kk);
-        time_flags = roi_time <= t2(trial_idx);
-        lambda = i2_psths(time_flags,nn,i2(trial_idx)==i_set);
-        dur = (abs(roi(1)) + t2(trial_idx)) / 1e3;
-        [n,ts] = poissonprocess(lambda,dur);
-        offset = ...
-            pre_init_padding + ...
-            pre_s1_delay(trial_idx) + ...
-            t1(trial_idx) + ...
-            isi + ...
-            roi(1);
-        data.FakeFR(trial_idx,:) = ...
-            histcounts(ts*1e3,[padded_time,n_paddedtimebins]-offset);
-    end
-end
 end
