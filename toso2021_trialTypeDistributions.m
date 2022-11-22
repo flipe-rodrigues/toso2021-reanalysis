@@ -159,8 +159,8 @@ end
 p = gobjects(n_contrasts,1);
 
 % reference lines
-plot(xlim,[1,1]*trial_count_cutoff,'--k');
-% plot([1,1]*t_set(t2_mode_idx),ylim,'--k');
+% plot(xlim,[1,1]*trial_count_cutoff,'--k');
+plot([1,1]*t_set(t1_mode_idx),ylim,'--k');
 
 % iterate through contrasts
 for ii = 1 : n_contrasts
