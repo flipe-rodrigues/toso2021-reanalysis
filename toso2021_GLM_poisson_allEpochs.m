@@ -4,8 +4,9 @@ if ~exist('data','var')
 end
 
 %% GLM settings
-distro = 'normal';
-glm_wins = t_set;
+distro = 'poisson';
+glm_wins = t_set(1:end-1);
+glm_wins = 50:50:500;
 n_glm = numel(glm_wins);
 
 % preallocation
@@ -673,17 +674,15 @@ xxtick = unique([ti_padd(1);-pre_s1_delay;0;t_set;t_set(end)+ti_padd(2)]);
 xxticklabel = num2cell(xxtick);
 xxticklabel(~ismember(xxtick,[ti_padd,0,1e3,t_set(t2_mode_idx)])) = {''};
 axes(axesopt.default,...
-    'xlim',[0,max(t_set)],...
+    axesopt.psycurve,...
+    'xlim',[0,max(t_set)]+[-1,1]*.05*max(t_set),...
     'xtick',xxtick,...
     'xticklabel',xxticklabel,...
     'color','none',...
     'clipping','off',...
     'layer','top');
 xlabel('Spike integration window (ms)');
-ylabel('P(significant regression coefficients)');
-
-% epoch selection
-epoch2plot = 'postS2Offset';
+ylabel('P(false negatives)');
 
 % coeff selection
 coeff2plot = 'I_2';
