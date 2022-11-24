@@ -181,7 +181,7 @@ end
 
 % modulation settings
 modulation = log(i_set) ./ log(i_set(i2_mode_idx));
-scaling = modulation .^ 0 * 1;
+scaling = modulation .^ 1 * 1;
 gain = modulation .^ 1 * 1;
 
 % iterate through neurons
@@ -195,11 +195,11 @@ for nn = 1 : n_neurons_total
         end
         
         % apply I1 modulation at S1 presentation
-        psths.s1(:,nn,ii) = 1 / gain(ii) * ...
+        psths.s1(:,nn,ii) = gain(ii) * ...
             psths.s1(:,nn,i1_mode_idx);
         
         % apply I2 modulation at S2 presentation
-        psths.s2(:,nn,ii) = gain(ii) * ...
+        psths.s2(:,nn,ii) = ...
             interp1(time.s2,psths.s2(:,nn,i2_mode_idx),time.s2*scaling(ii));
         
         % no intensity modulation in the remaining epochs

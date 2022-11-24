@@ -4,9 +4,8 @@ if ~exist('data','var')
 end
 
 %% GLM settings
-distro = 'poisson';
+distro = 'normal';
 glm_wins = t_set(1:end-1);
-glm_wins = 50:50:500;
 n_glm = numel(glm_wins);
 
 % preallocation
