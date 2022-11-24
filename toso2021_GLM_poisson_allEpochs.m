@@ -9,6 +9,7 @@ glm_wins = t_set(1:end-1);
 n_glm = numel(glm_wins);
 
 % preallocation
+spkcounts = struct();
 fractions = struct();
 
 %% iterate through spike integration windows
@@ -79,7 +80,7 @@ for gg = 1 : n_glm
     %% construct response
     
     % preallocation
-    spkcounts = struct();
+%     spkcounts = struct();
     
     % iterate through neurons
     for nn = 1 : n_neurons2use
@@ -110,7 +111,7 @@ for gg = 1 : n_glm
             spkcounts_aroundInitMov(~alignment_flags') = nan;
             spkcounts_aroundInitMov = ...
                 reshape(spkcounts_aroundInitMov(chunk_flags'),[glm_win,n_trials])';
-            spkcounts.aroundInitMov(trial_flags) = nansum(spkcounts_aroundInitMov,2);
+            spkcounts.aroundInitMov(gg,trial_flags) = nansum(spkcounts_aroundInitMov,2);
         end
         
         % pre initiation spike rates
@@ -312,22 +313,22 @@ for gg = 1 : n_glm
             spkcounts_aroundChoiceMov(~alignment_flags') = nan;
             spkcounts_aroundChoiceMov = ...
                 reshape(spkcounts_aroundChoiceMov(chunk_flags'),[glm_win,n_trials])';
-            spkcounts.aroundChoiceMov(trial_flags) = nansum(spkcounts_aroundChoiceMov,2);
+            spkcounts.aroundChoiceMov(gg,trial_flags) = nansum(spkcounts_aroundChoiceMov,2);
         end
         
         % store average spike rates
-        spkcounts.preInit(trial_flags) = nansum(spkcounts_preInit,2);
-        spkcounts.postInit(trial_flags) = nansum(spkcounts_postInit,2);
-        spkcounts.preS1Onset(trial_flags) = nansum(spkcounts_preS1Onset,2);
-        spkcounts.postS1Onset(trial_flags) = nansum(spkcounts_postS1Onset,2);
-        spkcounts.preS1Offset(trial_flags) = nansum(spkcounts_preS1Offset,2);
-        spkcounts.postS1Offset(trial_flags) = nansum(spkcounts_postS1Offset,2);
-        spkcounts.preS2Onset(trial_flags) = nansum(spkcounts_preS2Onset,2);
-        spkcounts.postS2Onset(trial_flags) = nansum(spkcounts_postS2Onset,2);
-        spkcounts.preS2Offset(trial_flags) = nansum(spkcounts_preS2Offset,2);
-        spkcounts.postS2Offset(trial_flags) = nansum(spkcounts_postS2Offset,2);
-        spkcounts.preGoCue(trial_flags) = nansum(spkcounts_preGoCue,2);
-        spkcounts.postGoCue(trial_flags) = nansum(spkcounts_postGoCue,2);
+        spkcounts.preInit(gg,trial_flags) = nansum(spkcounts_preInit,2);
+        spkcounts.postInit(gg,trial_flags) = nansum(spkcounts_postInit,2);
+        spkcounts.preS1Onset(gg,trial_flags) = nansum(spkcounts_preS1Onset,2);
+        spkcounts.postS1Onset(gg,trial_flags) = nansum(spkcounts_postS1Onset,2);
+        spkcounts.preS1Offset(gg,trial_flags) = nansum(spkcounts_preS1Offset,2);
+        spkcounts.postS1Offset(gg,trial_flags) = nansum(spkcounts_postS1Offset,2);
+        spkcounts.preS2Onset(gg,trial_flags) = nansum(spkcounts_preS2Onset,2);
+        spkcounts.postS2Onset(gg,trial_flags) = nansum(spkcounts_postS2Onset,2);
+        spkcounts.preS2Offset(gg,trial_flags) = nansum(spkcounts_preS2Offset,2);
+        spkcounts.postS2Offset(gg,trial_flags) = nansum(spkcounts_postS2Offset,2);
+        spkcounts.preGoCue(gg,trial_flags) = nansum(spkcounts_preGoCue,2);
+        spkcounts.postGoCue(gg,trial_flags) = nansum(spkcounts_postGoCue,2);
     end
     
     %% spike count GLMs
@@ -374,7 +375,7 @@ for gg = 1 : n_glm
             end
             
             % fit GLM to each subject
-            mdl = fitglm(Z(trial_flags,:),spkcounts.(epoch)(trial_flags),'linear',...
+            mdl = fitglm(Z(trial_flags,:),spkcounts.(epoch)(gg,trial_flags),'linear',...
                 'predictorvars',{'prev_choice',s1_lbl,d1_lbl,s2_lbl,d2_lbl,'choice','trial#'},...
                 ...'predictorvars',{s1_lbl,d1_lbl,s2_lbl,d2_lbl,'choice','trial#'},...
                 ...'predictorvars',{s1_lbl,d1_lbl,s2_lbl,d2_lbl,'trial#'},...
@@ -623,7 +624,7 @@ for gg = 1 : n_glm
         xlabel("Spike count");
         
         % compute spike count distribution
-        bincounts = histcounts(spkcounts.(epoch)(valid_flags),...
+        bincounts = histcounts(spkcounts.(epoch)(gg,valid_flags),...
             'binedges',binedges);
         bincounts = bincounts / nansum(bincounts);
         
@@ -661,11 +662,77 @@ for gg = 1 : n_glm
     end
 end
 
+%% spike count distributions as a function of window size
+
+% figure initialization
+fig = figure(figopt,...
+    'name','GLM_spikeCountDistros_crossBins',...
+    'color',[1,1,1]*1);
+
+% bin settings
+binspan = [0,15];
+n_bins = range(binspan) + 1;
+binedges = linspace(binspan(1),binspan(2),n_bins);
+
+% axes initialization
+xxtick = unique([-pre_s1_delay;0;t_set]);
+xxticklabel = num2cell(xxtick);
+xxticklabel(~ismember(xxtick,[0,1e3,t_set(t2_mode_idx)])) = {''};
+axes(axesopt.default,...
+    axesopt.psycurve,...
+    'xlim',[0,max(t_set)]+[-1,1]*.05*max(t_set),...
+    'xtick',xxtick,...
+    'xticklabel',xxticklabel,...
+    'ylim',binspan,...
+    'color','none',...
+    'clipping','off',...
+    'layer','top');
+xlabel('Spike integration window (ms)');
+ylabel('Spike count');
+
+% iterate through glm windows
+for gg = 1 : n_glm
+    glm_win = glm_wins(gg);
+    glm_str = sprintf('t%i',glm_win);
+    
+    % compute spike count distribution
+    bincounts = histcounts(spkcounts.postS2Onset(gg,valid_flags),...
+        'binedges',binedges);
+    bincounts = bincounts / nansum(bincounts);
+    
+    % plot spike count distribution
+    clrs = colorlerp([[0,0,0];[1,1,1]],5);
+    clr = clrs(end-1,:);
+    
+    xpatch = [-bincounts*1e2,zeros(1,n_bins)] + glm_win;
+    ypatch = [binedges(1:end-1),fliplr(binedges)];
+    patch(xpatch,ypatch,clr,...
+        'facealpha',1,...
+        'edgecolor','r',...
+        'facecolor',clr,...
+        'linewidth',1.5);
+%     h = histogram(...
+%         'binedges',binedges,...
+%         'bincounts',bincounts + glm_win,...
+%         'orientation','horizontal',...
+%         'facealpha',1,...
+%         'edgecolor','k',...
+%         'facecolor',clr,...
+%         'linewidth',1.5);
+    a=1
+end
+
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
+end
+
 %% fraction of significantly modulated neurons as a function of window size
 
 % figure initialization
 fig = figure(figopt,...
-    'name',sprintf('GLM_significance_crossBins_%s_%i',distro,glm_win),...
+    'name',sprintf('GLM_significance_crossBins_%s_%i',distro),...
     'color',[1,1,1]*1);
 
 % axes initialization
@@ -711,7 +778,7 @@ end
 % iterate through alphas
 for aa = 1 : n_alphas
     
-    %
+    % plot false negative rate
     plot(glm_wins,p_falsenegative(:,aa),...
         'color','k',...
         'marker','o',...
@@ -720,6 +787,8 @@ for aa = 1 : n_alphas
         'markersize',5+aa*2,...
         'linestyle','-',...
         'linewidth',1.5);
+    
+    % plot false positive rate
     plot(glm_wins,p_falsepositive(:,aa),...
         'color','k',...
         'marker','o',...

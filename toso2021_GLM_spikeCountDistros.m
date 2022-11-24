@@ -79,7 +79,7 @@ for gg = 1 : n_glm
     %% construct response
     
     % preallocation
-%     spkcounts = struct();
+    spkcounts = struct();
     
     % iterate through neurons
     for nn = 1 : n_neurons2use
@@ -659,6 +659,72 @@ for gg = 1 : n_glm
         svg_file = fullfile(panel_path,[fig.Name,'.svg']);
         print(fig,svg_file,'-dsvg','-painters');
     end
+end
+
+%% fraction of significantly modulated neurons as a function of window size
+
+% figure initialization
+fig = figure(figopt,...
+    'name','GLM_spikeCountDistros_crossBins',...
+    'color',[1,1,1]*1);
+
+% bin settings
+binspan = [0,15];
+n_bins = range(binspan) + 1;
+binedges = linspace(binspan(1),binspan(2),n_bins);
+
+% axes initialization
+xxtick = unique([-pre_s1_delay;0;t_set]);
+xxticklabel = num2cell(xxtick);
+xxticklabel(~ismember(xxtick,[0,1e3,t_set(t2_mode_idx)])) = {''};
+axes(axesopt.default,...
+    axesopt.psycurve,...
+    'xlim',[0,max(t_set)]+[-1,1]*.05*max(t_set),...
+    'xtick',xxtick,...
+    'xticklabel',xxticklabel,...
+    'ylim',binspan,...
+    'color','none',...
+    'clipping','off',...
+    'layer','top');
+xlabel('Spike integration window (ms)');
+ylabel('Spike count');
+
+% iterate through glm windows
+for gg = 1 : n_glm
+    glm_win = glm_wins(gg);
+    glm_str = sprintf('t%i',glm_win);
+    
+    % compute spike count distribution
+    bincounts = histcounts(spkcounts.postS2Onset(valid_flags),...
+        'binedges',binedges);
+    bincounts = bincounts / nansum(bincounts);
+    
+    % plot spike count distribution
+    clrs = colorlerp([[0,0,0];[1,1,1]],5);
+    clr = clrs(end-1,:);
+    
+    xpatch = [-bincounts*1e2,zeros(1,n_bins)] + glm_win;
+    ypatch = [binedges(1:end-1),fliplr(binedges)];
+    patch(xpatch,ypatch,clr,...
+        'facealpha',1,...
+        'edgecolor','r',...
+        'facecolor',clr,...
+        'linewidth',1.5);
+%     h = histogram(...
+%         'binedges',binedges,...
+%         'bincounts',bincounts + glm_win,...
+%         'orientation','horizontal',...
+%         'facealpha',1,...
+%         'edgecolor','k',...
+%         'facecolor',clr,...
+%         'linewidth',1.5);
+    a=1
+end
+
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
 end
 
 %% fraction of significantly modulated neurons as a function of window size
