@@ -685,6 +685,8 @@ ylabel('P(false negatives)');
 
 % coeff selection
 coeff2plot = 'I_2';
+stim_str = strrep(coeff2plot,'I_','S');
+post_str = sprintf('post%s');
 
 % preallocation
 p_falsenegative = ones(n_glm,2);
@@ -703,7 +705,7 @@ for gg = 1 : n_glm
             p_falsenegative(gg,aa) = p_falsenegative(gg,aa) - ...
                 fractions.(glm_str).postS2Onset.(coeff2plot)(aa,ss);
             p_falsepositive(gg,aa) = p_falsepositive(gg,aa) + ...
-                fractions.(glm_str).postS1Onset.(coeff2plot)(aa,ss);
+                fractions.(glm_str).preS2Onset.(coeff2plot)(aa,ss);
         end
     end
 end
