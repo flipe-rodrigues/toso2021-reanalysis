@@ -4,8 +4,8 @@ if ~exist('data','var')
 end
 
 %% GLM settings
-distro = 'normal';
-glm_wins = t_set(1:end-1);
+distro = 'poisson';
+glm_wins = t_set(1:end);
 n_glm = numel(glm_wins);
 
 % preallocation
@@ -78,10 +78,7 @@ for gg = 1 : n_glm
     n_neurons2use = numel(neurons2use);
     
     %% construct response
-    
-    % preallocation
-%     spkcounts = struct();
-    
+
     % iterate through neurons
     for nn = 1 : n_neurons2use
         progressreport(nn,n_neurons2use,'fetching spike counts');
@@ -96,7 +93,7 @@ for gg = 1 : n_glm
         end
         
         % fetch spike counts & compute spike rates
-        spike_counts = data.FakeFR(trial_flags,:)';
+        spike_counts = data.FR(trial_flags,:)';
         n_trials = sum(trial_flags);
         
         % around approach spike rates
@@ -670,56 +667,61 @@ fig = figure(figopt,...
     'color',[1,1,1]*1);
 
 % bin settings
-binspan = [0,15];
+binspan = [0,30];
 n_bins = range(binspan) + 1;
 binedges = linspace(binspan(1),binspan(2),n_bins);
 
 % axes initialization
-xxtick = unique([-pre_s1_delay;0;t_set]);
+logxx = log(glm_wins);
+xxtick = t_set;
 xxticklabel = num2cell(xxtick);
-xxticklabel(~ismember(xxtick,[0,1e3,t_set(t2_mode_idx)])) = {''};
 axes(axesopt.default,...
-    axesopt.psycurve,...
-    'xlim',[0,max(t_set)]+[-1,1]*.05*max(t_set),...
-    'xtick',xxtick,...
+    'plotboxaspectratio',[1,1,1],...
+    'xlim',[min(logxx),max(logxx)]+[-1,1]*.05*range(logxx),...
+    'xtick',log(xxtick),...
     'xticklabel',xxticklabel,...
-    'ylim',binspan,...
+    'ylim',binspan/2+[-1,1]*.05*range(binspan)/2,...
+    'yaxislocation','right',...
     'color','none',...
     'clipping','off',...
     'layer','top');
 xlabel('Spike integration window (ms)');
 ylabel('Spike count');
 
+% intensity selection
+i2_flags = i2 == i_set(i2_mode_idx);
+
 % iterate through glm windows
 for gg = 1 : n_glm
-    glm_win = glm_wins(gg);
-    glm_str = sprintf('t%i',glm_win);
     
     % compute spike count distribution
-    bincounts = histcounts(spkcounts.postS2Onset(gg,valid_flags),...
+    bincounts = histcounts(spkcounts.postS2Onset(gg,valid_flags & i2_flags),...
         'binedges',binedges);
     bincounts = bincounts / nansum(bincounts);
     
-    % plot spike count distribution
-    clrs = colorlerp([[0,0,0];[1,1,1]],5);
-    clr = clrs(end-1,:);
+    % color gradient
+    clr = [1,1,1] * gg / (n_glm + 1);
     
-    xpatch = [-bincounts*1e2,zeros(1,n_bins)] + glm_win;
-    ypatch = [binedges(1:end-1),fliplr(binedges)];
-    patch(xpatch,ypatch,clr,...
+    % plot spike count distribution
+    ups_bincounts = upsample(bincounts,2);
+    ups_bincounts(2:2:end) = bincounts;
+    ups_binedges = upsample(binedges(1:end-1),2);
+    ups_binedges(2:2:end) = binedges(2:end);
+    xpatch = [-ups_bincounts*.75,zeros(1,(n_bins-1)*2)] + logxx(gg);
+    ypatch = [ups_binedges,fliplr(ups_binedges)];
+    patch(xpatch,ypatch,'k',...
         'facealpha',1,...
-        'edgecolor','r',...
+        'edgecolor','none',...
         'facecolor',clr,...
         'linewidth',1.5);
-%     h = histogram(...
-%         'binedges',binedges,...
-%         'bincounts',bincounts + glm_win,...
-%         'orientation','horizontal',...
-%         'facealpha',1,...
-%         'edgecolor','k',...
-%         'facecolor',clr,...
-%         'linewidth',1.5);
-    a=1
+    
+    % plot distribution mean
+    plot(logxx(gg),nanmean(spkcounts.postS2Onset(gg,valid_flags)),...
+        'marker','o',...
+        'markersize',10,...
+        'markeredgecolor','w',...
+        'markerfacecolor',clr,...
+        'linewidth',1.5)
 end
 
 % save figure
