@@ -170,7 +170,7 @@ for nn = 1 : n_neurons_total
     
     % compute mean spike density function
     psths.pre_s1(:,nn,i2_mode_idx) = nanmean(pre_s1_spkrates,1);
-    psths.s1(:,nn,i2_mode_idx) = nanmean(s1_spkrates,1);
+    psths.s1(:,nn,i2_mode_idx) = nanmean(s2_spkrates,1); % !!! IMPORTANT DETAIL: S2, NOT S1
     psths.isi(:,nn,i2_mode_idx) = nanmean(isi_spkrates,1);
     psths.s2(:,nn,i2_mode_idx) = nanmean(s2_spkrates,1);
     psths.post_s2(:,nn,i2_mode_idx) = nanmean(post_s2_spkrates,1);
