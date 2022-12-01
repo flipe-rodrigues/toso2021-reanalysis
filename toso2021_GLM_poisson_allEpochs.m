@@ -764,7 +764,7 @@ axes(axesopt.default,...
     'clipping','off',...
     'layer','top');
 xlabel('Spike integration window (ms)');
-ylabel('Average spike count');
+ylabel('Mean spike count');
 
 % intensity selection
 i2_flags = i2 == i_set(i2_mode_idx);
