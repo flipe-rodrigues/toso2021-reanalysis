@@ -4,12 +4,12 @@ if ~exist('data','var')
 end
 
 %% run settings
-n_runs = 25;
+n_runs = 1;
 
 %% GLM settings
 distro = 'normal';
 glm_wins = t_set(t1_mode_idx);
-glm_wins = t_set(1:end);
+% glm_wins = t_set(1:end);
 n_glm = numel(glm_wins);
 
 % preallocation
@@ -18,7 +18,9 @@ fractions = struct();
 
 %% iterate through runs
 for rr = 1 : n_runs
-    toso2021_simulateSpikes;
+    if n_runs > 1
+        toso2021_simulateSpikes;
+    end
     
     %% iterate through spike integration windows
     for gg = 1 : n_glm
@@ -101,7 +103,7 @@ for rr = 1 : n_runs
             end
             
             % fetch spike counts & compute spike rates
-            spike_counts = data.FakeFR(trial_flags,:)';
+            spike_counts = data.FR(trial_flags,:)';
             n_trials = sum(trial_flags);
             
             % around approach spike rates
@@ -400,7 +402,7 @@ for rr = 1 : n_runs
         % figure initialization
         fig = figure(figopt,...
             ...'windowstate','maximized',...
-            'position',[150,125,1650,825],...
+            'position',[150,125,1685,825],...
             'name',sprintf('GLM_significance_crossEpochs_%s_%i',distro,glm_win),...
             'color',[1,1,1]*1);
         
@@ -667,6 +669,11 @@ for rr = 1 : n_runs
             print(fig,svg_file,'-dsvg','-painters');
         end
     end
+end
+
+%% stop check
+if n_runs <= 1
+    return;
 end
 close all;
 
