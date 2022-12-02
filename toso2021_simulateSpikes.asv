@@ -12,7 +12,7 @@ time = struct();
 psths = struct();
 
 % smoothing settings
-gauss_kernel = gausskernel('mu',0,'sig',15,'binwidth',psthbin);
+gauss_kernel = gausskernel('mu',0,'sig',50,'binwidth',psthbin);
 gauss_padded_time = ...
     (1 : psthbin : n_paddedtimebins * psthbin) - psthbin;
 gauss_validtime_flags = ...
@@ -141,11 +141,11 @@ for nn = 1 : n_neurons_total
         isi + ...
         t2(spike_flags);
     s2_alignment_flags = ...
-        gauss_valid_time >= s2_alignment - t2(spike_flags) & ...
-        gauss_valid_time < s2_alignment + rois.s2(1);
+        gauss_valid_time >= s2_alignment + rois.s2(1) & ...
+        gauss_valid_time < s2_alignment + t2(spike_flags);
     s2_chunk_flags = ...
-        gauss_valid_time >= s2_alignment - rois.s2(2) & ...
-        gauss_valid_time < s2_alignment + rois.s2(1);
+        gauss_valid_time >= s2_alignment + rois.s2(1) & ...
+        gauss_valid_time < s2_alignment + rois.s2(2);
     s2_spkrates_off = spike_rates;
     s2_spkrates_off(~s2_alignment_flags') = nan;
     s2_spkrates_off = reshape(...
@@ -188,10 +188,9 @@ for nn = 1 : n_neurons_total
     
     % compute mean spike density function
     psths.pre_s1(:,nn,i2_mode_idx) = nanmean(pre_s1_spkrates,1);
-    psths.s1(:,nn,i2_mode_idx) = nanmean(s2_spkrates,1); % !!! IMPORTANT DETAIL: S2, NOT S1
+    psths.s1(:,nn,i2_mode_idx) = nanmean(s1_spkrates,1);
     psths.isi(:,nn,i2_mode_idx) = nanmean(isi_spkrates,1);
     psths.s2(:,nn,i2_mode_idx) = nanmean(s2_spkrates,1);
-    psths.s2off(:,nn,i2_mode_idx) = nanmean(s2_spkrates_off,1);
     psths.post_s2(:,nn,i2_mode_idx) = nanmean(post_s2_spkrates,1);
     psths.go(:,nn,i2_mode_idx) = nanmean(go_spkrates,1);
 end
@@ -220,8 +219,6 @@ for nn = 1 : n_neurons_total
         % apply I2 modulation at S2 presentation
         psths.s2(:,nn,ii) = gain(ii) * ......
             interp1(time.s2,psths.s2(:,nn,i2_mode_idx),time.s2*scaling(ii));
-        psths.s2off(:,nn,ii) = gain(ii) * ...
-            psths.s2off(:,nn,i1_mode_idx);
         
         % no intensity modulation in the remaining epochs
         psths.pre_s1(:,nn,ii) = psths.pre_s1(:,nn,i2_mode_idx);
