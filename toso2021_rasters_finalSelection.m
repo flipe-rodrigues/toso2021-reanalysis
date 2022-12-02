@@ -35,7 +35,7 @@ ti_padd = [-500,0];
 % figure initialization
 fig = figure(figopt,...
     'position',[725,1000,2100,1000],...
-    'name',sprintf('neuron_%i',neurons2plot(nn)));
+    'name','rasters_egcells');
 
 % axes initialization;
 n_rows = 4;
