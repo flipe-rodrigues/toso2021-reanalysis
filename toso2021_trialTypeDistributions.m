@@ -39,24 +39,7 @@ for nn = neuron_idcs'
             s2_spike_rates = conv2(...
                 1,kernel.pdf,s2_spike_counts,'valid')' / psthbin * 1e3;
             s2_n_trials = size(s2_spike_counts,1);
-            
-            % T2-aligned spike rates
-            s2_alignment_offset = ...
-                pre_init_padding + ...
-                pre_s1_delay(s2_spike_flags) + ...
-                t1(s2_spike_flags) + ...
-                isi;
-            s2_alignment_flags = ...
-                valid_time >= s2_alignment_offset + roi(1) & ...
-                valid_time < s2_alignment_offset + t2(s2_spike_flags);
-            s2_chunk_flags = ...
-                valid_time >= s2_alignment_offset + roi(1) & ...
-                valid_time < s2_alignment_offset + roi(2);
-            s2_spkrates = s2_spike_rates;
-            s2_spkrates(~s2_alignment_flags') = nan;
-            s2_spkrates = reshape(...
-                s2_spkrates(s2_chunk_flags'),[roi_n_bins,s2_n_trials])';
-            
+
             % neuron selection criteria
             trial_type_numbers(nn,tt,ii) = s2_n_trials;
         end
@@ -205,6 +188,118 @@ end
 
 % ui restacking
 uistack(p,'top');
+
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
+end
+
+%% plot surviving trial counts (onset & offset)
+ti_padd = [-0,0];
+
+% figure initialization
+fig = figure(figopt,...
+    'position',[165,135,500,420],...
+    'name',sprintf('surviving_trial_count_onoff_%s',contrast_str));
+
+% axes initialization
+sps = gobjects(2,1);
+sps(1) = subplot(1,2,1);
+sps(2) = subplot(1,2,2);
+set(sps,...
+    axesopt.default,...
+    'plotboxaspectratiomode','auto',...
+    'clipping','off',...
+    'ylim',[1,200],...
+    'ytick',[1,3,5,10,30,50,100,200],...
+    'yscale','log');
+xxtick = unique([ti_padd(1);-pre_s1_delay;0;t_set;t_set(end)+ti_padd(2)]);
+xxtick(xxtick == 0) = abs(xxtick(xxtick == 0));
+xxticklabel = num2cell(xxtick);
+xxticklabel(~ismember(xxtick,[0,1e3,t_set(t1_mode_idx)])) = {''};
+set(sps(1),...
+    'xlim',[0,max(t_set)]+ti_padd,...
+    'xtick',xxtick,...
+    'xticklabel',xxticklabel);
+xxtick = unique([-ti_padd(1);0;-t_set;-(t_set(end)+ti_padd(2))]);
+xxtick(xxtick == 0) = abs(xxtick(xxtick == 0));
+xxticklabel = num2cell(xxtick);
+xxticklabel(~ismember(xxtick,-[0,1e3,t_set(t1_mode_idx)])) = {''};
+set(sps(2),...
+    'xlim',sort(-([0,max(t_set)]+ti_padd)),...
+    'xtick',xxtick,...
+    'xticklabel',xxticklabel,...
+    'yaxislocation','right');
+xlabel(sps(1),'Time since S_2 onset (ms)');
+xlabel(sps(2),'Time since S_2 offset (ms)');
+ylabel(sps(1),'Trial count');
+ylabel(sps(2),'Trial count',...
+    'color','none');
+
+% preallocation
+surviving_trial_counts = nan(n_neurons_total,n_contrasts,n_t);
+
+% iterate through neurons
+for nn = 1 : n_neurons_total
+    neuron_idx = neuron_idcs(nn);
+    
+    % iterate through contrasts
+    for ii = 1 : n_contrasts
+        
+        % compute surviving trial counts
+        surviving_trial_counts(nn,ii,:) = ...
+            cumsum(trial_type_numbers(neuron_idx,:,ii),'reverse','omitnan');
+    end
+end
+
+% graphical object preallocation
+p_on = gobjects(n_contrasts,1);
+p_off = gobjects(n_contrasts,1);
+
+% iterate through contrasts
+for ii = 1 : n_contrasts
+
+    % plot surviving trial counts
+    counts = squeeze(surviving_trial_counts(:,ii,:));
+    counts = [counts,counts(:,end)];
+    avg = nanmedian(counts);
+    sig = std(counts);
+    sem = sig ./ sqrt(n_neurons_total);
+    iqr = quantile(counts,[.25,.75]) - nanmedian(counts);
+    err = iqr;
+    
+    % stair-patch hack
+    xx = [ti_padd(1);sort(repmat(t_set,2,1))];
+    xx = xx(1:end-1);
+    yy1 = upsample(avg+err(1,:),2)';
+    yy1(2:2:end) = yy1(1:2:end-1);
+    yy1 = yy1(1:end-2);
+    yy2 = upsample(avg+err(2,:),2)';
+    yy2(2:2:end) = yy2(1:2:end-1);
+    yy2 = yy2(1:end-2);
+    xpatch = [xx;flipud(xx)];
+    ypatch = [yy1;flipud(yy2)];
+    patch(sps(1),xpatch,ypatch,contrast_clrs(ii,:),...
+        'facealpha',1/n_contrasts,...
+        'facecolor',contrast_clrs(ii,:),...
+        'edgecolor','none');
+    p_on(ii) = stairs(sps(1),[ti_padd(1);t_set],avg,...
+        'color',contrast_clrs(ii,:),...
+        'linewidth',1.5);
+    
+    patch(sps(2),-xpatch,ypatch,contrast_clrs(ii,:),...
+        'facealpha',1/n_contrasts,...
+        'facecolor',contrast_clrs(ii,:),...
+        'edgecolor','none');
+    p_off(ii) = stairs(sps(2),-[ti_padd(1);t_set],avg,...
+        'color',contrast_clrs(ii,:),...
+        'linewidth',1.5);
+end
+
+% ui restacking
+uistack(p_on,'top');
+uistack(p_off,'top');
 
 % save figure
 if want2save
