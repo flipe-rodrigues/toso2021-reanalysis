@@ -7,7 +7,7 @@ end
 n_runs = 1;
 
 %% GLM settings
-distro = 'normal';
+distro = 'poisson';
 glm_wins = t_set(t1_mode_idx);
 % glm_wins = t_set(1:end);
 n_glm = numel(glm_wins);
@@ -31,9 +31,10 @@ for rr = 1 : n_runs
         
         % initialization
         glm_roi = struct();
+        glm_roi_lbl = struct();
         
         % roi definitions
-        % glm_roi.aroundInitMov = [-glm_win,0] - 116;
+%         glm_roi.aroundInitMov = [-glm_win,0] - 316;
         glm_roi.preInit = [-glm_win,0];
         glm_roi.postInit = [0,glm_win];
         glm_roi.preS1Onset = [-glm_win,0];
@@ -46,10 +47,10 @@ for rr = 1 : n_runs
         glm_roi.postS2Offset = [0,glm_win];
         glm_roi.preGoCue = [-glm_win,0];
         glm_roi.postGoCue = [0,glm_win];
-        % glm_roi.aroundChoiceMov = [0,glm_win] + 300;
+        glm_roi.aroundChoiceMov = [0,glm_win] + 316;
         
         % roi labels
-        % glm_roi_lbl.aroundInitMov = 'Initiation movement';
+%         glm_roi_lbl.aroundInitMov = 'Initiation movement';
         glm_roi_lbl.preInit = 'Pre-initiation';
         glm_roi_lbl.postInit = 'Post-initiation';
         glm_roi_lbl.preS1Onset = 'Pre-S1 onset';
@@ -62,7 +63,7 @@ for rr = 1 : n_runs
         glm_roi_lbl.postS2Offset = 'Post-S2 offset';
         glm_roi_lbl.preGoCue = 'Pre-go cue';
         glm_roi_lbl.postGoCue = 'Post-go cue';
-        % glm_roi_lbl.aroundChoiceMov = 'Choice movement';
+        glm_roi_lbl.aroundChoiceMov = '~Choice movement';
         
         % epoch parsing
         epochs = fieldnames(glm_roi);
@@ -341,7 +342,8 @@ for rr = 1 : n_runs
         %% spike count GLMs
         
         % design matrix
-        X = [prev_choice,s1,d1,s2,d2,choice,trial_idcs];
+        X = [prev_choice,prev_correct,s1,d1,s2,d2,choice,correct,trial_idcs];
+        X = [s1,d1,s2,d2,choice,correct,trial_idcs];
 %         X = [s1,d1,s2,d2,choice,trial_idcs];
 %         X = [s1,d1,s2,d2,trial_idcs];
 %         X = [d1,d2,trial_idcs];
@@ -385,7 +387,8 @@ for rr = 1 : n_runs
                 
                 % fit GLM to each subject
                 mdl = fitglm(Z(trial_flags,:),spkcounts.(epoch)(gg,trial_flags),'linear',...
-                    'predictorvars',{'prev_choice',s1_lbl,d1_lbl,s2_lbl,d2_lbl,'choice','trial#'},...
+                    ...'predictorvars',{'prevchoice','prevreward',s1_lbl,d1_lbl,s2_lbl,d2_lbl,'choice','reward','trial#'},...
+                    'predictorvars',{s1_lbl,d1_lbl,s2_lbl,d2_lbl,'choice','reward','trial#'},...
                     ...'predictorvars',{s1_lbl,d1_lbl,s2_lbl,d2_lbl,'choice','trial#'},...
                     ...'predictorvars',{s1_lbl,d1_lbl,s2_lbl,d2_lbl,'trial#'},...
                     ...'predictorvars',{d1_lbl,d2_lbl,'trial#'},...

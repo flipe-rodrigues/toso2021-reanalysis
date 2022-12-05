@@ -8,11 +8,7 @@ end
 % selected for being good examples of i2-modulation
 if strcmpi(task_str,'duration')
     neurons2plot = [...
-<<<<<<< Updated upstream
         393,473,215,72,526];
-=======
-        72,215,234,393,473,526];
->>>>>>> Stashed changes
 elseif strcmpi(task_str,'intensity')
     neurons2plot = [...
         19,22,30,61,66,70,100,111,112,115,...
@@ -28,11 +24,7 @@ sdf_gain = .8;
 
 % figure initialization
 fig = figure(figopt,...
-<<<<<<< Updated upstream
-    'position',[165,135,500,490],...
-=======
     'position',[489,343,500,420],...
->>>>>>> Stashed changes
     'name',sprintf('fake_modulation_%s',contrast_str));
 
 % axes initialization
@@ -43,11 +35,7 @@ set(sps,...
     axesopt.default,...
     'plotboxaspectratiomode','auto',...
     'clipping','off',...
-<<<<<<< Updated upstream
     'ylim',[0,n_neurons2plot+1]+[-1,1]*.05*(n_neurons2plot+1),...
-=======
-    'ylim',[0,n_neurons2plot]+[-1,1]*.05*n_neurons2plot*0.4169,...
->>>>>>> Stashed changes
     'ycolor','none');
 xxtick = unique([ti_padd(1);-pre_s1_delay;0;t_set;t_set(end)+ti_padd(2)]);
 xxtick(xxtick == 0) = abs(xxtick(xxtick == 0));
@@ -76,13 +64,8 @@ ylabel(sps(2),'Firing rate (Hz)');
 %     'edgecolor','none');
 
 % reference lines
-<<<<<<< Updated upstream
 % plot(sps(1),[1,1]*t_set(t1_mode_idx),ylim,'--k');
 % plot(sps(2),[1,1]*-t_set(t1_mode_idx),ylim,'--k');
-=======
-plot(sps(1),[1,1]*t_set(t1_mode_idx),ylim,'--k');
-plot(sps(2),[1,1]*-t_set(t1_mode_idx),ylim,'--k');
->>>>>>> Stashed changes
 
 % iterate through neurons
 for nn = 1 : n_neurons2plot
@@ -261,7 +244,6 @@ for nn = 1 : n_neurons2plot
     end
 end
 
-<<<<<<< Updated upstream
 % iterate through durations
 for tt = 1 : n_t
     multiplier = 1 - .015 * (tt - 1);
@@ -272,13 +254,6 @@ for tt = 1 : n_t
     plot(sps(2),[-t_set(tt),0],[1,1]*max(ylim(sps(2)))*multiplier,'-k',...
         'linewidth',3);
 end
-=======
-% plot spike integration window
-plot(sps(1),[0,t_set(t1_mode_idx)],[1,1]*max(ylim(sps(1)))*1.05,'-k',...
-    'linewidth',3);
-plot(sps(2),[-t_set(t1_mode_idx),0],[1,1]*max(ylim(sps(2)))*1.05,'-k',...
-    'linewidth',3);
->>>>>>> Stashed changes
 
 % save figure
 if want2save
