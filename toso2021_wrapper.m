@@ -54,8 +54,8 @@ toso2021_GLM_choice;
 toso2021_psychometricCurves;
 
 % ephys
-toso2021_neuronSelection; return
-toso2021_GLM_t2Aligned;
+toso2021_neuronSelection;
+toso2021_GLM_poisson_allEpochs;
 return;
 toso2021_trialTypeDistributions;
 toso2021_tiling;

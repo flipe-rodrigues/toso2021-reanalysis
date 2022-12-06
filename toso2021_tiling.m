@@ -69,7 +69,7 @@ for nn = 1 : n_neurons
     % T2-aligned spike rates
     s2_alignment = ...
         pre_init_padding + ...
-        pre_t1_delay(s2_spike_flags) + ...
+        pre_s1_delay(s2_spike_flags) + ...
         t1(s2_spike_flags) + ...
         isi;
     s2_alignment_flags = ...
@@ -112,7 +112,7 @@ s2_coeff = pca(s2_zpsths(roi2use_flags,:));
 %% colormap settings
 clim = [-1.5,3.5];
 
-%% T1-aligned tiling
+%% S1-aligned tiling
 
 % figure initialization
 fig = figure(figopt,...
@@ -161,7 +161,7 @@ if want2save
     print(fig,svg_file,'-dsvg','-painters');
 end
 
-%% T2-aligned tiling
+%% S2-aligned tiling
 
 % figure initialization
 fig = figure(figopt,...

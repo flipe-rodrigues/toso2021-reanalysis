@@ -152,8 +152,10 @@ i1_clrs = winter(n_i);
 i2_clrs = copper(n_i);
 choice_clrs = [.1,.5,1; .85,.1,.2];
 prevchoice_clrs = choice_clrs / 2;
-reward_clrs = [.25,.25,.25; .6,1,.6];
+reward_clrs = [.25,.25,.25; .25,.9,.8];
+prevreward_clrs = reward_clrs / 2;
 subject_clr = [1,1,1] * .75;
+stim_clrs = [1,1,1] .* [.75; 0];
 
 %% task variant adaptations
 
