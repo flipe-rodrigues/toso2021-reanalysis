@@ -7,12 +7,13 @@ end
 n_runs = 1;
 
 %% GLM settings
-distro = 'poisson';
+distro = 'normal';
+tfun = @(x) log(x + 1);
 glm_wins = t_set(t1_mode_idx);
 % glm_wins = t_set(1:end);
 n_glm = numel(glm_wins);
 
-% preallocation
+%% preallocation
 spkcounts = struct();
 fractions = struct();
 
@@ -352,21 +353,22 @@ for rr = 1 : n_runs
         
         % feature normalization
         Z = (X - nanmean(X)) ./ nanstd(X);
-        
+
         % preallocation
         betas = struct();
+        bootbetas = struct();
         pvals = struct();
         residuals = struct();
         
         % iterate through epochs
         for ee = 1 : n_epochs
             epoch = epochs{ee};
-            
+
             % preallocation
             betas.(epoch) = zeros(n_neurons2use,n_coefficients);
             pvals.(epoch) = zeros(n_neurons2use,n_coefficients);
             residuals.(epoch) = nan(n_glm,n_total_trials);
-            
+   
             % duration selection
             t1_flags = t1 >= glm_win * ismember(epoch,{'postS1Onset','preS1Offset'});
             t2_flags = t2 >= glm_win * ismember(epoch,{'postS2Onset','preS2Offset'});
@@ -381,7 +383,8 @@ for rr = 1 : n_runs
                     neuron_flags & ...
                     t1_flags & ...
                     t2_flags;
-                if sum(trial_flags) <= 1
+                n_flagged_trials = sum(trial_flags);
+                if n_flagged_trials <= 1
                     continue;
                 end
                 
@@ -397,15 +400,25 @@ for rr = 1 : n_runs
                 betas.(epoch)(nn,:) = mdl.Coefficients.Estimate;
                 pvals.(epoch)(nn,:) = mdl.Coefficients.pValue;
                 residuals.(epoch)(gg,trial_flags) = mdl.Residuals.Raw;
+                
+                % bootstrapping
+                for bb = 1 : 1e2
+                    bootmdl = fitglm(mdl.Variables{:,1:end-1},...
+                        mdl.Variables{randperm(n_flagged_trials),end},'linear',...
+                        'predictorvars',mdl.CoefficientNames(2:end),...
+                        'distribution',mdl.Distribution.Name,...
+                        'intercept',true);
+                    bootbetas.(epoch)(nn,:,bb) = bootmdl.Coefficients.Estimate;
+                end
             end
         end
         
-        %% plot percentage of significantly modulated neurons
+        %% plot proportion of significantly modulated neurons
         
         % figure initialization
         fig = figure(figopt,...
             ...'windowstate','maximized',...
-            'position',[150,125,1685,825],...
+            'position',[541.8000 905 2560 1.3248e+03],...[150,125,1685,825],...
             'name',sprintf('GLM_significance_crossEpochs_%s_%i',distro,glm_win),...
             'color',[1,1,1]*1);
         
@@ -475,9 +488,12 @@ for rr = 1 : n_runs
                     
                     x = x_offsets(bb-1);
                     significant_flags = pvals.(epoch)(:,bb) < alphas(aa);
+                    significant_flags = ...
+                        betas.(epoch)(:,bb) < quantile(bootbetas.(epoch)(:,bb,:),alphas(aa)) || ...
+                        betas.(epoch)(:,bb) > quantile(bootbetas.(epoch)(:,bb,:),1-alphas(aa));
                     
                     % pseudo-legend (regressors)
-                    if ee == 1 && alphas(aa) == .05
+                    if ee == 1 && alphas(aa) == max(alphas)
                         text(x-.025,yymax*1.05,coeff_str,...
                             'color','k',...
                             'fontsize',8,...
@@ -519,7 +535,7 @@ for rr = 1 : n_runs
                         else
                             edgecolor = 'k';
                         end
-                        if alphas(aa) == .01
+                        if alphas(aa) == min(alphas)
                             facealpha = 1;
                         else
                             facealpha = .25;
@@ -540,9 +556,9 @@ for rr = 1 : n_runs
                                 'linewidth',1.5);
                             h_idx = h_idx + 1;
                         end
-                        
+                        continue
                         P(bb-1,ss) = p;
-                        if alphas(aa) == .05 && bb == n_coefficients - 1
+                        if alphas(aa) == max(alphas) && bb == n_coefficients - 1
                             xstairs = ...
                                 [x_offsets(1),x_offsets,x_offsets(end),...
                                 x_offsets(end)+barwidth]-barwidth/2;
@@ -553,7 +569,7 @@ for rr = 1 : n_runs
                         end
                         
                         % regressor lines
-                        if ee == 1 && alphas(aa) == .05 && signs(ss) == 1
+                        if ee == 1 && alphas(aa) == max(alphas) && signs(ss) == 1
                             offset = numel(coeff_str)*.0075;
                             p = plot(x*[1,1],[p,yymax-offset],'-',...
                                 'color','k');
@@ -565,11 +581,11 @@ for rr = 1 : n_runs
                     % pseudo-legend (significance)
                     if ee == 1 && bb == 2
                         aspectratio = pbaspect;
-                        xpatch = 1 + [-1,1,1,-1] * .25 / (1 + (alphas(aa) == .01)) - ...
-                            .125 * (alphas(aa) == .01);
+                        xpatch = 1 + [-1,1,1,-1] * .25 / (1 + (alphas(aa) == min(alphas))) - ...
+                            .125 * (alphas(aa) == min(alphas));
                         ypatch = -yymax + [0,0,1,1] * barwidth * ...
                             range(ylim) / range(xlim) * aspectratio(1) / aspectratio(2);
-                        if alphas(aa) == .01
+                        if alphas(aa) == min(alphas)
                             clr = [0,0,0];
                         else
                             clrs = colorlerp([[0,0,0];[1,1,1]],5);
@@ -578,7 +594,7 @@ for rr = 1 : n_runs
                         patch(xpatch,ypatch,clr,...
                             'facealpha',1,...
                             'linewidth',1.5);
-                        if alphas(aa) == .05
+                        if alphas(aa) == max(alphas)
                             text(mean(xpatch),mean(ypatch)+.01,'\alpha',...
                                 'color','k',...
                                 'fontsize',12,...
@@ -586,7 +602,7 @@ for rr = 1 : n_runs
                                 'horizontalalignment','center',...
                                 'verticalalignment','bottom');
                         end
-                        if alphas(aa) == .05
+                        if alphas(aa) == max(alphas)
                             horzalignment = 'left';
                             xalpha = max(xpatch) + .06;
                         else
@@ -650,6 +666,7 @@ for rr = 1 : n_runs
                 'edgecolor','none',...
                 'facecolor',clr,...
                 'linewidth',1.5);
+            continue;
             
             % compute spike count distribution
             bincounts = histcounts(residuals.(epoch)(gg,valid_flags),...
