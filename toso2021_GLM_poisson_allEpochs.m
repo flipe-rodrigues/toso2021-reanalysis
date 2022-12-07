@@ -367,23 +367,20 @@ for rr = 1 : n_runs
         %% spike count GLMs
         
         % design matrix
-        X = [prev_choice,prev_correct,s1,d1,s2,d2,choice,correct,trial_idcs];
-%         X = [s1,d1,s2,d2,choice,correct,trial_idcs];
-%         X = [s1,d1,s2,d2,choice,trial_idcs];
-%         X = [s1,d1,s2,d2,trial_idcs];
-%         X = [d1,d2,trial_idcs];
-        n_regressors = size(X,2);
+        design = [prev_choice,prev_correct,s1,d1,s2,d2,choice,correct,trial_idcs];
+        n_regressors = size(design,2);
         n_coefficients = n_regressors + 1;
         
         % feature normalization
-        Z = (X - nanmean(X)) ./ nanstd(X);
+        zdesign = (design - nanmean(design)) ./ nanstd(design);
 
         % preallocation
         betas = struct();
         bootbetas = struct();
         pvals = struct();
         residuals = struct();
-        
+        rsquared = struct();
+
         % iterate through epochs
         for ee = 1 : n_epochs
             epoch = epochs{ee};
@@ -392,10 +389,16 @@ for rr = 1 : n_runs
             betas.(epoch) = zeros(n_neurons2use,n_coefficients);
             pvals.(epoch) = zeros(n_neurons2use,n_coefficients);
             residuals.(epoch) = nan(n_glm,n_total_trials);
-   
+            
             % duration selection
             t1_flags = t1 >= glm_win * ismember(epoch,{'postS1Onset','preS1Offset'});
             t2_flags = t2 >= glm_win * ismember(epoch,{'postS2Onset','preS2Offset'});
+            
+            % intensity selection
+            i1_flags = (i1 == i_set(i1_mode_idx)) | ...
+                ~ismember(epoch,{'postS1Onset','preS1Offset'});
+            i2_flags = (i2 == i_set(i2_mode_idx)) | ...
+                ~ismember(epoch,{'postS2Onset','preS2Offset'});
             
             % iterate through neurons
             for nn = 1 : n_neurons2use
@@ -413,33 +416,84 @@ for rr = 1 : n_runs
                 end
                 
                 % fit GLM to each subject
-%                 mdl = fitglm(Z(trial_flags,:),spkcounts.(epoch)(gg,trial_flags),'linear',...
+                X = zdesign(trial_flags,:);
+                y = spkcounts.(epoch)(gg,trial_flags);
+                opts = statset('robust','off');
+                mdl = fitglm(X,y,'linear',...
+                    'predictorvars',{'prevchoice','prevreward',s1_lbl,d1_lbl,s2_lbl,d2_lbl,'choice','reward','trial#'},...
+                    'distribution',distro,...
+                    'intercept',true,...
+                    'options',opts);
+%                 mdlPoisson = fitglm(X,y,'linear',...
 %                     'predictorvars',{'prevchoice','prevreward',s1_lbl,d1_lbl,s2_lbl,d2_lbl,'choice','reward','trial#'},...
 %                     ...'predictorvars',{s1_lbl,d1_lbl,s2_lbl,d2_lbl,'choice','reward','trial#'},...
 %                     ...'predictorvars',{s1_lbl,d1_lbl,s2_lbl,d2_lbl,'choice','trial#'},...
 %                     ...'predictorvars',{s1_lbl,d1_lbl,s2_lbl,d2_lbl,'trial#'},...
 %                     ...'predictorvars',{d1_lbl,d2_lbl,'trial#'},...
-%                     'distribution',distro,...
+%                     'distribution','poisson',...
+%                     'options',opts,...
 %                     'intercept',true);
-                [B,info] = lassoglm(Z(trial_flags,:),spkcounts.(epoch)(gg,trial_flags),distro,...
-                    'standardize',true,...
-                    ...'lambda',1e-1,...
-                    'alpha',1e-2,...
-                    'CV',10);
+
+                b0 = mdl.Coefficients.Estimate(1);
+                b = mdl.Coefficients.Estimate(2:end)';
                 
+%                 [B,info] = lassoglm(...
+%                     zdesign(trial_flags,:),spkcounts.(epoch)(gg,trial_flags),distro,...
+%                     'standardize',true,...
+%                     'lambda',1e-1,...
+%                     'alpha',1e-2,...
+%                     'CV',10);
+%                 b0 = info.Intercept(info.IndexMinDeviance);
+%                 b = B(:,info.IndexMinDeviance)';
+
+%                 yhat = b0 + b * X';
+%                 xbar = mean(X);
+%                 n = size(X,1);
+%                 p = size(X,2) + 1;
+%                 dfe = n - p;
+%                 ssr = sum((y - yhat) .^ 2);
+%                 t_score = ((b - 0) * sqrt(dfe)) ./ ...
+%                     sqrt(ssr ./ sum((X - xbar) .^ 2));
+%                 coeff_tbl = mdl.Coefficients;
+%                 coeff_tbl.tScore2 = [nan,t_score]';
+%                 coeff_tbl.pValue2 = 2 * normcdf(-abs(coeff_tbl.tScore2));
+%                 
+%                 se = sqrt((1 / (dfe)) * ssr) ./ sqrt(sum((X - mean(X)) .^ 2));
+%                 t_score = b ./ se;
+%                 coeff_tbl.tScore3 = [nan,t_score]';
+%                 coeff_tbl.pValue3 = 2 * normcdf(-abs(coeff_tbl.tScore3));
+%                 coeff_tbl.pValue4 = 2 * tcdf(-abs(coeff_tbl.tScore3), dfe);
+
+                % bootstrapping
+                for bb = 1 : n_boots
+                    boot_flags = ...
+                        trial_flags & ...
+                        i1_flags & ...
+                        i2_flags;
+                    y_boot = randsample(spkcounts.(epoch)(gg,boot_flags),n_flagged_trials,true);
+                    mdl_boot = fitglm(X,y_boot,'linear',...
+                        'predictorvars',mdl.CoefficientNames(2:end),...
+                        'distribution',mdl.Distribution.Name,...
+                        'intercept',ismember('(Intercept)',mdl.CoefficientNames),...
+                        'options',opts);
+                    bootbetas.(epoch)(nn,:,bb) = mdl_boot.Coefficients.Estimate;
+                end
+
                 betas.(epoch)(nn,:) = mdl.Coefficients.Estimate;
                 pvals.(epoch)(nn,:) = mdl.Coefficients.pValue;
                 residuals.(epoch)(gg,trial_flags) = mdl.Residuals.Raw;
+                rsquared.(epoch).normal(gg,nn) = mdl.Rsquared.Ordinary;
+                rsquared.(epoch).poisson(gg,nn) = mdlPoisson.Rsquared.Ordinary;
                 
-                % bootstrapping
-                for bb = 1 : n_boots
-                    bootmdl = fitglm(mdl.Variables{:,1:end-1},...
-                        mdl.Variables{randperm(n_flagged_trials),end},'linear',...
-                        'predictorvars',mdl.CoefficientNames(2:end),...
-                        'distribution',mdl.Distribution.Name,...
-                        'intercept',true);
-                    bootbetas.(epoch)(nn,:,bb) = bootmdl.Coefficients.Estimate;
-                end
+%                 % bootstrapping
+%                 for bb = 1 : n_boots
+%                     bootmdl = fitglm(mdl.Variables{:,1:end-1},...
+%                         mdl.Variables{randperm(n_flagged_trials),end},'linear',...
+%                         'predictorvars',mdl.CoefficientNames(2:end),...
+%                         'distribution',mdl.Distribution.Name,...
+%                         'intercept',true);
+%                     bootbetas.(epoch)(nn,:,bb) = bootmdl.Coefficients.Estimate;
+%                 end
             end
         end
         
@@ -552,9 +606,9 @@ for rr = 1 : n_runs
                     
                     x = x_offsets(bb);
                     significant_flags = pvals.(epoch)(:,coeff_idx) < alphas(aa);
-%                     significant_flags = ...
-%                         betas.(epoch)(:,bb) < quantile(bootbetas.(epoch)(:,bb,:),alphas(aa)) || ...
-%                         betas.(epoch)(:,bb) > quantile(bootbetas.(epoch)(:,bb,:),1-alphas(aa));
+                    significant_flags = ...
+                        betas.(epoch)(:,bb) < quantile(bootbetas.(epoch)(:,bb,:),alphas(aa)) || ...
+                        betas.(epoch)(:,bb) > quantile(bootbetas.(epoch)(:,bb,:),1-alphas(aa));
                     
                     % pseudo-legend (regressors)
                     if ee == 1 && alphas(aa) == max(alphas)
