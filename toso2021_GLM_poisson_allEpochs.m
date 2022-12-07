@@ -376,7 +376,7 @@ for rr = 1 : n_runs
 
         % preallocation
         betas = struct();
-        bootbetas = struct();
+        boot_betas = struct();
         pvals = struct();
         residuals = struct();
         rsquared = struct();
@@ -391,10 +391,12 @@ for rr = 1 : n_runs
             residuals.(epoch) = nan(n_glm,n_total_trials);
             
             % duration selection
-            t1_flags = t1 >= glm_win * ismember(epoch,{'postS1Onset','preS1Offset'});
-            t2_flags = t2 >= glm_win * ismember(epoch,{'postS2Onset','preS2Offset'});
+            t1_flags = t1 >= glm_win * ...
+                ismember(epoch,{'postS1Onset','preS1Offset'});
+            t2_flags = t2 >= glm_win * ...
+                ismember(epoch,{'postS2Onset','preS2Offset'});
             
-            % intensity selection
+            % intensity selection (for bootstrapping purposes)
             i1_flags = (i1 == i_set(i1_mode_idx)) | ...
                 ~ismember(epoch,{'postS1Onset','preS1Offset'});
             i2_flags = (i2 == i_set(i2_mode_idx)) | ...
@@ -434,49 +436,19 @@ for rr = 1 : n_runs
 %                     'options',opts,...
 %                     'intercept',true);
 
-                b0 = mdl.Coefficients.Estimate(1);
-                b = mdl.Coefficients.Estimate(2:end)';
-                
-%                 [B,info] = lassoglm(...
-%                     zdesign(trial_flags,:),spkcounts.(epoch)(gg,trial_flags),distro,...
-%                     'standardize',true,...
-%                     'lambda',1e-1,...
-%                     'alpha',1e-2,...
-%                     'CV',10);
-%                 b0 = info.Intercept(info.IndexMinDeviance);
-%                 b = B(:,info.IndexMinDeviance)';
-
-%                 yhat = b0 + b * X';
-%                 xbar = mean(X);
-%                 n = size(X,1);
-%                 p = size(X,2) + 1;
-%                 dfe = n - p;
-%                 ssr = sum((y - yhat) .^ 2);
-%                 t_score = ((b - 0) * sqrt(dfe)) ./ ...
-%                     sqrt(ssr ./ sum((X - xbar) .^ 2));
-%                 coeff_tbl = mdl.Coefficients;
-%                 coeff_tbl.tScore2 = [nan,t_score]';
-%                 coeff_tbl.pValue2 = 2 * normcdf(-abs(coeff_tbl.tScore2));
-%                 
-%                 se = sqrt((1 / (dfe)) * ssr) ./ sqrt(sum((X - mean(X)) .^ 2));
-%                 t_score = b ./ se;
-%                 coeff_tbl.tScore3 = [nan,t_score]';
-%                 coeff_tbl.pValue3 = 2 * normcdf(-abs(coeff_tbl.tScore3));
-%                 coeff_tbl.pValue4 = 2 * tcdf(-abs(coeff_tbl.tScore3), dfe);
-
                 % bootstrapping
                 for bb = 1 : n_boots
                     boot_flags = ...
                         trial_flags & ...
                         i1_flags & ...
                         i2_flags;
-                    y_boot = randsample(spkcounts.(epoch)(gg,boot_flags),n_flagged_trials,true);
-                    mdl_boot = fitglm(X,y_boot,'linear',...
+                    boot_y = randsample(spkcounts.(epoch)(gg,boot_flags),n_flagged_trials,true);
+                    b = fitglm(X,boot_y,'linear',...
                         'predictorvars',mdl.CoefficientNames(2:end),...
                         'distribution',mdl.Distribution.Name,...
                         'intercept',ismember('(Intercept)',mdl.CoefficientNames),...
                         'options',opts);
-                    bootbetas.(epoch)(nn,:,bb) = mdl_boot.Coefficients.Estimate;
+                    boot_betas.(epoch)(nn,:,bb) = mdl_boot.Coefficients.Estimate;
                 end
 
                 betas.(epoch)(nn,:) = mdl.Coefficients.Estimate;
@@ -607,8 +579,8 @@ for rr = 1 : n_runs
                     x = x_offsets(bb);
                     significant_flags = pvals.(epoch)(:,coeff_idx) < alphas(aa);
                     significant_flags = ...
-                        betas.(epoch)(:,bb) < quantile(bootbetas.(epoch)(:,bb,:),alphas(aa)) || ...
-                        betas.(epoch)(:,bb) > quantile(bootbetas.(epoch)(:,bb,:),1-alphas(aa));
+                        betas.(epoch)(:,bb) < quantile(boot_betas.(epoch)(:,bb,:),alphas(aa)) || ...
+                        betas.(epoch)(:,bb) > quantile(boot_betas.(epoch)(:,bb,:),1-alphas(aa));
                     
                     % pseudo-legend (regressors)
                     if ee == 1 && alphas(aa) == max(alphas)
