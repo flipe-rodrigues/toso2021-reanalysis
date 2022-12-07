@@ -389,6 +389,7 @@ for rr = 1 : n_runs
             betas.(epoch) = zeros(n_neurons2use,n_coefficients);
             pvals.(epoch) = zeros(n_neurons2use,n_coefficients);
             residuals.(epoch) = nan(n_glm,n_total_trials);
+            boot_betas.(epoch) = zeros(n_neurons2use,n_coefficients,n_boots);
             
             % duration selection
             t1_flags = t1 >= glm_win * ...
@@ -417,7 +418,7 @@ for rr = 1 : n_runs
                     continue;
                 end
                 
-                % fit GLM to each subject
+                % fit GLM
                 X = zdesign(trial_flags,:);
                 y = spkcounts.(epoch)(gg,trial_flags);
                 opts = statset('robust','off');
@@ -451,6 +452,7 @@ for rr = 1 : n_runs
                     boot_betas.(epoch)(nn,:,bb) = mdl_boot.Coefficients.Estimate;
                 end
 
+                % caching
                 betas.(epoch)(nn,:) = mdl.Coefficients.Estimate;
                 pvals.(epoch)(nn,:) = mdl.Coefficients.pValue;
                 residuals.(epoch)(gg,trial_flags) = mdl.Residuals.Raw;
@@ -569,18 +571,19 @@ for rr = 1 : n_runs
                 P = nan(n_coeffs2plot,2);
                 
                 % iterate through coefficients
-                for bb = 1 : n_coeffs2plot % 2 : n_coefficients - 1
-                    coeff_lbl = coeffs2plot{bb}; % mdl.CoefficientNames{bb};
+                for bb = 1 : n_coeffs2plot
+                    coeff_lbl = coeffs2plot{bb};
                     coeff_idx = find(ismember(mdl.CoefficientNames,coeff_lbl));
                     coeff_lbl = strrep(coeff_lbl,'#','');
                     coeff_str = strrep(lower(coeff_lbl),'_','');
                     coeff_clrs = eval([coeff_str,'_clrs']);
-                    
                     x = x_offsets(bb);
-                    significant_flags = pvals.(epoch)(:,coeff_idx) < alphas(aa);
+                    
+                    % significance flags
+                    significant_flags = pvals.(epoch)(:,coeff_idx) <= alphas(aa) / n_epochs;
                     significant_flags = ...
-                        betas.(epoch)(:,bb) < quantile(boot_betas.(epoch)(:,bb,:),alphas(aa)) || ...
-                        betas.(epoch)(:,bb) > quantile(boot_betas.(epoch)(:,bb,:),1-alphas(aa));
+                        betas.(epoch)(:,bb) <= quantile(boot_betas.(epoch)(:,bb,:),alphas(aa)/n_epochs) || ...
+                        betas.(epoch)(:,bb) >= quantile(boot_betas.(epoch)(:,bb,:),1-alphas(aa)/n_epochs);
                     
                     % pseudo-legend (regressors)
                     if ee == 1 && alphas(aa) == max(alphas)
