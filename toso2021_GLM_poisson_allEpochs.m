@@ -382,7 +382,7 @@ for rr = 1 : n_runs
         rsquared = struct();
 
         % iterate through epochs
-        for ee = 1% : n_epochs
+        for ee = 1 : n_epochs
             epoch = epochs{ee};
 
             % preallocation
@@ -576,10 +576,10 @@ for rr = 1 : n_runs
                     
                     % significance flags
                     significant_flags = pvals.(epoch)(:,coeff_idx) <= alphas(aa) / n_epochs;
-                    significant_flags = ...
-                        betas.(epoch)(:,bb) <= quantile(boot_betas.(epoch)(:,bb,:),alphas(aa)/n_epochs,3) | ...
-                        betas.(epoch)(:,bb) >= quantile(boot_betas.(epoch)(:,bb,:),1-alphas(aa)/n_epochs,3);
-                    
+%                     significant_flags = ...
+%                         betas.(epoch)(:,coeff_idx) <= quantile(boot_betas.(epoch)(:,coeff_idx,:),alphas(aa)/n_epochs,3) | ...
+%                         betas.(epoch)(:,coeff_idx) >= quantile(boot_betas.(epoch)(:,coeff_idx,:),1-alphas(aa)/n_epochs,3);
+
                     % pseudo-legend (regressors)
                     if ee == 1 && alphas(aa) == max(alphas)
                         text(x-.025,yymax*.95,coeff_str,...
