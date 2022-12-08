@@ -382,7 +382,7 @@ for rr = 1 : n_runs
         rsquared = struct();
 
         % iterate through epochs
-        for ee = 1 : n_epochs
+        for ee = 1% : n_epochs
             epoch = epochs{ee};
 
             % preallocation
@@ -439,17 +439,12 @@ for rr = 1 : n_runs
 
                 % bootstrapping
                 for bb = 1 : n_boots
-                    boot_flags = ...
-                        trial_flags & ...
-                        i1_flags & ...
-                        i2_flags;
-                    boot_y = randsample(spkcounts.(epoch)(gg,boot_flags),n_flagged_trials,true);
-                    b = fitglm(X,boot_y,'linear',...
+                    boot_mdl = fitglm(X,randsample(y,n_flagged_trials),'linear',...
                         'predictorvars',mdl.CoefficientNames(2:end),...
                         'distribution',mdl.Distribution.Name,...
                         'intercept',ismember('(Intercept)',mdl.CoefficientNames),...
                         'options',opts);
-                    boot_betas.(epoch)(nn,:,bb) = mdl_boot.Coefficients.Estimate;
+                    boot_betas.(epoch)(nn,:,bb) = boot_mdl.Coefficients.Estimate;
                 end
 
                 % caching
@@ -582,8 +577,8 @@ for rr = 1 : n_runs
                     % significance flags
                     significant_flags = pvals.(epoch)(:,coeff_idx) <= alphas(aa) / n_epochs;
                     significant_flags = ...
-                        betas.(epoch)(:,bb) <= quantile(boot_betas.(epoch)(:,bb,:),alphas(aa)/n_epochs) || ...
-                        betas.(epoch)(:,bb) >= quantile(boot_betas.(epoch)(:,bb,:),1-alphas(aa)/n_epochs);
+                        betas.(epoch)(:,bb) <= quantile(boot_betas.(epoch)(:,bb,:),alphas(aa)/n_epochs,3) | ...
+                        betas.(epoch)(:,bb) >= quantile(boot_betas.(epoch)(:,bb,:),1-alphas(aa)/n_epochs,3);
                     
                     % pseudo-legend (regressors)
                     if ee == 1 && alphas(aa) == max(alphas)
