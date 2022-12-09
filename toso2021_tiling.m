@@ -162,7 +162,7 @@ weight_ref = median(squeeze(...
 % compute observation weights
 weights = ones(roi2use_n_bins,1) * max(weight_ref);
 for tt = 2 : n_t
-    t_flags = roi_time > t_set(tt-1) & roi_time <= t_set(tt);
+    t_flags = roi2use_time > t_set(tt-1) & roi2use_time <= t_set(tt);
     weights(t_flags) = weight_ref(tt);
 end
 weights = weights / max(weights);
@@ -378,12 +378,12 @@ xlabel(sps(end),'Time since S_2 onset (ms)');
 
 % compute S2-aligned PCs
 X = s2_psths(roi2use_flags,:);
-X(:,1:2:end) = ...
-    (2 * rand(1,ceil(n_neurons/2)) - 1) .* roi_time' + ...
-    randn(roi_n_bins,ceil(n_neurons/2)) * 10;
-X(:,2:2:end-1) = normpdf(roi_time,...
-    rand(floor(n_neurons/2),1) * 1e3, ...
-    25 + rand(floor(n_neurons/2),1) * 225)';
+% X(:,1:2:end) = ...
+%     (2 * rand(1,ceil(n_neurons/2)) - 1) .* roi_time' + ...
+%     randn(roi_n_bins,ceil(n_neurons/2)) * 10;
+% X(:,2:2:end-1) = normpdf(roi_time,...
+%     rand(floor(n_neurons/2),1) * 1e3, ...
+%     25 + rand(floor(n_neurons/2),1) * 225)';
 [Z,mu,sig] = zscore(X);
 s2_coeff = pca(Z);
 % ric = rica(Z,3);
@@ -408,6 +408,20 @@ if want2save
     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
 end
+
+figure;
+hold on;
+ramp_flags = ismember(flagged_neurons,ramp_idcs.s1.on.up);
+plot(mean(s1_zpsths(:,ramp_flags),2))
+ramp_flags = ismember(flagged_neurons,ramp_idcs.s1.on.down);
+plot(mean(s1_zpsths(:,ramp_flags),2))
+
+figure;
+hold on;
+ramp_flags = ismember(flagged_neurons,ramp_idcs.s2.on.up);
+plot(mean(s2_zpsths(:,ramp_flags),2))
+ramp_flags = ismember(flagged_neurons,ramp_idcs.s2.on.down);
+plot(mean(s2_zpsths(:,ramp_flags),2))
 
 %% S2-aligned PC coefficient scatter
 
@@ -443,9 +457,9 @@ X = s2_psths(roi2use_flags,:);
 % grapeplot(S(:,1),S(:,2));
 % s2_coeff(:,1) = roi_time * Z;
 % [~,s2_coeff(:,2)] = max(Z);
-% P = (Z + min(Z));
-% P = P ./ nansum(P);
-% h = -sum(P .* log2(P));
+P = (Z - min(Z)) ./ range(Z);
+P = P ./ nansum(P) + 1e-20;
+h = -sum(P .* log2(P));
 % s2_coeff(:,2) = h;
 % s2_coeff(:,2) = var(diff(Z));
 % 
@@ -455,9 +469,14 @@ X = s2_psths(roi2use_flags,:);
 %     s2_coeff(nn,2) = mdl.Rsquared.Ordinary;
 % end
 
+% s2_coeff(:,1) = roi_time * Z;
+% % P = (Z - min(Z)) ./ range(Z);
+% s2_coeff(:,2) = h; % max(P); % var(diff(Z)); % sum(diff(P));
+
+ramp_flags = ismember(flagged_neurons,[ramp_idcs.s1.up;ramp_idcs.s1.down]);
 grapeplot(s2_coeff(:,1),s2_coeff(:,2));
-grapeplot(s2_coeff(1:2:end,1),s2_coeff(1:2:end,2),...
-    'markerfacecolor','r');
+grapeplot(s2_coeff(ramp_flags,1),s2_coeff(ramp_flags,2),...
+    'markerfacecolor','b');
 
 % update axes limits
 xxlim = xlim;

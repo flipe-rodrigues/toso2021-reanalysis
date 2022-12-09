@@ -17,6 +17,22 @@ file_name = sprintf('%c%s_rats_ok.mat',upper(task_str(1)),task_str(2:end));
 data_file = fullfile(data_path,file_name);
 load(data_file);
 data = DataB.Info;
+
+% ---------------------------- THEIR RAMPS ------------------------------ %
+Features=NeuronType_Striatum(DataB);
+Neurons=unique(DataB.Info.NeuronNumb,'rows');
+AllNeurons=Neurons;
+[Neurons,AllRamps]=Selectramp(DataB,Neurons);
+ramp_idcs.s1.on.up = find(sum(AllRamps(:,1),2)>0);
+ramp_idcs.s1.on.down = find(sum(AllRamps(:,2),2)>0);
+ramp_idcs.s1.off.up = find(sum(AllRamps(:,3),2)>0);
+ramp_idcs.s1.off.down = find(sum(AllRamps(:,4),2)>0);
+ramp_idcs.s2.on.up = find(sum(AllRamps(:,5),2)>0);
+ramp_idcs.s2.on.down = find(sum(AllRamps(:,6),2)>0);
+ramp_idcs.s2.off.up = find(sum(AllRamps(:,7),2)>0);
+ramp_idcs.s2.off.down = find(sum(AllRamps(:,8),2)>0);
+% ----------------------------------------------------------------------- %
+
 clear DataB;
 
 %% save settings
@@ -55,8 +71,8 @@ toso2021_psychometricCurves;
 
 % ephys
 toso2021_neuronSelection;
-toso2021_GLM_poisson_allEpochs;
 return;
+toso2021_GLM_poisson_allEpochs;
 toso2021_trialTypeDistributions;
 toso2021_tiling;
 toso2021_overallModulation;
