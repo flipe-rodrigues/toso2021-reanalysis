@@ -7,10 +7,10 @@ end
 n_runs = 1;
 
 %% bootstrap settings
-n_boots = 0;
+n_boots = 1e3;
 
 %% GLM settings
-distro = 'normal';
+distro = 'poisson';
 glm_wins = t_set(t1_mode_idx);
 % glm_wins = t_set(1:end);
 n_glm = numel(glm_wins);
