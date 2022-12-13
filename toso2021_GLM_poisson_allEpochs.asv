@@ -476,8 +476,8 @@ for rr = 1 : n_runs
         n_coeffs2plot = numel(coeffs2plot);
         
         % bar width settings
-        epoch_span = 3 / 4;
-        barwidth = epoch_span / n_coeffs2plot;
+        epoch_span = 2 / 3;
+        barwidth = epoch_span / (n_coeffs2plot - 1);
         
         % figure initialization
         fig = figure(figopt,...
@@ -487,7 +487,7 @@ for rr = 1 : n_runs
             'color',[1,1,1]*1);
         
         % axes initialization
-        yymax = .3;
+        yymax = .25;
         yylim = [-1,1]*yymax+[-1,1]*.05*yymax*2;
         yytick = unique([0,[-1,1]*yymax,[-1,1]*.05,[-1,1]*.01]);
         yyticklabel = num2cell(abs(round(yytick,2)));
@@ -514,16 +514,14 @@ for rr = 1 : n_runs
         % significance settings
         alphas = [.05,.01];
         n_alphas = numel(alphas);
-        pval_corr = 3;
         
         % reference lines
         plot(xlim,[1,1]*0,'-k',...
             'linewidth',1.5);
-%         plot(xlim,[1,1]*0,':k');
-%         plot(xlim,[1,1]*min(alphas),':k');
-%         plot(xlim,[1,1]*-min(alphas),':k');
-%         plot(xlim,[1,1]*max(alphas),':k');
-%         plot(xlim,[1,1]*-max(alphas),':k');
+        plot(xlim,[1,1]*min(alphas),':k');
+        plot(xlim,[1,1]*-min(alphas),':k');
+        plot(xlim,[1,1]*max(alphas),':k');
+        plot(xlim,[1,1]*-max(alphas),':k');
                 
         % pseudo-legend (stimulus epochs)
         s1epoch_idcs = ...
@@ -541,7 +539,7 @@ for rr = 1 : n_runs
         s2epoch_idcs = ...
             [find(ismember(epochs,'postS2Onset')),...
             find(ismember(epochs,'preS2Offset'))];
-        plot(s2epoch_idcs+[-1,1]*barwidth*n_coeffs2plot/2,[1,1]*yymax,...
+        plot(s2epoch_idcs+[-1,1]*barwidth*n_coeffs2plot/2,[1,1]*yymax*.05,...
             'linestyle','-',...
             'linewidth',3,...
             'color',stim_clrs(2,:));
@@ -562,7 +560,7 @@ for rr = 1 : n_runs
             % compute horizontal offsets
             x_offsets = ee + (0 : n_coeffs2plot - 1) * barwidth + ...
                 barwidth / 2 - epoch_span / 2;
-            
+            abs(x_offsets-1)
             % iterate through alphas
             for aa = 1 : n_alphas
                 
@@ -579,10 +577,10 @@ for rr = 1 : n_runs
                     x = x_offsets(bb);
                     
                     % significance flags
-                    significant_flags = pvals.(epoch)(:,coeff_idx) <= alphas(aa) / pval_corr;
-                    significant_flags = ...
-                        betas.(epoch)(:,coeff_idx) <= quantile(boot_betas.(epoch)(:,coeff_idx,:),alphas(aa)/pval_corr,3) | ...
-                        betas.(epoch)(:,coeff_idx) >= quantile(boot_betas.(epoch)(:,coeff_idx,:),1-alphas(aa)/pval_corr,3);
+                    significant_flags = pvals.(epoch)(:,coeff_idx) <= alphas(aa) / n_epochs;
+%                     significant_flags = ...
+%                         betas.(epoch)(:,coeff_idx) <= quantile(boot_betas.(epoch)(:,coeff_idx,:),alphas(aa)/n_epochs,3) | ...
+%                         betas.(epoch)(:,coeff_idx) >= quantile(boot_betas.(epoch)(:,coeff_idx,:),1-alphas(aa)/n_epochs,3);
 
                     % pseudo-legend (regressors)
                     if ee == 1 && alphas(aa) == max(alphas)
@@ -667,6 +665,7 @@ for rr = 1 : n_runs
                             uistack(p,'bottom');
                         end
                     end
+                    %             uistack(h,'top');
                     
                     % pseudo-legend (significance)
                     if ee == 1 && bb == 1
@@ -787,7 +786,7 @@ for rr = 1 : n_runs
             'I_1','I_2',...
             };
         [n_coeffsets,n_coeffsperset] = size(coeffsets2plot);
-        setyymax = .3 ./ [1,1];
+        setyymax = [.3,.15];
         setlabels = {'Duration','Intensity'};
         
         % iterate through coeff set
@@ -823,8 +822,8 @@ for rr = 1 : n_runs
             ylabel('P(significant \beta)');
             
             % reference lines
-%             plot(xlim,[1,1]*min(alphas),':k');
-%             plot(xlim,[1,1]*max(alphas),':k');
+            plot(xlim,[1,1]*min(alphas),':k');
+            plot(xlim,[1,1]*max(alphas),':k');
             plot([find(ismember(epochs,'postS1Onset')),...
                 find(ismember(epochs,'preS1Offset'))],[1,1]*max(yylim),...
                 'linestyle','-',...
