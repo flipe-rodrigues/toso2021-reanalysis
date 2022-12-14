@@ -62,6 +62,7 @@ contrast_lbl = [upper(contrast_str(1)),'_',contrast_str(2)];
 %% script execution order
 
 % behavior
+toso2021_eventDiagram;
 toso2021_generalizationMatrix_Si;
 toso2021_generalizationMatrix_Di;
 toso2021_performance_Si;
