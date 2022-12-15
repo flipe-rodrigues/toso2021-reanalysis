@@ -17,7 +17,6 @@ file_name = sprintf('%c%s_rats_ok.mat',upper(task_str(1)),task_str(2:end));
 data_file = fullfile(data_path,file_name);
 load(data_file);
 data = DataB.Info;
-
 % ---------------------------- THEIR RAMPS ------------------------------ %
 Features=NeuronType_Striatum(DataB);
 Neurons=unique(DataB.Info.NeuronNumb,'rows');
@@ -32,7 +31,6 @@ ramp_idcs.s2.on.down = find(sum(AllRamps(:,6),2)>0);
 ramp_idcs.s2.off.up = find(sum(AllRamps(:,7),2)>0);
 ramp_idcs.s2.off.down = find(sum(AllRamps(:,8),2)>0);
 % ----------------------------------------------------------------------- %
-
 clear DataB;
 
 %% save settings

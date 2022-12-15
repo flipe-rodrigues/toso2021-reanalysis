@@ -3,6 +3,10 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
+%%
+
+return;
+
 %% vibration generation settings
 fs = 10e3;              % sampling frequency
 dt = 1 / fs;            % sampling period
