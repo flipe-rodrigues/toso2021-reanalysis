@@ -161,10 +161,10 @@ weight_ref = median(squeeze(...
 
 % compute observation weights
 weights = ones(roi2use_n_bins,1) * max(weight_ref);
-for tt = 2 : n_t
-    t_flags = roi2use_time > t_set(tt-1) & roi2use_time <= t_set(tt);
-    weights(t_flags) = weight_ref(tt);
-end
+% for tt = 2 : n_t
+%     t_flags = roi2use_time > t_set(tt-1) & roi2use_time <= t_set(tt);
+%     weights(t_flags) = weight_ref(tt);
+% end
 weights = weights / max(weights);
 s2_coeff = pca(s2_zpsths(roi2use_flags,:),...
     'weights',weights.^0);
@@ -349,7 +349,7 @@ if want2save
 end
 
 %% S2-aligned PC projections
-n_pcs2plot = 3;
+n_pcs2plot = 5;
 
 % figure initialization
 fig = figure(figopt,...
@@ -379,9 +379,9 @@ xlabel(sps(end),'Time since S_2 onset (ms)');
 % compute S2-aligned PCs
 X = s2_psths(roi2use_flags,:);
 % X(:,1:2:end) = ...
-%     (2 * rand(1,ceil(n_neurons/2)) - 1) .* roi_time' + ...
-%     randn(roi_n_bins,ceil(n_neurons/2)) * 10;
-% X(:,2:2:end-1) = normpdf(roi_time,...
+%     (2 * rand(1,ceil(n_neurons/2)) - 1) .* roi2use_time' + ...
+%     randn(roi2use_n_bins,ceil(n_neurons/2)) * 10;
+% X(:,2:2:end-1) = normpdf(roi2use_time,...
 %     rand(floor(n_neurons/2),1) * 1e3, ...
 %     25 + rand(floor(n_neurons/2),1) * 225)';
 [Z,mu,sig] = zscore(X);
@@ -399,7 +399,7 @@ s2_score = Z * s2_coeff;
 for pc = 1 : n_pcs2plot
 
     % plot PC 1
-    plot(sps(pc),roi_time,s2_score(:,pc),...
+    plot(sps(pc),roi2use_time,s2_score(:,pc),...
         'linewidth',1.5);
 end
 
@@ -409,19 +409,19 @@ if want2save
     print(fig,svg_file,'-dsvg','-painters');
 end
 
-figure;
-hold on;
-ramp_flags = ismember(flagged_neurons,ramp_idcs.s1.on.up);
-plot(mean(s1_zpsths(:,ramp_flags),2))
-ramp_flags = ismember(flagged_neurons,ramp_idcs.s1.on.down);
-plot(mean(s1_zpsths(:,ramp_flags),2))
-
-figure;
-hold on;
-ramp_flags = ismember(flagged_neurons,ramp_idcs.s2.on.up);
-plot(mean(s2_zpsths(:,ramp_flags),2))
-ramp_flags = ismember(flagged_neurons,ramp_idcs.s2.on.down);
-plot(mean(s2_zpsths(:,ramp_flags),2))
+% figure;
+% hold on;
+% ramp_flags = ismember(flagged_neurons,ramp_idcs.s1.on.up);
+% plot(mean(s1_zpsths(:,ramp_flags),2))
+% ramp_flags = ismember(flagged_neurons,ramp_idcs.s1.on.down);
+% plot(mean(s1_zpsths(:,ramp_flags),2))
+% 
+% figure;
+% hold on;
+% ramp_flags = ismember(flagged_neurons,ramp_idcs.s2.on.up);
+% plot(mean(s2_zpsths(:,ramp_flags),2))
+% ramp_flags = ismember(flagged_neurons,ramp_idcs.s2.on.down);
+% plot(mean(s2_zpsths(:,ramp_flags),2))
 
 %% S2-aligned PC coefficient scatter
 
@@ -473,10 +473,14 @@ h = -sum(P .* log2(P));
 % % P = (Z - min(Z)) ./ range(Z);
 % s2_coeff(:,2) = h; % max(P); % var(diff(Z)); % sum(diff(P));
 
-ramp_flags = ismember(flagged_neurons,[ramp_idcs.s1.up;ramp_idcs.s1.down]);
-grapeplot(s2_coeff(:,1),s2_coeff(:,2));
-grapeplot(s2_coeff(ramp_flags,1),s2_coeff(ramp_flags,2),...
-    'markerfacecolor','b');
+% ramp_flags = ismember(flagged_neurons,[ramp_idcs.s1.up;ramp_idcs.s1.down]);
+s2_coeff = abs(s2_coeff);
+n_hi = 5;
+grapeplot(s2_coeff(:,1),sum(s2_coeff(:,2:n_hi),2));
+% grapeplot(s2_coeff(ramp_flags,1),s2_coeff(ramp_flags,2),...
+%     'markerfacecolor','b');
+% grapeplot(s2_coeff(1:2:end,1),sum(s2_coeff(1:2:end,2:n_hi),2),...
+%     'markerfacecolor','b');
 
 % update axes limits
 xxlim = xlim;
