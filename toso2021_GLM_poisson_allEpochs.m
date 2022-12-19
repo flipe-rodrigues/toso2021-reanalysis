@@ -10,7 +10,7 @@ n_runs = 1;
 n_boots = 1e3;
 
 %% GLM settings
-distro = 'poisson';
+distro = 'normal';
 glm_wins = t_set(t1_mode_idx);
 % glm_wins = t_set(1:end);
 n_glm = numel(glm_wins);
