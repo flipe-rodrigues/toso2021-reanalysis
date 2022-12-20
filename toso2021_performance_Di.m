@@ -106,6 +106,7 @@ nid_perf = nan(n_nid,1);
 for ii = 1 : n_nid
     nid_flags = ...
         valid_flags & ...
+        unique_flags & ...
         nid == nid_set(ii);
     
     % iterate through subjects
@@ -234,6 +235,7 @@ end
 
 % figure initialization
 fig = figure(figopt,...
+    'position',[744 630 560 412.5],...
     'name',sprintf('performance_NID_distros'));
 
 % axes initialization
@@ -315,6 +317,7 @@ end
 
 % figure initialization
 fig = figure(figopt,...
+    'position',[744 630 560 412.5],...
     'name',sprintf('performance_NID_averages'));
 
 % axes initialization

@@ -104,6 +104,7 @@ ntd_perf = nan(n_ntd,1);
 for ii = 1 : n_ntd
     ntd_flags = ...
         valid_flags & ...
+        unique_flags & ...
         ntd == ntd_set(ii);
     
     % iterate through subjects
@@ -232,6 +233,7 @@ end
 
 % figure initialization
 fig = figure(figopt,...
+    'position',[744 630 560 412.5],...
     'name',sprintf('performance_NTD_distros'));
 
 % axes initialization
@@ -313,6 +315,7 @@ end
 
 % figure initialization
 fig = figure(figopt,...
+    'position',[744 630 560 412.5],...
     'name',sprintf('performance_NTD_averages'));
 
 % axes initialization
