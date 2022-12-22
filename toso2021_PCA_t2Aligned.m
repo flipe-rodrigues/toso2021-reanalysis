@@ -96,7 +96,7 @@ for nn = 1 : n_neurons
 end
 
 % training settings
-pca_design = s2_concat_all;
+pca_design = s2_concat_mode;
 %   'all'   ->  vanilla PCA
 %   'extr'  ->  pseudo-demixed PCA
 %   'mode'  ->  robust PCA

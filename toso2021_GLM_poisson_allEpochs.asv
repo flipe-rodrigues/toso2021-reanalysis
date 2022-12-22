@@ -23,9 +23,6 @@ fractions = struct();
 for rr = 1 : n_runs
     if n_runs > 1
         toso2021_simulateSpikes;
-        spike_data = data.FakeFR;
-    else
-        spike_data = data.FR;
     end
     
     %% iterate through spike integration windows
@@ -73,15 +70,6 @@ for rr = 1 : n_runs
         glm_roi_lbl.aroundReaction = '~Reaction';
         glm_roi_lbl.aroundChoice = '~Choice';
         
-        % adjust if simulating
-        if n_runs > 1
-            all_fields = fieldnames(glm_roi);
-            fields2rm = ~ismember(all_fields,...
-                {'postS1Onset','preS1Offset','postS2Onset','preS2Offset'});
-            glm_roi = rmfield(glm_roi,all_fields(fields2rm));
-            glm_roi_lbl = rmfield(glm_roi_lbl,all_fields(fields2rm));
-        end
-            
         % epoch parsing
         epochs = fieldnames(glm_roi);
         n_epochs = numel(epochs);
@@ -121,7 +109,7 @@ for rr = 1 : n_runs
             end
             
             % fetch spike counts & compute spike rates
-            spike_counts = spike_data(trial_flags,:)';
+            spike_counts = data.FR(trial_flags,:)';
             n_trials = sum(trial_flags);
             
             % around approach spike rates
@@ -1081,7 +1069,7 @@ xxtick = t_set;
 xxticklabel = num2cell(xxtick);
 axes(axesopt.default,...
     'plotboxaspectratio',[1,1,1],...
-    'xlim',[min(logxx),max(logxx)]+[-1,1]*.05*(range(logxx)+10),...
+    'xlim',[min(logxx)-.001,max(logxx)]+[-1,1]*.05*range(logxx),...
     'xtick',log(xxtick),...
     'xticklabel',xxticklabel,...
     'ylim',binspan/2+[-1,1]*.05*range(binspan)/2,...
