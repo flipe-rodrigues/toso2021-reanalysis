@@ -14,12 +14,14 @@ if strcmpi(task_str,'duration')
         459,461,462,470,473,493,526,544,553,555,566];
     %     neurons2plot = [...
     %         38,72,205,215,224,391,393,397,402,448,459,462,470,526,566];
+    neurons2plot = fliplr([...
+        393,473,215,72,459,526]);
 elseif strcmpi(task_str,'intensity')
     neurons2plot = [...
         19,22,30,61,66,70,100,111,112,115,...
         166,238,243,260,344,408,410];
 end
-neurons2plot = flagged_neurons;
+% neurons2plot = flagged_neurons;
 % neurons2plot = neuron_idcs;
 n_neurons2plot = numel(neurons2plot);
 
@@ -563,42 +565,42 @@ for nn = 1 : n_neurons2plot
     end
     
     % plot significance
-    if any(significance_mask_s1.I_1(:,neurons2plot(nn)))
-        for gg = 1 : n_glm
-            if sign(coeff_map_s1.I_1(gg,neurons2plot(nn))) > 0
-                clr = i1_clrs(end,:);
-            else
-                clr = i1_clrs(1,:);
-            end
-            linewidth = 2.5 * abs(significance_mask_s1.I_1(gg,neurons2plot(nn)));
-            if significance_mask_s1.I_1(gg,neurons2plot(nn))
-                plot(sps(1),...
-                    glm_time(gg)+[0,glm_step],...
-                    [1,1]*max(ylim(sps(1)))*1.05,...
-                    'color',clr,...
-                    'linestyle','--',...
-                    'linewidth',linewidth);
-            end
-        end
-    end
-    if any(significance_mask_s2.I_2(:,neurons2plot(nn)))
-        for gg = 1 : n_glm
-            if sign(coeff_map_s2.I_2(gg,neurons2plot(nn))) > 0
-                clr = i2_clrs(end,:);
-            else
-                clr = i2_clrs(1,:);
-            end
-            linewidth = 2.5 * abs(significance_mask_s2.I_2(gg,neurons2plot(nn)));
-            if significance_mask_s2.I_2(gg,neurons2plot(nn))
-                plot(sps(3),...
-                    glm_time(gg)+[0,glm_step],...
-                    [1,1]*max(ylim(sps(3)))*1.05,...
-                    'color',clr,...
-                    'linestyle','--',...
-                    'linewidth',linewidth);
-            end
-        end
-    end
+%     if any(significance_mask_s1.I_1(:,neurons2plot(nn)))
+%         for gg = 1 : n_glm
+%             if sign(coeff_map_s1.I_1(gg,neurons2plot(nn))) > 0
+%                 clr = i1_clrs(end,:);
+%             else
+%                 clr = i1_clrs(1,:);
+%             end
+%             linewidth = 2.5 * abs(significance_mask_s1.I_1(gg,neurons2plot(nn)));
+%             if significance_mask_s1.I_1(gg,neurons2plot(nn))
+%                 plot(sps(1),...
+%                     glm_time(gg)+[0,glm_step],...
+%                     [1,1]*max(ylim(sps(1)))*1.05,...
+%                     'color',clr,...
+%                     'linestyle','--',...
+%                     'linewidth',linewidth);
+%             end
+%         end
+%     end
+%     if any(significance_mask_s2.I_2(:,neurons2plot(nn)))
+%         for gg = 1 : n_glm
+%             if sign(coeff_map_s2.I_2(gg,neurons2plot(nn))) > 0
+%                 clr = i2_clrs(end,:);
+%             else
+%                 clr = i2_clrs(1,:);
+%             end
+%             linewidth = 2.5 * abs(significance_mask_s2.I_2(gg,neurons2plot(nn)));
+%             if significance_mask_s2.I_2(gg,neurons2plot(nn))
+%                 plot(sps(3),...
+%                     glm_time(gg)+[0,glm_step],...
+%                     [1,1]*max(ylim(sps(3)))*1.05,...
+%                     'color',clr,...
+%                     'linestyle','--',...
+%                     'linewidth',linewidth);
+%             end
+%         end
+%     end
     
     % plot waveform
     plot(axwav,data.Shape(neurons2plot(nn),:),...
