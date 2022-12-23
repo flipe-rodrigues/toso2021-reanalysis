@@ -4,7 +4,7 @@ if ~exist('data','var')
 end
 
 %% run settings
-n_runs = 1;
+n_runs = 25;
 
 %% bootstrap settings
 n_boots = 0; % 1e3;
@@ -140,16 +140,19 @@ for rr = 1 : n_runs
             end
             
             % pre initiation spike rates
-            alignment_onset = ...
-                repmat(pre_init_padding,n_trials,1);
-            alignment_flags = ...
-                padded_time >= alignment_onset + glm_roi.preInit(1) & ...
-                padded_time < alignment_onset + glm_roi.preInit(2);
-            chunk_flags = alignment_flags;
-            spkcounts_preInit = spike_counts;
-            spkcounts_preInit(~alignment_flags') = nan;
-            spkcounts_preInit = ...
-                reshape(spkcounts_preInit(chunk_flags'),[glm_win,n_trials])';
+            if isfield(glm_roi,'preInit')
+                alignment_onset = ...
+                    repmat(pre_init_padding,n_trials,1);
+                alignment_flags = ...
+                    padded_time >= alignment_onset + glm_roi.preInit(1) & ...
+                    padded_time < alignment_onset + glm_roi.preInit(2);
+                chunk_flags = alignment_flags;
+                spkcounts_preInit = spike_counts;
+                spkcounts_preInit(~alignment_flags') = nan;
+                spkcounts_preInit = ...
+                    reshape(spkcounts_preInit(chunk_flags'),[glm_win,n_trials])';
+                spkcounts.preInit(gg,trial_flags) = nansum(spkcounts_preInit,2);
+            end
             
             % post initiation spike rates
             alignment_onset = ...
@@ -362,7 +365,6 @@ for rr = 1 : n_runs
             end
             
             % store average spike rates
-            spkcounts.preInit(gg,trial_flags) = nansum(spkcounts_preInit,2);
             spkcounts.postInit(gg,trial_flags) = nansum(spkcounts_postInit,2);
             spkcounts.preS1Onset(gg,trial_flags) = nansum(spkcounts_preS1Onset,2);
             spkcounts.postS1Onset(gg,trial_flags) = nansum(spkcounts_postS1Onset,2);
