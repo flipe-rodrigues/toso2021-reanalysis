@@ -6,9 +6,9 @@ end
 %% stimulus selection (for training & test sets)
 
 % stimuli
-stim2train_idcs = [1 : 2, 6 : n_stimuli];
+stim2train_idcs = [1 : s2_mode_idx - 1, s2_mode_idx + 1 : n_stimuli]; % [1 : 2, 6 : n_stimuli];
 stim2train_n = numel(stim2train_idcs);
-stim2test_idcs = [3,4,5];
+stim2test_idcs = 1 : n_stimuli; % [3,4,5];
 stim2test_n = numel(stim2test_idcs);
 
 % contrasts
@@ -22,26 +22,32 @@ conditions = struct();
 
 % training set conditions
 conditions.train.n = stim2train_n * contrast2train_n;
-conditions.train.idcs = ...
+conditions.train.stimulus.idcs = ...
     num2cell(repmat(stim2train_idcs',contrast2train_n,1));
-conditions.train.stimuli = cellfun(...
-    @(x) stim_set(x),conditions.train.idcs,...
+conditions.train.stimulus.values = cellfun(...
+    @(x) stim_set(x),conditions.train.stimulus.idcs,...
     'uniformoutput',false);
-conditions.train.contrasts = ...
-    num2cell(repmat(contrast_set(contrast2train_idcs'),stim2train_n,1));
+conditions.train.contrast.idcs = ...
+    num2cell(repmat(contrast2train_idcs',stim2train_n,1));
+conditions.train.contrast.values = cellfun(...
+    @(x) contrast_set(x),conditions.train.contrast.idcs,...
+    'uniformoutput',false);
 
 % test set conditions
 conditions.test.n = stim2test_n * contrast2test_n;
-conditions.test.idcs = ...
+conditions.test.stimulus.idcs = ...
     num2cell(sort(repmat(stim2test_idcs',contrast2test_n,1)));
-conditions.test.stimuli = cellfun(...
-    @(x) stim_set(x),conditions.test.idcs,...
+conditions.test.stimulus.values = cellfun(...
+    @(x) stim_set(x),conditions.test.stimulus.idcs,...
     'uniformoutput',false);
-conditions.test.contrasts = ...
-    num2cell(repmat(contrast_set(contrast2test_idcs'),stim2test_n,1));
+conditions.test.contrast.idcs = ...
+    num2cell(repmat(contrast2test_idcs',stim2test_n,1));
+conditions.test.contrast.values = cellfun(...
+    @(x) contrast_set(x),conditions.test.contrast.idcs,...
+    'uniformoutput',false);
 
 %% concatenation settings
-n_concatspercond = 2^8;
+n_concatspercond = 2^7; % 2^8;
 n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% construct spike rate tensor (time X neurons X concatenations)
@@ -57,8 +63,8 @@ concat_choices = nan(n_concats,1);
 concat_evalset = nan(n_concats,1);
 
 % stimulus 1 flags
-i1_flags = i1 == i_set(i1_mode_idx);
-t1_flags = t1 > t_set(2) & t1 < t_set(end-1);
+d1_flags = d1 == d_set(d1_mode_idx);
+s1_flags = s1 > s_set(2) & s1 < s_set(end-1);
 
 % iterate through units
 for nn = 1 : n_neurons
@@ -66,20 +72,20 @@ for nn = 1 : n_neurons
     neuron_flags = data.NeuronNumb == flagged_neurons(nn);
     
     % preallocation
-    nn_train_trials = cell(conditions.train.n,1);
-    
+    nn_train_trials = cell(n_stimuli,n_contrasts);
+        
     % iterate through training conditions
     for kk = 1 : conditions.train.n
         
         % flag trials for the current condition
-        stimulus_flags = ismember(stimuli,conditions.train.stimuli{kk});
-        contrast_flags = ismember(contrasts,conditions.train.contrasts{kk});
+        stimulus_flags = ismember(stimuli,conditions.train.stimulus.values{kk});
+        contrast_flags = ismember(contrasts,conditions.train.contrast.values{kk});
         s2_spike_flags = ...
             valid_flags & ...
             neuron_flags & ...
             stimulus_flags & ...
-            ...i1_flags & ...
-            ...t1_flags & ...
+            ...d1_flags & ...
+            ...s1_flags & ...
             contrast_flags;
         flagged_trials = find(s2_spike_flags);
         if sum(s2_spike_flags) == 0
@@ -95,7 +101,7 @@ for nn = 1 : n_neurons
         % T2-offset-aligned spike rates
         s2_alignment_offset = ...
             pre_init_padding + ...
-            pre_t1_delay(s2_spike_flags) + ...
+            pre_s1_delay(s2_spike_flags) + ...
             t1(s2_spike_flags) + ...
             isi;
         s2_alignment_flags = ...
@@ -110,15 +116,20 @@ for nn = 1 : n_neurons
             reshape(s2_spkrates(s2_chunk_flags'),[roi_n_bins,n_trials])';
         
         % handle cross-validation
-        if ismember(conditions.train.stimuli{kk},[conditions.test.stimuli{:}]) && ...
-                ismember(conditions.train.contrasts{kk},[conditions.test.contrasts{:}])
+        if ismember(conditions.train.stimulus.values{kk},...
+                [conditions.test.stimulus.values{:}]) && ...
+                ismember(conditions.train.contrast.values{kk},...
+                [conditions.test.contrast.values{:}])
             n_train_trials = round(n_trials * 2 / 3);
             train_idcs = randperm(n_trials,n_train_trials);
         else
             n_train_trials = n_trials;
             train_idcs = 1 : n_train_trials;
         end
-        nn_train_trials{kk} = flagged_trials(train_idcs);
+        stimulus_idx = conditions.train.stimulus.idcs{kk};
+        contrast_idx = conditions.train.contrast.idcs{kk};
+        nn_train_trials{stimulus_idx,contrast_idx} = ...
+            flagged_trials(train_idcs);
         
         % store tensor & concatenation data
         rand_idcs = randsample(train_idcs,n_concatspercond,true);
@@ -131,16 +142,13 @@ for nn = 1 : n_neurons
         concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
         concat_evalset(concat_idcs) = 0;
     end
-    
-    % vectorize cell with training trial indices
-    nn_train_trials = vertcat(nn_train_trials{:});
-    
+
     % iterate through conditions
     for kk = 1 : conditions.test.n
         
         % flag trials for the current condition
-        stimulus_flags = ismember(stimuli,conditions.test.stimuli{kk});
-        contrast_flags = ismember(contrasts,conditions.test.contrasts{kk});
+        stimulus_flags = ismember(stimuli,conditions.test.stimulus.values{kk});
+        contrast_flags = ismember(contrasts,conditions.test.contrast.values{kk});
         s2_spike_flags = ...
             valid_flags & ...
             neuron_flags & ...
@@ -148,8 +156,8 @@ for nn = 1 : n_neurons
             contrast_flags;
         flagged_trials = find(s2_spike_flags);
         if sum(s2_spike_flags) == 0
-            disp([conditions.test.stimuli{kk},...
-                conditions.test.contrasts{kk}])
+            disp([conditions.test.stimulus.values{kk},...
+                conditions.test.contrast.values{kk}])
             continue;
         end
         
@@ -162,7 +170,7 @@ for nn = 1 : n_neurons
         % T2-aligned spike rates
         s2_alignment_offset = ...
             pre_init_padding + ...
-            pre_t1_delay(s2_spike_flags) + ...
+            pre_s1_delay(s2_spike_flags) + ...
             t1(s2_spike_flags) + ...
             isi;
         s2_alignment_flags = ...
@@ -177,7 +185,10 @@ for nn = 1 : n_neurons
             reshape(s2_spkrates(s2_chunk_flags'),[roi_n_bins,n_trials])';
         
         % handle cross-validation
-        test_flags = ~ismember(flagged_trials,nn_train_trials);
+        stimulus_idx = conditions.test.stimulus.idcs{kk};
+        contrast_idx = conditions.test.contrast.idcs{kk};
+        test_flags = ~ismember(...
+                flagged_trials,nn_train_trials{stimulus_idx,contrast_idx});
         test_idcs = find(test_flags);
         
         % store tensor & concatenation data

@@ -12,7 +12,7 @@ n_boots = 0; % 1e3;
 %% GLM settings
 distro = 'normal';
 glm_wins = t_set(t1_mode_idx);
-% glm_wins = t_set(1:end);
+glm_wins = t_set(1:end);
 n_glm = numel(glm_wins);
 
 %% preallocation
