@@ -112,6 +112,7 @@ weights = (weights - min(weights)) ./ range(weights);
 
 % iterate through contrasts
 for ii = 1:n_contrasts% :-1:1
+    contrast_flags = contrasts == contrast_set(ii);
     
     % compute modulation stats
     nan_flags = all(isnan(psths(:,:,ii)),2);
@@ -158,6 +159,27 @@ for ii = 1:n_contrasts% :-1:1
         'markersize',7.5,...
         'markerfacecolor','w',...
         'markeredgecolor',contrast_clrs(ii,:));
+    
+    % iterate through stimuli
+    for tt = 1 : n_t
+        t2_flags = t2 == t_set(tt);
+        trial_flags = ...
+            valid_flags & ...
+            contrast_flags & ...
+            t2_flags;
+        if sum(trial_flags) < 1
+            continue;
+        end
+        
+        % plot stimulus offset
+        offset_flags = time < t_set(tt) & [time(2:end),nan] >= t_set(tt);
+        plot(time(offset_flags),x_mu(offset_flags),...
+            'linewidth',1.5,...
+            'marker','o',...
+            'markersize',7.5,...
+            'markerfacecolor',contrast_clrs(ii,:),...
+            'markeredgecolor','none');
+    end    
 end
 
 % ui restacking

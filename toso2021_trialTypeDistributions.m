@@ -123,7 +123,7 @@ xlabel('Time since S_2 onset (ms)');
 ylabel('Trial count');
 
 % preallocation
-surviving_trial_counts = nan(n_neurons_total,n_contrasts,n_t);
+surviving_trial_counts_contrast = nan(n_neurons_total,n_contrasts,n_t);
 
 % iterate through neurons
 for nn = 1 : n_neurons_total
@@ -133,7 +133,7 @@ for nn = 1 : n_neurons_total
     for ii = 1 : n_contrasts
         
         % compute surviving trial counts
-        surviving_trial_counts(nn,ii,:) = ...
+        surviving_trial_counts_contrast(nn,ii,:) = ...
             cumsum(trial_type_numbers(neuron_idx,:,ii),'reverse','omitnan');
     end
 end
@@ -158,7 +158,7 @@ for ii = 1 : n_contrasts
 %     end
     
     % plot surviving trial counts
-    counts = squeeze(surviving_trial_counts(:,ii,:));
+    counts = squeeze(surviving_trial_counts_contrast(:,ii,:));
     counts = [counts,counts(:,end)];
     avg = nanmedian(counts);
     sig = std(counts);
@@ -238,7 +238,7 @@ ylabel(sps(2),'Trial count',...
     'color','none');
 
 % preallocation
-surviving_trial_counts = nan(n_neurons_total,n_contrasts,n_t);
+surviving_trial_counts_contrast = nan(n_neurons_total,n_contrasts,n_t);
 
 % iterate through neurons
 for nn = 1 : n_neurons_total
@@ -248,7 +248,7 @@ for nn = 1 : n_neurons_total
     for ii = 1 : n_contrasts
         
         % compute surviving trial counts
-        surviving_trial_counts(nn,ii,:) = ...
+        surviving_trial_counts_contrast(nn,ii,:) = ...
             cumsum(trial_type_numbers(neuron_idx,:,ii),'reverse','omitnan');
     end
 end
@@ -261,7 +261,7 @@ p_off = gobjects(n_contrasts,1);
 for ii = 1 : n_contrasts
 
     % plot surviving trial counts
-    counts = squeeze(surviving_trial_counts(:,ii,:));
+    counts = squeeze(surviving_trial_counts_contrast(:,ii,:));
     counts = [counts,counts(:,end)];
     avg = nanmedian(counts);
     sig = std(counts);
