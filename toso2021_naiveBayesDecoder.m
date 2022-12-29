@@ -210,14 +210,14 @@ concat_evalset = categorical(concat_evalset,[0,1],{'train','test'});
 %% naive bayes decoder
 nbdopt = struct();
 nbdopt.n_xpoints = 100;
-nbdopt.condition = concat_contrasts;
-nbdopt.stimulus = concat_stimuli;
+% nbdopt.condition = concat_contrasts;
+% nbdopt.stimulus = concat_stimuli;
 nbdopt.time = roi_time;
 nbdopt.train.trial_idcs = find(concat_evalset == 'train');
 nbdopt.train.n_trials = numel(nbdopt.train.trial_idcs);
 nbdopt.test.trial_idcs = find(concat_evalset == 'test');
 nbdopt.test.n_trials = numel(nbdopt.test.trial_idcs);
-nbdopt.assumepoissonmdl = false;
+% nbdopt.assumepoissonmdl = false;
 
 tic
 [P_tR,P_Rt,pthat,neurons] = bayesdecoder(concat_tensor,nbdopt);
