@@ -12,7 +12,7 @@ time = struct();
 psths = struct();
 
 % smoothing settings
-gauss_kernel = gausskernel('mu',0,'sig',50,'binwidth',psthbin);
+gauss_kernel = gausskernel('mu',0,'sig',15,'binwidth',psthbin);
 gauss_padded_time = ...
     (1 : psthbin : n_paddedtimebins * psthbin) - psthbin;
 gauss_validtime_flags = ...

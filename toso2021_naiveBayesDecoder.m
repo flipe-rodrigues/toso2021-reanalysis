@@ -6,7 +6,7 @@ end
 %% stimulus selection (for training & test sets)
 
 % stimuli
-stim2train_idcs = [1 : s2_mode_idx - 1, s2_mode_idx + 1 : n_stimuli]; % [1 : 2, 6 : n_stimuli];
+stim2train_idcs = n_stimuli; % [1 : s2_mode_idx - 1, s2_mode_idx + 1 : n_stimuli]; % [1 : 2, 6 : n_stimuli];
 stim2train_n = numel(stim2train_idcs);
 stim2test_idcs = 1 : n_stimuli; % [3,4,5];
 stim2test_n = numel(stim2test_idcs);
