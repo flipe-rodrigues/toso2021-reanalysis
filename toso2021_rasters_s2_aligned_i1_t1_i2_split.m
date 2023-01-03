@@ -36,7 +36,7 @@ else
 end
 
 %% fade settings
-fadeifnoisy = false;
+fadeifnoisy = true;
 alphabounds_sem = [.05,.3];
 alphabounds_mu = [.15,.85];
 
@@ -55,7 +55,7 @@ for nn = 1 : n_neurons2plot
     % figure initialization
     fig = figure(figopt,...
         ...'windowstate','maximized',...
-        'position',[125,1200-750,1507.5,460],...
+        'position',[125,1200-750,1450,460],...
         'name',sprintf('neuron_%i_%i',neurons2plot(nn),fadeifnoisy));
     n_rows = 2;
     n_cols = 3;
