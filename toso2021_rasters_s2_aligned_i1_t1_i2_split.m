@@ -15,7 +15,7 @@ if strcmpi(task_str,'duration')
     %     neurons2plot = [...
     %         38,72,205,215,224,391,393,397,402,448,459,462,470,526,566];
     neurons2plot = fliplr([...
-        393,473,215,72,526,459]);
+        393,215,72,526,459]);
 elseif strcmpi(task_str,'intensity')
     neurons2plot = [...
         19,22,30,61,66,70,100,111,112,115,...
@@ -717,7 +717,7 @@ for nn = 1 : n_neurons2plot
     %     yylim = [0,max(ylim(sps(3)))];
     yylim = 5 * [floor(yylim(1)/5),ceil(yylim(2)/5)];
     if ismember(neurons2plot(nn),[215])
-        yylim = [0,65];
+        yylim = [15,65];
     elseif ismember(neurons2plot(nn),[462])
         yylim = [0,60];
     elseif ismember(neurons2plot(nn),[402])
@@ -729,13 +729,13 @@ for nn = 1 : n_neurons2plot
     elseif ismember(neurons2plot(nn),[72])
         yylim = [0,15];
     elseif ismember(neurons2plot(nn),[459])
-        yylim = [0,50];
+        yylim = [5,50];
     elseif ismember(neurons2plot(nn),[473])
-        yylim = [0,25];
+        yylim = [5,25];
     elseif ismember(neurons2plot(nn),[393])
-        yylim = [0,30];
+        yylim = [5,30];
     elseif ismember(neurons2plot(nn),[526])
-        yylim = [0,40];
+        yylim = [5,40];
     elseif ismember(neurons2plot(nn),[206])
         yylim = [0,80];
     elseif ismember(neurons2plot(nn),[35])
