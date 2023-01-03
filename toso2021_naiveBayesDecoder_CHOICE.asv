@@ -6,13 +6,13 @@ end
 %% stimulus selection (for training & test sets)
 
 % stimuli
-stim2train_idcs = [1 + [0,1], n_stimuli + [-1,0]]; % [1 : s2_mode_idx - 1, s2_mode_idx + 1 : n_stimuli];
+stim2train_idcs = 1 : n_stimuli; % [1 : s2_mode_idx - 1, s2_mode_idx + 1 : n_stimuli]; % [1 : 2, 6 : n_stimuli];
 stim2train_n = numel(stim2train_idcs);
-stim2test_idcs = stim_mode_idx + [-1,0,1]; % 1 : n_stimuli;
+stim2test_idcs = 1 : n_stimuli; % [3,4,5];
 stim2test_n = numel(stim2test_idcs);
 
 % contrasts
-contrast2train_idcs = contrast_mode_idx;
+contrast2train_idcs = 1 : n_contrasts;
 contrast2train_n = numel(contrast2train_idcs);
 contrast2test_idcs = 1 : n_contrasts;
 contrast2test_n = numel(contrast2test_idcs);
@@ -47,7 +47,7 @@ conditions.test.contrast.values = cellfun(...
     'uniformoutput',false);
 
 %% concatenation settings
-n_concatspercond = 2^6; % 2^8;
+n_concatspercond = 2^5; % 2^8;
 n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% construct spike rate tensor (time X neurons X concatenations)
@@ -73,7 +73,7 @@ for nn = 1 : n_neurons
     
     % preallocation
     nn_train_trials = cell(n_stimuli,n_contrasts);
-    
+        
     % iterate through training conditions
     for kk = 1 : conditions.train.n
         
@@ -142,7 +142,7 @@ for nn = 1 : n_neurons
         concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
         concat_evalset(concat_idcs) = 0;
     end
-    
+
     % iterate through conditions
     for kk = 1 : conditions.test.n
         
@@ -188,8 +188,11 @@ for nn = 1 : n_neurons
         stimulus_idx = conditions.test.stimulus.idcs{kk};
         contrast_idx = conditions.test.contrast.idcs{kk};
         test_flags = ~ismember(...
-            flagged_trials,nn_train_trials{stimulus_idx,contrast_idx});
+                flagged_trials,nn_train_trials{stimulus_idx,contrast_idx});
         test_idcs = find(test_flags);
+        if isempty(test_idcs)
+            continue;
+        end
         
         % store tensor & concatenation data
         rand_idcs = randsample(test_idcs,n_concatspercond,true);
@@ -223,7 +226,6 @@ tic
 [P_tR,P_Rt,pthat,neurons] = bayesdecoder(concat_tensor,nbdopt);
 n_neurons = numel(neurons);
 toc
-
 
 %% plot likelihoods
 figure;
@@ -322,7 +324,7 @@ set(sps,...
     'ytick',[]); % sort([0;t_set]));
 linkaxes(sps);
 
-% iterate through contrast conditions
+% iterate through contrasts
 for ii = 1 : n_contrasts
     contrast_flags = concat_contrasts(nbdopt.test.trial_idcs) == contrast_set(ii);
     
@@ -347,7 +349,7 @@ figure(...
     'name','posterior subtractions',...
     'numbertitle','off',...
     'windowstyle','docked');
-sps = gobjects(n_contrasts,stim2test_n);
+sps = gobjects(n_i,stim2test_n);
 for ii = 1 : n_contrasts
     for jj = 1 : stim2test_n
         sp_idx = jj + (ii - 1) * stim2test_n;
@@ -365,9 +367,9 @@ set(sps,...
 linkaxes(sps);
 
 % flag reference intensity concatenations
-contrast_ref_flags = concat_contrasts(nbdopt.test.trial_idcs) == contrast_set(contrast_mode_idx);
+contrast_ref_flags = concat_contrasts(nbdopt.test.trial_idcs) == i_set(contrast2train_idcs);
 
-% iterate through contrast conditions
+% iterate through contrasts
 for ii = 1 : n_contrasts
     contrast_flags = concat_contrasts(nbdopt.test.trial_idcs) == contrast_set(ii);
     
@@ -375,14 +377,13 @@ for ii = 1 : n_contrasts
     for jj = 1 : stim2test_n
         t2_flags = concat_stimuli(nbdopt.test.trial_idcs) == t_set(stim2test_idcs(jj));
         ref_flags = ...
-            contrast_ref_flags & ...
-            t2_flags;
+            t2_flags           ;
         concat_flags = ...
             contrast_flags & ...
             t2_flags;
-        title(sps(ii,jj),sprintf('T_2: %.2f ms, %s: %.2f - %.2f mm/s',...
-            t_set(stim2test_idcs(jj)),contrast_lbl,...
-            contrast_set(ii),contrast_set(contrast_mode_idx)));
+        
+        title(sps(ii,jj),sprintf('T_2: %.2f ms, I_2: %.2f - %.2f mm/s',...
+            t_set(stim2test_idcs(jj)),i_set(ii),i_set(contrast2train_idcs)));
         p_ref = avgfun(P_tR(:,:,ref_flags),3);
         p_ref = p_ref ./ nansum(p_ref,2);
         p_cond = avgfun(P_tR(:,:,concat_flags),3);
@@ -416,17 +417,16 @@ linkaxes(sps);
 % iterate through stimuli
 for jj = 1 : stim2test_n
     t2_flags = concat_stimuli(nbdopt.test.trial_idcs) == t_set(stim2test_idcs(jj));
-    contrast_min_flags = ...
-        concat_contrasts(nbdopt.test.trial_idcs) == contrast_set(1) & ...
-        t2_flags;
-    contrast_max_flags = ...
-        concat_contrasts(nbdopt.test.trial_idcs) == contrast_set(end) & ...
-        t2_flags;
-    title(sps(jj),sprintf('%s: %.2f - %.2f mm/s',...
-        contrast_lbl,contrast_set(end),contrast_set(1)));
-    p_i2_min = avgfun(P_tR(:,:,contrast_min_flags),3);
+    i2_min_flags = ...
+        t2_flags & ...
+        concat_contrasts(nbdopt.test.trial_idcs) == i_set(1);
+    i2_max_flags = ...
+        t2_flags & ...
+        concat_contrasts(nbdopt.test.trial_idcs) == i_set(end);
+    title(sps(jj),sprintf('I_2: %.2f - %.2f mm/s',i_set(end),i_set(1)));
+    p_i2_min = avgfun(P_tR(:,:,i2_min_flags),3);
     p_i2_min = p_i2_min ./ nansum(p_i2_min,2);
-    p_i2_max = avgfun(P_tR(:,:,contrast_max_flags),3);
+    p_i2_max = avgfun(P_tR(:,:,i2_max_flags),3);
     p_i2_max = p_i2_max ./ nansum(p_i2_max,2);
     p_diff = p_i2_max - p_i2_min;
     imagesc(sps(jj),[0,t_set(end)],[0,t_set(end)],p_diff',...
@@ -434,7 +434,7 @@ for jj = 1 : stim2test_n
     plot(sps(jj),xlim,ylim,'--w');
 end
 
-%% plot condition-split point estimate averages
+%% plot I2-split point estimate averages
 pthat_avgfuns = {...
     ...@(x)nanmean(x,2),...
     @(x)nanmedian(x,2),...
@@ -479,17 +479,17 @@ for tt = 1 : n_pthats
     % iterate through average & error functions
     for ff = 1 : n_funs
         
-        % iterate through contrast conditions
-        for ii = 1 : n_contrasts
-            contrast_flags = concat_contrasts(nbdopt.test.trial_idcs) == contrast_set(ii);
+        % iterate through intensities
+        for ii = 1 : n_i
+            i2_flags = concat_contrasts(nbdopt.test.trial_idcs) == i_set(ii);
             
             % iterate through stimuli
             for jj = 1 : stim2test_n
                 sp_idx = jj + (ff - 1) * n_cols;
                 t2_flags = concat_stimuli(nbdopt.test.trial_idcs) == t_set(stim2test_idcs(jj));
                 concat_flags = ...
-                    contrast_flags & ...
-                    t2_flags;
+                    t2_flags & ...
+                    i2_flags;
                 title(sps(sp_idx),sprintf('T_2 = %.2f ms',t_set(stim2test_idcs(jj))));
                 
                 pthat_avg = pthat_avgfuns{ff}(pthat.(type)(:,concat_flags));
@@ -503,7 +503,7 @@ for tt = 1 : n_pthats
                     xpatch,ypatch,contrast_clrs(ii,:),...
                     'facecolor',contrast_clrs(ii,:),...
                     'edgecolor','none',...
-                    'facealpha',.25);
+                    'facealpha',.25+(i_set(ii) == i_set(end))*.15);
                 plot(sps(sp_idx),...
                     nbdopt.time(t2bin_idcs),pthat_avg(t2bin_idcs),...
                     'color',contrast_clrs(ii,:),...
@@ -558,13 +558,13 @@ ylabel('Decoded time since T_2 onset (ms)');
 % plot unity line
 plot(xlim,ylim,'--k');
 
-% iterate through contrast conditions
-for ii = 1 : n_contrasts
-    contrast_flags = concat_contrasts(nbdopt.test.trial_idcs) == contrast_set(ii);
+% iterate through intensities
+for ii = 1 : n_i
+    i2_flags = concat_contrasts(nbdopt.test.trial_idcs) == i_set(ii);
     t2_flags = ismember(concat_stimuli(nbdopt.test.trial_idcs),t_set(stim2test_idcs(1:end)));
     concat_flags = ...
-        contrast_flags & ...
-        t2_flags;
+        t2_flags & ...
+        i2_flags;
     
     pthat_avg = pthat_avgfuns{ff}(pthat.(type)(:,concat_flags));
     pthat_err = pthat_errfuns{ff}(pthat.(type)(:,concat_flags));
@@ -576,7 +576,7 @@ for ii = 1 : n_contrasts
     patch(xpatch,ypatch,contrast_clrs(ii,:),...
         'facecolor',contrast_clrs(ii,:),...
         'edgecolor','none',...
-        'facealpha',.25);
+        'facealpha',.15+(i_set(ii) == i_set(end))*.15);
     plot(nbdopt.time(t2bin_idcs),pthat_avg(t2bin_idcs),...
         'color',contrast_clrs(ii,:),...
         'linewidth',1.5);

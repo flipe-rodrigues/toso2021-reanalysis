@@ -24,6 +24,7 @@ if any(stim2group_flags)
     end
 end
 stim_set = unique(stimuli(valid_flags));
+stim_mode_idx = find(stim_set == mode(stimuli));
 n_stimuli = numel(stim_set);
 stim_lbl = sprintf('%.2f \\times %s + %.2f \\times %s (%s)',...
     w2,s2_lbl,w1,s1_lbl,s_units);
