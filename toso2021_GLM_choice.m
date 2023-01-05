@@ -38,7 +38,7 @@ mdl = fitglm(Z(valid_flags,:),choice(valid_flags),'linear',...
     'distribution','binomial',...
     'intercept',true);
 bigbetas = mdl.Coefficients.Estimate;
-beta_s1 = betas(2);
+beta_s1 = bigbetas(2);
 beta_s2 = bigbetas(3);
 beta_labels = mdl.CoefficientNames;
 beta_labels{1} = 'Intercept';

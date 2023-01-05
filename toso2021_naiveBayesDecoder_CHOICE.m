@@ -6,9 +6,9 @@ end
 %% stimulus selection (for training & test sets)
 
 % stimuli
-stim2train_idcs = 1 : n_stimuli; % [1 : s2_mode_idx - 1, s2_mode_idx + 1 : n_stimuli]; % [1 : 2, 6 : n_stimuli];
+stim2train_idcs = [1 + [0,1], n_stimuli + [-1,0]]; % [1 : s2_mode_idx - 1, s2_mode_idx + 1 : n_stimuli];
 stim2train_n = numel(stim2train_idcs);
-stim2test_idcs = 1 : n_stimuli; % [3,4,5];
+stim2test_idcs = stim_mode_idx + [-1,0,1]; % 1 : n_stimuli;
 stim2test_n = numel(stim2test_idcs);
 
 % contrasts
@@ -47,7 +47,7 @@ conditions.test.contrast.values = cellfun(...
     'uniformoutput',false);
 
 %% concatenation settings
-n_concatspercond = 2^5; % 2^8;
+n_concatspercond = 2^6; % 2^8;
 n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% construct spike rate tensor (time X neurons X concatenations)
