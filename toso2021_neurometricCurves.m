@@ -46,13 +46,15 @@ conditions.test.contrast.values = cellfun(...
     @(x) contrast_set(x),conditions.test.contrast.idcs,...
     'uniformoutput',false);
 
+%% run settings
+n_runs = 1;
+
 %% concatenation settings
 n_concatspercond = 2^7; % 2^8
 n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% neurometric curve settings
 spkintegration_window = min(t_set);
-n_runs = 1; % 25;
 
 % preallocation
 neurocurves = struct();

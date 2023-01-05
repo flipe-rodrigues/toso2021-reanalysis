@@ -54,6 +54,7 @@ traces.s1 = zeros(m,1);
 traces.s2 = zeros(m,1);
 traces.go = zeros(m,1);
 traces.choice = zeros(m,1);
+traces.rwd = zeros(m,1);
 traces = struct2table(traces);
 n_traces = size(traces.Variables,2);
 trace_lbls = traces.Properties.VariableNames;
@@ -63,7 +64,8 @@ trace_str.init = {'Initiation port'};
 trace_str.s1 = {'Stimulus 1 (S1)'};
 trace_str.s2 = {'Stimulus 2 (S2)'};
 trace_str.go = {'Go cue'};
-trace_str.choice = {'Choice spout'};
+trace_str.choice = {'Choice spout (T2 > T1)'};
+trace_str.rwd = {'Reward'};
 
 % initiation port trace
 init_flags = t >= 0 & ...
@@ -88,6 +90,11 @@ traces.go(go_flags) = 1;
 % choice spout trace
 choice_flags = t >= pre_t1_eg + t1_eg + isi + t2_eg + post_t2_eg + rt_eg + mt_eg;
 traces.choice(choice_flags) = 1;
+
+% reward trace
+rwd_flags = t >= pre_t1_eg + t1_eg + isi + t2_eg + post_t2_eg + rt_eg + mt_eg & ...
+    t <= pre_t1_eg + t1_eg + isi + t2_eg + post_t2_eg + rt_eg + mt_eg + gt_eg;
+traces.rwd(rwd_flags) = 1;
 
 %% plot event diagram
 
@@ -160,13 +167,13 @@ delay_h.isi = plot(pre_t1_eg+t1_eg+[0,isi],[1,1]*-2.15,...
 delay_h.s2 = plot(pre_t1_eg+t1_eg+isi+[0,t2_eg],[1,1]*-3.15,...
     'color',[1,1,1]*.0,...
     'linewidth',linewidth);
-delay_h.posts2 = plot(pre_t1_eg+t1_eg+isi+t2_eg+[0,post_t2_eg],[1,1]*-2.15,...
+delay_h.posts2 = plot(pre_t1_eg+t1_eg+isi+t2_eg+[0,post_t2_eg],[1,1]*-3.15,...
     'color',[1,1,1]*.65,...
     'linewidth',linewidth);
-delay_h.rt = plot(pre_t1_eg+t1_eg+isi+t2_eg+post_t2_eg+[0,rt_eg],[1,1]*-3.15,...
+delay_h.rt = plot(pre_t1_eg+t1_eg+isi+t2_eg+post_t2_eg+[0,rt_eg],[1,1]*-4.15,...
     'color',[1,1,1]*.65,...
     'linewidth',linewidth);
-delay_h.mt = plot(pre_t1_eg+t1_eg+isi+t2_eg+post_t2_eg+rt_eg+[0,mt_eg],[1,1]*-4.15,...
+delay_h.mt = plot(pre_t1_eg+t1_eg+isi+t2_eg+post_t2_eg+rt_eg+[0,mt_eg],[1,1]*-5.15,...
     'color',[1,1,1]*.65,...
     'linewidth',linewidth);
 
