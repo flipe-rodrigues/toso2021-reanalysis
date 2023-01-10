@@ -53,19 +53,24 @@ n_runs = 3;
 n_concatspercond = 2^4; % 2^8;
 n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
+%% memory consideration settings
+tempfolder_name = 'posteriors (temp)';
+if ~exist(tempfolder_name,'dir')
+    mkdir(tempfolder_name);
+end
+
 %% construct spike rate tensor (time X neurons X concatenations)
 roi = [0,t_set(end)];
 roi_n_bins = range(roi) * psthbin;
 roi_time = linspace(roi(1),roi(2),roi_n_bins);
 
 % preallocation
-tall_P_tR = tall();
 nbd = struct();
 concat_contrasts = nan(n_concats,n_runs);
 concat_stimuli = nan(n_concats,n_runs);
 concat_choices = nan(n_concats,n_runs);
 concat_evalset = categorical(nan(n_concats,n_runs),[0,1],{'false','true'});
-    
+
 % iterate through runs
 for rr = 1 : n_runs
     
@@ -234,9 +239,11 @@ for rr = 1 : n_runs
     [P_tR,P_Rt,pthat,neurons] = bayesdecoder(concat_tensor,nbdopt);
     toc
     
-    % store current run
-    tall_P_tR = cat(4,tall_P_tR,P_tR);
-    
+    % save current run to disk
+    run_file = fullfile(tempfolder_name,sprintf('run_%i.mat',rr));
+    P_tR = permute(P_tR,[3,1,2]);
+    save(run_file,'P_tR','-v7.3');
+
 %     nbd.P_tR(:,:,:,rr) = P_tR;
 %     nbd.P_Rt(:,:,:,rr) = P_Rt;
 %     nbd.pthat.mode(:,:,rr) = pthat.mode;
@@ -246,6 +253,10 @@ for rr = 1 : n_runs
 end
 
 %% concatenate runs
+ds = fileDatastore(fullfile(tempfolder_name,'*.mat'),...
+    'readfcn',@(fname)getfield(load(fname),'P_tR'),...
+    'uniformread',true);
+tall_P_tR = tall(ds);
 % P_tR = reshape(nbd.P_tR,size(nbd.P_tR,[1,2,3]).*[1,1,n_runs]);
 % P_Rt = reshape(nbd.P_Rt,size(nbd.P_Rt,[1,2,3]).*[1,1,n_runs]);
 % pthat.mode = reshape(nbd.pthat.mode,size(nbd.pthat.mode,[1,2]).*[1,n_runs]);
@@ -264,14 +275,14 @@ ylabel('Firing rate (Hz)');
 % iterate through units
 for nn = 1 : n_neurons
     cla;
-    r_bounds = nbd.neurons(nn,rr).x_bounds;
-    r_bw = nbd.neurons(nn,rr).x_bw;
+    r_bounds = neurons(nn,rr).x_bounds;
+    r_bw = neurons(nn,rr).x_bw;
     if range(r_bounds) == 0
         continue;
     end
     ylim(r_bounds);
     title(sprintf('neuron: %i, bw: %.2f',nn,r_bw));
-    p_Rt = squeeze(nbd.P_Rt(:,nn,:,rr));
+    p_Rt = squeeze(P_Rt(:,nn,:,rr));
     nan_flags = isnan(p_Rt);
     if sum(abs(diff(any(nan_flags,2)))) > 1
         fprintf('\tcheck neuron %i!\n',nn);
