@@ -6,9 +6,9 @@ end
 %% stimulus selection (for training & test sets)
 
 % stimuli
-stim2train_idcs = [1 + [0,1], n_stimuli + [-1,0]];
+stim2train_idcs = [1 + [0,1], n_stimuli + [-1,0]]; % [1 : s2_mode_idx - 1, s2_mode_idx + 1 : n_stimuli];
 stim2train_n = numel(stim2train_idcs);
-stim2test_idcs = 1 : n_stimuli; % stim_mode_idx + [-1,0,1]; %
+stim2test_idcs = 1 : n_stimuli - 1; % stim_mode_idx + [-1,0,1]; %
 stim2test_n = numel(stim2test_idcs);
 
 % contrasts
@@ -47,10 +47,10 @@ conditions.test.contrast.values = cellfun(...
     'uniformoutput',false);
 
 %% run settings
-n_runs = 3;
+n_runs = 7;
 
 %% concatenation settings
-n_concatspercond = 2^4; % 2^8;
+n_concatspercond = 2^5; % 2^8;
 n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% construct spike rate tensor (time X neurons X concatenations)
@@ -59,7 +59,6 @@ roi_n_bins = range(roi) * psthbin;
 roi_time = linspace(roi(1),roi(2),roi_n_bins);
 
 % preallocation
-tall_P_tR = tall();
 nbd = struct();
 concat_contrasts = nan(n_concats,n_runs);
 concat_stimuli = nan(n_concats,n_runs);
@@ -235,14 +234,12 @@ for rr = 1 : n_runs
     toc
     
     % store current run
-    tall_P_tR = cat(4,tall_P_tR,P_tR);
-    
-%     nbd.P_tR(:,:,:,rr) = P_tR;
-%     nbd.P_Rt(:,:,:,rr) = P_Rt;
-%     nbd.pthat.mode(:,:,rr) = pthat.mode;
-%     nbd.pthat.median(:,:,rr) = pthat.median;
-%     nbd.pthat.mean(:,:,rr) = pthat.mean;
-%     nbd.neurons(:,rr) = neurons;
+    nbd.P_tR(:,:,:,rr) = P_tR;
+    nbd.P_Rt(:,:,:,rr) = P_Rt;
+    nbd.pthat.mode(:,:,rr) = pthat.mode;
+    nbd.pthat.median(:,:,rr) = pthat.median;
+    nbd.pthat.mean(:,:,rr) = pthat.mean;
+    nbd.neurons(:,rr) = neurons;
 end
 
 %% concatenate runs
