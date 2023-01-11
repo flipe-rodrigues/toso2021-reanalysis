@@ -47,10 +47,10 @@ conditions.test.contrast.values = cellfun(...
     'uniformoutput',false);
 
 %% run settings
-n_runs = 3;
+n_runs = 10;
 
 %% concatenation settings
-n_concatspercond = 2^4; % 2^8;
+n_concatspercond = 2^6; % 2^8;
 n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% memory consideration settings
@@ -76,10 +76,10 @@ for rr = 1 : n_runs
     
     % preallocation
     concat_tensor = nan(roi_n_bins,n_neurons,n_concats);
-%     concat_contrasts = nan(n_concats,1);
-%     concat_stimuli = nan(n_concats,1);
-%     concat_choices = nan(n_concats,1);
-%     concat_evalset = nan(n_concats,1);
+    %     concat_contrasts = nan(n_concats,1);
+    %     concat_stimuli = nan(n_concats,1);
+    %     concat_choices = nan(n_concats,1);
+    %     concat_evalset = nan(n_concats,1);
     
     % stimulus 1 flags
     d1_flags = d1 == d_set(d1_mode_idx);
@@ -222,7 +222,7 @@ for rr = 1 : n_runs
             concat_evalset(concat_idcs,rr) = 'test';
         end
     end
-
+    
     %% naive bayes decoder
     nbdopt = struct();
     nbdopt.n_xpoints = 100;
@@ -233,7 +233,7 @@ for rr = 1 : n_runs
     nbdopt.train.n_trials = numel(nbdopt.train.trial_idcs);
     nbdopt.test.trial_idcs = find(concat_evalset(:,rr) == 'test');
     nbdopt.test.n_trials = numel(nbdopt.test.trial_idcs);
-    % nbdopt.assumepoissonmdl = false;
+    nbdopt.assumepoissonmdl = false;
     
     tic
     [P_tR,P_Rt,pthat,neurons] = bayesdecoder(concat_tensor,nbdopt);
@@ -243,13 +243,13 @@ for rr = 1 : n_runs
     run_file = fullfile(tempfolder_name,sprintf('run_%i.mat',rr));
     P_tR = permute(P_tR,[3,1,2]);
     save(run_file,'P_tR','-v7.3');
-
-%     nbd.P_tR(:,:,:,rr) = P_tR;
-%     nbd.P_Rt(:,:,:,rr) = P_Rt;
-%     nbd.pthat.mode(:,:,rr) = pthat.mode;
-%     nbd.pthat.median(:,:,rr) = pthat.median;
-%     nbd.pthat.mean(:,:,rr) = pthat.mean;
-%     nbd.neurons(:,rr) = neurons;
+    P_tR = permute(P_tR,[2,3,1]);
+    %     nbd.P_tR(:,:,:,rr) = P_tR;
+    %     nbd.P_Rt(:,:,:,rr) = P_Rt;
+    %     nbd.pthat.mode(:,:,rr) = pthat.mode;
+    %     nbd.pthat.median(:,:,rr) = pthat.median;
+    %     nbd.pthat.mean(:,:,rr) = pthat.mean;
+    %     nbd.neurons(:,rr) = neurons;
 end
 
 %% concatenate runs
@@ -257,11 +257,6 @@ ds = fileDatastore(fullfile(tempfolder_name,'*.mat'),...
     'readfcn',@(fname)getfield(load(fname),'P_tR'),...
     'uniformread',true);
 tall_P_tR = tall(ds);
-% P_tR = reshape(nbd.P_tR,size(nbd.P_tR,[1,2,3]).*[1,1,n_runs]);
-% P_Rt = reshape(nbd.P_Rt,size(nbd.P_Rt,[1,2,3]).*[1,1,n_runs]);
-% pthat.mode = reshape(nbd.pthat.mode,size(nbd.pthat.mode,[1,2]).*[1,n_runs]);
-% pthat.median = reshape(nbd.pthat.median,size(nbd.pthat.median,[1,2]).*[1,n_runs]);
-% pthat.mean = reshape(nbd.pthat.mean,size(nbd.pthat.mean,[1,2]).*[1,n_runs]);
 
 %% plot likelihoods
 figure;
@@ -275,14 +270,14 @@ ylabel('Firing rate (Hz)');
 % iterate through units
 for nn = 1 : n_neurons
     cla;
-    r_bounds = neurons(nn,rr).x_bounds;
-    r_bw = neurons(nn,rr).x_bw;
+    r_bounds = neurons(nn).x_bounds;
+    r_bw = neurons(nn).x_bw;
     if range(r_bounds) == 0
         continue;
     end
     ylim(r_bounds);
     title(sprintf('neuron: %i, bw: %.2f',nn,r_bw));
-    p_Rt = squeeze(P_Rt(:,nn,:,rr));
+    p_Rt = squeeze(P_Rt(:,nn,:));
     nan_flags = isnan(p_Rt);
     if sum(abs(diff(any(nan_flags,2)))) > 1
         fprintf('\tcheck neuron %i!\n',nn);
@@ -313,18 +308,18 @@ for kk = randperm(nbdopt.test.n_trials,min(nbdopt.test.n_trials,100))
     title(sprintf('trial: %i, T_2: %i, T_2: %i',kk,...
         concat_stimuli(nbdopt.test.trial_idcs(kk)),...
         concat_contrasts(nbdopt.test.trial_idcs(kk))));
-    p_tR = squeeze(nbd.P_tR(:,:,kk,rr));
+    p_tR = squeeze(P_tR(:,:,kk));
     p_tR(isnan(p_tR)) = max(p_tR(:));
     imagesc(xlim,ylim,p_tR');
-    plot(nbdopt.time,nbd.pthat.mode(:,kk,rr),...
+    plot(nbdopt.time,pthat.mode(:,kk),...
         'color','w',...
         'linestyle','-',...
         'linewidth',1);
-    plot(nbdopt.time,nbd.pthat.median(:,kk,rr),...
+    plot(nbdopt.time,pthat.median(:,kk),...
         'color','c',...
         'linestyle','-',...
         'linewidth',1);
-    plot(nbdopt.time,nbd.pthat.mean(:,kk,rr),...
+    plot(nbdopt.time,pthat.mean(:,kk),...
         'color','r',...
         'linestyle','-',...
         'linewidth',1);
@@ -370,9 +365,10 @@ for ii = 1 : n_contrasts
         concat_flags = ...
             contrast_flags & ...
             t2_flags;
-        title(sps(ii,jj),sprintf('T_2 = %.2f ms, %s = %.2f mm/s',...
-            t_set(stim2test_idcs(jj)),contrast_lbl,contrast_set(ii)));
-        p_cond = avgfun(nbd.P_tR(:,:,concat_flags),3);
+        title(sps(ii,jj),sprintf('T_2 = %.0f ms, %s = %.0f mm/s',...
+            t_set(stim2test_idcs(jj)),contrast_lbl,contrast_set(ii)),...
+            'fontsize',10);
+        p_cond = squeeze(gather(avgfun(tall_P_tR(concat_flags,:,:),1)));
         p_cond = p_cond ./ nansum(p_cond,2);
         p_cond(isnan(p_cond)) = max(p_cond(:));
         imagesc(sps(ii,jj),[0,t_set(end)],[0,t_set(end)],p_cond');
@@ -418,12 +414,13 @@ for ii = 1 : n_contrasts
         concat_flags = ...
             contrast_flags & ...
             t2_flags;
-        title(sps(ii,jj),sprintf('T_2: %.2f ms, %s: %.2f - %.2f mm/s',...
+        title(sps(ii,jj),sprintf('T_2: %.0f ms, %s: %.0f - %.0f mm/s',...
             t_set(stim2test_idcs(jj)),contrast_lbl,...
-            contrast_set(ii),contrast_set(contrast_mode_idx)));
-        p_ref = avgfun(nbd.P_tR(:,:,ref_flags),3);
+            contrast_set(ii),contrast_set(contrast_mode_idx)),...
+            'fontsize',10);
+        p_ref = squeeze(gather(avgfun(tall_P_tR(ref_flags,:,:),1)));
         p_ref = p_ref ./ nansum(p_ref,2);
-        p_cond = avgfun(nbd.P_tR(:,:,concat_flags),3);
+        p_cond = squeeze(gather(avgfun(tall_P_tR(concat_flags,:,:),1)));
         p_cond = p_cond ./ nansum(p_cond,2);
         p_diff = p_cond - p_ref;
         imagesc(sps(ii,jj),[0,t_set(end)],[0,t_set(end)],p_diff',...
@@ -460,13 +457,14 @@ for jj = 1 : stim2test_n
     contrast_max_flags = ...
         concat_contrasts(concat_evalset == 'test') == contrast_set(end) & ...
         t2_flags;
-    title(sps(jj),sprintf('%s: %.2f - %.2f mm/s',...
-        contrast_lbl,contrast_set(end),contrast_set(1)));
-    p_i2_min = avgfun(nbd.P_tR(:,:,contrast_min_flags),3);
-    p_i2_min = p_i2_min ./ nansum(p_i2_min,2);
-    p_i2_max = avgfun(nbd.P_tR(:,:,contrast_max_flags),3);
-    p_i2_max = p_i2_max ./ nansum(p_i2_max,2);
-    p_diff = p_i2_max - p_i2_min;
+    title(sps(jj),sprintf('%s: %.0f - %.0f mm/s',...
+        contrast_lbl,contrast_set(end),contrast_set(1)),...
+        'fontsize',10);
+    p_contrast_min = squeeze(gather(avgfun(tall_P_tR(contrast_min_flags,:,:),1)));
+    p_contrast_min = p_contrast_min ./ nansum(p_contrast_min,2);
+    p_contrast_max = squeeze(gather(avgfun(tall_P_tR(contrast_max_flags,:,:),1)));
+    p_contrast_max = p_contrast_max ./ nansum(p_contrast_max,2);
+    p_diff = p_contrast_max - p_contrast_min;
     imagesc(sps(jj),[0,t_set(end)],[0,t_set(end)],p_diff',...
         [-1,1] * n_t / n_tbins * 1);
     plot(sps(jj),xlim,ylim,'--w');
@@ -490,6 +488,7 @@ axes(...
 xlabel('Real time since S_2 onset (ms)');
 ylabel('Decoded time since S_2 onset (ms)');
 
+% posterior subtraction
 t2_flags = ismember(concat_stimuli(concat_evalset == 'test'),t_set(stim2test_idcs(1:end)));
 contrast_min_flags = ...
     concat_contrasts(concat_evalset == 'test') == contrast_set(1) & ...
@@ -497,11 +496,11 @@ contrast_min_flags = ...
 contrast_max_flags = ...
     concat_contrasts(concat_evalset == 'test') == contrast_set(end) & ...
     t2_flags;
-p_i2_min = avgfun(nbd.P_tR(:,:,contrast_min_flags),3);
-p_i2_min = p_i2_min ./ nansum(p_i2_min,2);
-p_i2_max = avgfun(nbd.P_tR(:,:,contrast_max_flags),3);
-p_i2_max = p_i2_max ./ nansum(p_i2_max,2);
-p_diff = p_i2_max - p_i2_min;
+p_contrast_min = squeeze(gather(avgfun(tall_P_tR(contrast_min_flags,:,:),1)));
+p_contrast_min = p_contrast_min ./ nansum(p_contrast_min,2);
+p_contrast_max = squeeze(gather(avgfun(tall_P_tR(contrast_max_flags,:,:),1)));
+p_contrast_max = p_contrast_max ./ nansum(p_contrast_max,2);
+p_diff = p_contrast_max - p_contrast_min;
 imagesc([0,t_set(end)],[0,t_set(end)],p_diff',...
     [-1,1] * n_t / n_tbins * 1);
 plot(xlim,ylim,'--w');
@@ -524,7 +523,7 @@ pthat_errfuns = {...
 n_funs = numel(pthat_avgfuns);
 
 % iterate through point estimate types
-pthat_types = fieldnames(nbd.pthat);
+pthat_types = fieldnames(pthat);
 n_pthats = numel(pthat_types);
 for tt = 1 : n_pthats
     type = pthat_types{tt};
@@ -570,8 +569,8 @@ for tt = 1 : n_pthats
                     t2_flags;
                 title(sps(sp_idx),sprintf('T_2 = %.2f ms',t_set(stim2test_idcs(jj))));
                 
-                pthat_avg = pthat_avgfuns{ff}(nbd.pthat.(type)(:,concat_flags));
-                pthat_err = pthat_errfuns{ff}(nbd.pthat.(type)(:,concat_flags));
+                pthat_avg = pthat_avgfuns{ff}(pthat.(type)(:,concat_flags));
+                pthat_err = pthat_errfuns{ff}(pthat.(type)(:,concat_flags));
                 
                 t2bin_idcs = (1 : t_set(stim2test_idcs(jj))) * psthbin;
                 
@@ -644,8 +643,8 @@ for ii = 1 : n_contrasts
         contrast_flags & ...
         t2_flags;
     
-    pthat_avg = pthat_avgfuns{ff}(nbd.pthat.(type)(:,concat_flags));
-    pthat_err = pthat_errfuns{ff}(nbd.pthat.(type)(:,concat_flags));
+    pthat_avg = pthat_avgfuns{ff}(pthat.(type)(:,concat_flags));
+    pthat_err = pthat_errfuns{ff}(pthat.(type)(:,concat_flags));
     
     t2bin_idcs = (1 : t_set(stim2test_idcs(end))) * psthbin;
     
