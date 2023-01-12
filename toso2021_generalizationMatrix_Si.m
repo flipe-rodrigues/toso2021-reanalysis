@@ -32,6 +32,7 @@ n_pairs = size(s_pairset,1);
 
 % preallocation
 p_choice = nan(n_pairs,1);
+n_trials_perpair = nan(n_pairs,1);
 
 % iterate through S1-S2 pairs
 for ii = 1 : n_pairs
@@ -46,6 +47,7 @@ for ii = 1 : n_pairs
     
     % compute average performance for the current pair
     p_choice(ii) = mean(choice(trial_flags));
+    n_trials_perpair(ii) = sum(trial_flags);
 end
 
 % nan filtering

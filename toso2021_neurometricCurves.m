@@ -10,7 +10,7 @@ conditions.train = intersectconditions(...
     't1',t1(valid_flags),t_set(t1_mode_idx),...
     'i1',i1(valid_flags),[],...i_set(i1_mode_idx),...
     't2',t2(valid_flags),t_set,...
-    'i2',i2(valid_flags),[]); % i_set(i2_mode_idx));
+    'i2',i2(valid_flags),i_set(i2_mode_idx));
 
 % test set conditions
 conditions.test = intersectconditions(...
@@ -23,7 +23,7 @@ conditions.train.values
 conditions.test.values
 
 %% run settings
-n_runs = 3;
+n_runs = 5;
 
 %% concatenation settings
 n_concatspercond = 2^7; % 2^8
@@ -38,14 +38,16 @@ neurocurves = struct();
 % iterate through runs
 for rr = 1 : n_runs
 
-    %% construct spike rate tensor (time X neurons X concatenations)
+    %% construct spike counts tensor (neurons X concatenations)
 
     % preallocation
     concat_spkrates = nan(n_neurons,n_concats);
-    concat_contrasts = nan(n_concats,1);
-    concat_stimuli = nan(n_concats,1);
+    concat_t1 = nan(n_concats,1);
+    concat_i1 = nan(n_concats,1);
+    concat_t2 = nan(n_concats,1);
+    concat_i2 = nan(n_concats,1);
     concat_choices = nan(n_concats,1);
-    concat_evalset = categorical(nan(n_concats,1),[0,1],{'false','true'});
+    concat_evalset = categorical(nan(n_concats,1),[0,1],{'train','test'});
 
     % iterate through units
     for nn = 1 : n_neurons
@@ -54,7 +56,7 @@ for rr = 1 : n_runs
         neuron_flags = data.NeuronNumb == flagged_neurons(nn);
 
         % preallocation
-        train_trials = cell(conditions.test.n,1);
+        xval_train_trials = cell(conditions.test.n,1);
 
         % iterate through training conditions
         for kk = 1 : conditions.train.n
@@ -73,13 +75,11 @@ for rr = 1 : n_runs
                 i1_flags & ...
                 t2_flags & ...
                 i2_flags;
-            n_flagged_trials = sum(trial_flags);
+            flagged_trials = find(trial_flags);
+            n_flagged_trials = numel(flagged_trials);
             if n_flagged_trials == 0
-                nn
-                conditions.train.values(kk,:)
                 continue;
             end
-            flagged_trials = find(trial_flags);
 
             % fetch spike counts & compute spike rates
             spike_counts = data.FR(trial_flags,:);
@@ -101,31 +101,59 @@ for rr = 1 : n_runs
             aligned_spkrates(~alignment_flags') = nan;
             aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
                 [spkintegration_window,n_flagged_trials])';
-
-            % handle cross-validation !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            t1_xval_flags = any(ismember(...
+            
+            % detect any test conditions that overlap with the current training condition
+            t1_xval_condition_flags = any(ismember(...
                 conditions.test.values.t1,conditions.train.values.t1(kk,:)),2);
-            i1_xval_flags = any(ismember(...
+            i1_xval_condition_flags = any(ismember(...
                 conditions.test.values.i1,conditions.train.values.i1(kk,:)),2);
-            t2_xval_flags = any(ismember(...
+            t2_xval_condition_flags = any(ismember(...
                 conditions.test.values.t2,conditions.train.values.t2(kk,:)),2);
-            i2_xval_flags = any(ismember(...
+            i2_xval_condition_flags = any(ismember(...
                 conditions.test.values.i2,conditions.train.values.i2(kk,:)),2);
-            xval_flags = ...
-                t1_xval_flags & ...
-                i1_xval_flags & ...
-                t2_xval_flags & ...
-                i2_xval_flags;
-            if any(xval_flags)
-                n_train_trials = round(n_flagged_trials * 1 / 2);
-                train_idcs = randperm(n_flagged_trials,n_train_trials);
+            xval_condition_flags = ...
+                t1_xval_condition_flags & ...
+                i1_xval_condition_flags & ...
+                t2_xval_condition_flags & ...
+                i2_xval_condition_flags;
+            
+            % handle cross-validation for all detected test conditions
+            if any(xval_condition_flags)
+                xval_condition_idcs = find(xval_condition_flags)';
+
+                % iterate through detected test conditions
+                for ii = xval_condition_idcs
+                    
+                    % detect overlap between training & test trials
+                    t1_xval_trial_flags = any(ismember(...
+                        t1(flagged_trials),conditions.test.values.t1(ii,:)),2);
+                    i1_xval_trial_flags = any(ismember(...
+                        i1(flagged_trials),conditions.test.values.i1(ii,:)),2);
+                    t2_xval_trial_flags = any(ismember(...
+                        t2(flagged_trials),conditions.test.values.t2(ii,:)),2);
+                    i2_xval_trial_flags = any(ismember(...
+                        i2(flagged_trials),conditions.test.values.i2(ii,:)),2);
+                    xval_trial_flags = ...
+                        t1_xval_trial_flags & ...
+                        i1_xval_trial_flags & ...
+                        t2_xval_trial_flags & ...
+                        i2_xval_trial_flags;
+                    
+                    % split the conflicting trials into training & test subsets
+                    xval_trials = flagged_trials(xval_trial_flags);
+                    n_xval_trials = numel(xval_trials);
+                    n_train_trials = round(n_xval_trials * 1 / 2);
+                    xval_train_idcs = randperm(n_xval_trials,n_train_trials);
+                    xval_train_trials{ii} = xval_trials(xval_train_idcs);
+                end
+                
+                % concatenate sub-sampled training sets across test conditions
+                train_idcs = find(ismember(...
+                    flagged_trials,vertcat(xval_train_trials{:})));
             else
-                n_train_trials = n_flagged_trials;
-                train_idcs = 1 : n_train_trials;
-            end
-            xval_idcs = find(xval_flags)';
-            for ii = xval_idcs
-                train_trials{ii} = flagged_trials(train_idcs);
+                
+                % train using all trials in the remaining conditions
+                train_idcs = 1 : n_flagged_trials;
             end
 
             % store tensor & concatenation data
@@ -134,8 +162,10 @@ for rr = 1 : n_runs
                 n_concatspercond * (kk - 1);
             concat_spkrates(nn,concat_idcs) = ...
                 nanmean(aligned_spkrates(rand_idcs,:),2);
-            concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
-            concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
+            concat_t1(concat_idcs) = t1(flagged_trials(rand_idcs));
+            concat_i1(concat_idcs) = i1(flagged_trials(rand_idcs));
+            concat_t2(concat_idcs) = t2(flagged_trials(rand_idcs));
+            concat_i2(concat_idcs) = i2(flagged_trials(rand_idcs));
             concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
             concat_evalset(concat_idcs) = 'train';
         end
@@ -157,11 +187,11 @@ for rr = 1 : n_runs
                 i1_flags & ...
                 t2_flags & ...
                 i2_flags;
-            n_flagged_trials = sum(trial_flags);
+            flagged_trials = find(trial_flags);
+            n_flagged_trials = numel(flagged_trials);
             if n_flagged_trials == 0
                 continue;
             end
-            flagged_trials = find(trial_flags);
 
             % fetch spike counts & compute spike rates
             spike_counts = data.FR(trial_flags,:);
@@ -185,8 +215,11 @@ for rr = 1 : n_runs
                 [spkintegration_window,n_flagged_trials])';
 
             % handle cross-validation
-            test_flags = ~ismember(flagged_trials,train_trials{kk});
-            test_idcs = find(test_flags);
+            xval_test_flags = ~ismember(flagged_trials,xval_train_trials{kk});
+            test_idcs = find(xval_test_flags);
+            if isempty(test_idcs)
+                continue;
+            end
 
             % store tensor & concatenation data
             rand_idcs = randsample(test_idcs,n_concatspercond,true);
@@ -194,8 +227,10 @@ for rr = 1 : n_runs
                 n_concatspercond * (kk + conditions.train.n - 1);
             concat_spkrates(nn,concat_idcs) = ...
                 nanmean(aligned_spkrates(rand_idcs,:),2);
-            concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
-            concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
+            concat_t1(concat_idcs) = t1(flagged_trials(rand_idcs));
+            concat_i1(concat_idcs) = i1(flagged_trials(rand_idcs));
+            concat_t2(concat_idcs) = t2(flagged_trials(rand_idcs));
+            concat_i2(concat_idcs) = i2(flagged_trials(rand_idcs));
             concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
             concat_evalset(concat_idcs) = 'test';
         end
@@ -205,12 +240,11 @@ for rr = 1 : n_runs
 
     % flag training concatenations
     train_flags = concat_evalset == 'train';
-    train_idcs = find(train_flags);
 
     % linear discriminant analysis
     X = concat_spkrates(:,train_flags)';
     threshold = median(s1(valid_flags));
-    y = concat_stimuli(train_flags) > threshold;
+    y = concat_t2(train_flags) > threshold;
     within_class_var = cell2mat(...
         arrayfun(@(x)nanvar(X(y==x,:)),unique(y),...
         'uniformoutput',false));
@@ -232,11 +266,11 @@ for rr = 1 : n_runs
 
     % iterate through contrasts
     for kk = 1 : n_contrasts
-        contrast_flags = concat_contrasts == contrast_set(kk);
+        contrast_flags = concat_i2 == contrast_set(kk);
 
         % iterate through stimuli
         for ii = 1 : n_stimuli
-            stimulus_flags = concat_stimuli == stim_set(ii);
+            stimulus_flags = concat_t2 == stim_set(ii);
             concat_flags = ...
                 test_flags & ...
                 contrast_flags & ...
@@ -251,7 +285,7 @@ for rr = 1 : n_runs
 end
 
 %% visualize population state at T2 offset
-X = concat_spkrates';
+X = concat_spkrates(~invalid_flags,:)';
 
 % normalization
 Z = zscore(X);
@@ -277,7 +311,7 @@ ylabel(sprintf('%s\n%.1f%% variance','PC 2',explained(2)),...
 
 % iterate through stimuli
 for ii = 1 : n_stimuli
-    stimulus_flags = concat_stimuli == stim_set(ii);
+    stimulus_flags = concat_t2 == stim_set(ii);
 
     % plot state space projections
     plot(score(stimulus_flags,1),...
@@ -292,7 +326,7 @@ end
 
 % iterate through stimuli
 for ii = 1 : n_stimuli
-    stimulus_flags = concat_stimuli == stim_set(ii);
+    stimulus_flags = concat_t2 == stim_set(ii);
 
     % plot state space projections
     plot(score(stimulus_flags,1),...
@@ -353,7 +387,7 @@ s2greaterthans1_counts = zeros(1,n_bins);
 
 % iterate through stimuli
 for ii = 1 : n_stimuli
-    stimulus_flags = concat_stimuli == stim_set(ii);
+    stimulus_flags = concat_t2 == stim_set(ii);
 
     % plot projections onto linear discriminant
     bincounts = histcounts(score(stimulus_flags),binedges);

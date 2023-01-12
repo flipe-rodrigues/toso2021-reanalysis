@@ -32,20 +32,22 @@ n_pairs = size(d_pairset,1);
 
 % preallocation
 p_choice = nan(n_pairs,1);
+n_trials_perpair = nan(n_pairs,1);
 
 % iterate through D1-D2 pairs
 for ii = 1 : n_pairs
-    s_flags = all(d_pairs == d_pairset(ii,:),2);
+    d_flags = all(d_pairs == d_pairset(ii,:),2);
     trial_flags = ...
         valid_flags & ...
         unique_flags & ...
-        s_flags;
+        d_flags;
     if sum(trial_flags) == 0
         continue;
     end
     
     % compute average performance for the current pair
     p_choice(ii) = mean(choice(trial_flags));
+    n_trials_perpair(ii) = sum(trial_flags);
 end
 
 % nan filtering

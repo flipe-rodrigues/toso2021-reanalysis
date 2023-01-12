@@ -69,7 +69,7 @@ nbd = struct();
 concat_contrasts = nan(n_concats,n_runs);
 concat_stimuli = nan(n_concats,n_runs);
 concat_choices = nan(n_concats,n_runs);
-concat_evalset = categorical(nan(n_concats,n_runs),[0,1],{'false','true'});
+concat_evalset = categorical(nan(n_concats,n_runs),[0,1],{'train','test'});
 
 % iterate through runs
 for rr = 1 : n_runs
