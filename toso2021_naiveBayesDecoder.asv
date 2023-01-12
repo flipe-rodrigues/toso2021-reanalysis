@@ -460,11 +460,11 @@ for jj = 1 : stim2test_n
     title(sps(jj),sprintf('%s: %.0f - %.0f mm/s',...
         contrast_lbl,contrast_set(end),contrast_set(1)),...
         'fontsize',10);
-    p_contrast_min = squeeze(gather(avgfun(tall_P_tR(contrast_min_flags,:,:),1)));
-    p_contrast_min = p_contrast_min ./ nansum(p_contrast_min,2);
-    p_contrast_max = squeeze(gather(avgfun(tall_P_tR(contrast_max_flags,:,:),1)));
-    p_contrast_max = p_contrast_max ./ nansum(p_contrast_max,2);
-    p_diff = p_contrast_max - p_contrast_min;
+    p_i2_min = squeeze(gather(avgfun(tall_P_tR(contrast_min_flags,:,:),1)));
+    p_i2_min = p_i2_min ./ nansum(p_i2_min,2);
+    p_i2_max = squeeze(gather(avgfun(tall_P_tR(contrast_max_flags,:,:),1)));
+    p_i2_max = p_i2_max ./ nansum(p_i2_max,2);
+    p_diff = p_i2_max - p_i2_min;
     imagesc(sps(jj),[0,t_set(end)],[0,t_set(end)],p_diff',...
         [-1,1] * n_t / n_tbins * 1);
     plot(sps(jj),xlim,ylim,'--w');
@@ -488,7 +488,6 @@ axes(...
 xlabel('Real time since S_2 onset (ms)');
 ylabel('Decoded time since S_2 onset (ms)');
 
-% posterior subtraction
 t2_flags = ismember(concat_stimuli(concat_evalset == 'test'),t_set(stim2test_idcs(1:end)));
 contrast_min_flags = ...
     concat_contrasts(concat_evalset == 'test') == contrast_set(1) & ...
@@ -496,11 +495,11 @@ contrast_min_flags = ...
 contrast_max_flags = ...
     concat_contrasts(concat_evalset == 'test') == contrast_set(end) & ...
     t2_flags;
-p_contrast_min = squeeze(gather(avgfun(tall_P_tR(contrast_min_flags,:,:),1)));
-p_contrast_min = p_contrast_min ./ nansum(p_contrast_min,2);
-p_contrast_max = squeeze(gather(avgfun(tall_P_tR(contrast_max_flags,:,:),1)));
-p_contrast_max = p_contrast_max ./ nansum(p_contrast_max,2);
-p_diff = p_contrast_max - p_contrast_min;
+p_i2_min = squeeze(gather(avgfun(P_tR(contrast_min_flags,:,:),1));
+p_i2_min = p_i2_min ./ nansum(p_i2_min,2);
+p_i2_max = squeeze(gather(avgfun(P_tR(contrast_max_flags,:,:),1)));
+p_i2_max = p_i2_max ./ nansum(p_i2_max,2);
+p_diff = p_i2_max - p_i2_min;
 imagesc([0,t_set(end)],[0,t_set(end)],p_diff',...
     [-1,1] * n_t / n_tbins * 1);
 plot(xlim,ylim,'--w');
