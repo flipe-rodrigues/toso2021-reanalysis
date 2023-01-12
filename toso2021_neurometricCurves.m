@@ -37,28 +37,28 @@ neurocurves = struct();
 
 % iterate through runs
 for rr = 1 : n_runs
-    
+
     %% construct spike rate tensor (time X neurons X concatenations)
-    
+
     % preallocation
     concat_spkrates = nan(n_neurons,n_concats);
     concat_contrasts = nan(n_concats,1);
     concat_stimuli = nan(n_concats,1);
     concat_choices = nan(n_concats,1);
     concat_evalset = categorical(nan(n_concats,1),[0,1],{'false','true'});
-    
+
     % iterate through units
     for nn = 1 : n_neurons
         progressreport(nn,n_neurons,...
             sprintf('sampling concatenations (run %i/%i)',rr,n_runs));
         neuron_flags = data.NeuronNumb == flagged_neurons(nn);
-        
+
         % preallocation
         train_trials = cell(conditions.test.n,1);
-        
+
         % iterate through training conditions
         for kk = 1 : conditions.train.n
-            
+
             % flag trials for the current condition
             t1_flags = ismember(t1,conditions.train.values.t1(kk,:));
             i1_flags = ismember(i1,conditions.train.values.i1(kk,:));
@@ -80,12 +80,12 @@ for rr = 1 : n_runs
                 continue;
             end
             flagged_trials = find(trial_flags);
-            
+
             % fetch spike counts & compute spike rates
             spike_counts = data.FR(trial_flags,:);
             spike_rates = ...
                 conv2(1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
-            
+
             % S2-offset-aligned spike rates
             alignment = ...
                 pre_init_padding + ...
@@ -101,7 +101,7 @@ for rr = 1 : n_runs
             aligned_spkrates(~alignment_flags') = nan;
             aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
                 [spkintegration_window,n_flagged_trials])';
-                        
+
             % handle cross-validation
             t1_xval_flags = any(ismember(...
                 conditions.test.values.t1,conditions.train.values.t1(kk,:)),2);
@@ -122,7 +122,7 @@ for rr = 1 : n_runs
             else
                 n_train_trials = n_flagged_trials;
                 train_idcs = 1 : n_train_trials;
-            end    
+            end
             xval_idcs = find(xval_flags)';
             for ii = xval_idcs
                 train_trials{ii} = flagged_trials(train_idcs);
@@ -142,13 +142,13 @@ for rr = 1 : n_runs
 
         % iterate through conditions
         for kk = 1 : conditions.test.n
-            
+
             % flag trials for the current condition
             t1_flags = ismember(t1,conditions.test.values.t1(kk,:));
             i1_flags = ismember(i1,conditions.test.values.i1(kk,:));
             t2_flags = ismember(t2,conditions.test.values.t2(kk,:));
             i2_flags = ismember(i2,conditions.test.values.i2(kk,:));
-            
+
             % trial selection
             trial_flags = ...
                 valid_flags & ...
@@ -162,12 +162,12 @@ for rr = 1 : n_runs
                 continue;
             end
             flagged_trials = find(trial_flags);
-            
+
             % fetch spike counts & compute spike rates
             spike_counts = data.FR(trial_flags,:);
             spike_rates = ...
                 conv2(1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
-            
+
             % S2-offset-aligned spike rates
             alignment = ...
                 pre_init_padding + ...
@@ -183,11 +183,11 @@ for rr = 1 : n_runs
             aligned_spkrates(~alignment_flags') = nan;
             aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
                 [spkintegration_window,n_flagged_trials])';
-            
+
             % handle cross-validation
             test_flags = ~ismember(flagged_trials,train_trials{kk});
             test_idcs = find(test_flags);
-            
+
             % store tensor & concatenation data
             rand_idcs = randsample(test_idcs,n_concatspercond,true);
             concat_idcs = (1 : n_concatspercond) + ...
@@ -200,13 +200,13 @@ for rr = 1 : n_runs
             concat_evalset(concat_idcs) = 'test';
         end
     end
-    
+
     %% construct neurometric curves
-    
+
     % flag training concatenations
     train_flags = concat_evalset == 'train';
     train_idcs = find(train_flags);
-    
+
     % linear discriminant analysis
     X = concat_spkrates(:,train_flags)';
     threshold = median(s1(valid_flags));
@@ -217,23 +217,23 @@ for rr = 1 : n_runs
     invalid_flags = any(within_class_var == 0 | isnan(within_class_var));
     lda_mdl = fitcdiscr(X(:,~invalid_flags),y,...
         'discrimtype','linear');
-    
+
     % flag test concatenations
     test_flags = concat_evalset == 'test';
-    
+
     % preallocation
     neuro_choices = nan(n_concats,1);
 
     % neural "judgments"
     neuro_choices(test_flags) = ...
         lda_mdl.predict(concat_spkrates(~invalid_flags,test_flags)');
-    
+
     %% construct neurophysical triple
-    
+
     % iterate through contrasts
     for kk = 1 : n_contrasts
         contrast_flags = concat_contrasts == contrast_set(kk);
-        
+
         % iterate through stimuli
         for ii = 1 : n_stimuli
             stimulus_flags = concat_stimuli == stim_set(ii);
@@ -278,7 +278,7 @@ ylabel(sprintf('%s\n%.1f%% variance','PC 2',explained(2)),...
 % iterate through stimuli
 for ii = 1 : n_stimuli
     stimulus_flags = concat_stimuli == stim_set(ii);
-    
+
     % plot state space projections
     plot(score(stimulus_flags,1),...
         score(stimulus_flags,2),...
@@ -293,7 +293,7 @@ end
 % iterate through stimuli
 for ii = 1 : n_stimuli
     stimulus_flags = concat_stimuli == stim_set(ii);
-    
+
     % plot state space projections
     plot(score(stimulus_flags,1),...
         score(stimulus_flags,2),...
@@ -354,7 +354,7 @@ s2greaterthans1_counts = zeros(1,n_bins);
 % iterate through stimuli
 for ii = 1 : n_stimuli
     stimulus_flags = concat_stimuli == stim_set(ii);
-    
+
     % plot projections onto linear discriminant
     bincounts = histcounts(score(stimulus_flags),binedges);
     h = histogram(...
@@ -364,7 +364,7 @@ for ii = 1 : n_stimuli
         'edgecolor','none',...
         'facecolor',s2_clrs(ii,:),...
         'facealpha',1);
-    
+
     % update running counts
     prevcounts = prevcounts + bincounts;
     if stim_set(ii) < threshold
@@ -373,7 +373,7 @@ for ii = 1 : n_stimuli
     if stim_set(ii) > threshold
         s2greaterthans1_counts = s2greaterthans1_counts + bincounts;
     end
-    
+
     % manage ui stack
     uistack(h,'bottom');
 end
@@ -418,14 +418,14 @@ psyopt.fit.stepN = [100,100,20,20,20];
 
 % iterate through contrasts
 for kk = 1 : n_contrasts
-    
+
     % pool neural choices across runs
     neurocurve_pools(kk).x = unique(neurocurves(kk).x);
     neurocurve_pools(kk).y = sum(neurocurves(kk).y,2);
     neurocurve_pools(kk).n = sum(neurocurves(kk).n,2);
     neurocurve_pools(kk).err = ...
         std(neurocurves(kk).y ./ neurocurves(kk).n,0,2) / sqrt(n_runs);
-    
+
     % neurophysical triple
     neuro_triple = [...
         neurocurve_pools(kk).x,...
@@ -477,7 +477,7 @@ plot(xlim,[1,1]*.5,':k');
 
 % iterate through contrasts
 for kk = 1 : n_contrasts
-    
+
     % plot psychometric curve
     psyopt.plot.datafaceclr = contrast_clrs(kk,:);
     psyopt.plot.overallvisibility = 'off';
