@@ -435,7 +435,7 @@ for ii = 1 : n_stimuli
 
     % update running counts
     prevcounts = prevcounts + bincounts;
-    if stim_set(ii) < threshold
+    if stim_set(ii) <= threshold
         s2lessthans1_counts = s2lessthans1_counts + bincounts;
     end
     if stim_set(ii) > threshold
