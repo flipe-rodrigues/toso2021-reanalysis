@@ -1,0 +1,96 @@
+%% stimulus selection (for training & test sets)
+
+% stimuli
+stim2train_idcs = [2, n_stimuli - 1]; %[1 : s2_mode_idx - 1, s2_mode_idx + 1 : n_stimuli];
+stim2train_n = numel(stim2train_idcs);
+stim2test_idcs = 1 : n_stimuli;
+stim2test_n = numel(stim2test_idcs);
+
+% contrasts
+contrast2train_idcs = contrast_mode_idx;
+contrast2train_n = numel(contrast2train_idcs);
+contrast2test_idcs = 1 : n_contrasts;
+contrast2test_n = numel(contrast2test_idcs);
+
+%% condition properties (for training & test sets)
+conditions = struct();
+
+% training set conditions
+conditions.train.n = stim2train_n * contrast2train_n;
+conditions.train.stimulus.idcs = ...
+    num2cell(repmat(stim2train_idcs',contrast2train_n,1));
+conditions.train.stimulus.values = cellfun(...
+    @(x) stim_set(x),conditions.train.stimulus.idcs,...
+    'uniformoutput',false);
+conditions.train.contrast.idcs = ...
+    num2cell(repmat(contrast2train_idcs',stim2train_n,1));
+conditions.train.contrast.values = cellfun(...
+    @(x) contrast_set(x),conditions.train.contrast.idcs,...
+    'uniformoutput',false);
+
+% test set conditions
+conditions.test.n = stim2test_n * contrast2test_n;
+conditions.test.stimulus.idcs = ...
+    num2cell(sort(repmat(stim2test_idcs',contrast2test_n,1)));
+conditions.test.stimulus.values = cellfun(...
+    @(x) stim_set(x),conditions.test.stimulus.idcs,...
+    'uniformoutput',false);
+conditions.test.contrast.idcs = ...
+    num2cell(repmat(contrast2test_idcs',stim2test_n,1));
+conditions.test.contrast.values = cellfun(...
+    @(x) contrast_set(x),conditions.test.contrast.idcs,...
+    'uniformoutput',false);
+
+%% training set conditions
+conditions_train = intersectconditions(...
+    't1',t1(valid_flags),t_set(t1_mode_idx),...
+    'i1',i1(valid_flags),i_set(i1_mode_idx),...
+    'i2',i2(valid_flags),i_set(i2_mode_idx),...
+    't2',t2(valid_flags),t_set);
+
+conditions_test = intersectconditions(...
+    'i2',i2(valid_flags),i_set,...
+    't2',t2(valid_flags),t_set);
+%
+% test_conditions = intersectconditions(...
+%     't1',[],...
+%     'i1',[],...
+%     'i2',[],...
+%     't2',[]);
+
+%% utility functions
+function conditions = intersectconditions(varargin)
+
+    % output preallocation
+    conditions = struct();
+
+    % input parsing
+    feature_names = varargin(1:3:end);
+    feature_values = [varargin{2:3:end}];
+    constraints = varargin(3:3:end);
+    [n_trials,n_features] = size(feature_values);
+    feature_flags = false(n_trials,n_features);
+
+    %
+    for ii = 1 : n_features
+        feature_flags(:,ii) = ismember(feature_values(:,ii),constraints{ii});
+    end
+    intersection_flags = all(feature_flags,2);
+
+    %
+    values2combine = cell(n_features,1);
+    for ii = 1 : n_features
+        values2combine{ii} = unique(feature_values(intersection_flags,ii));
+    end
+    combinations = cell(n_features,1);
+    [combinations{:}] = ndgrid(values2combine{:});
+    combinations = cellfun(@(x)x(:),combinations,...
+        'uniformoutput',false);
+
+    %
+    for ii = 1 : n_features
+        conditions.(feature_names{ii}) = combinations{ii};
+    end
+    conditions = struct2table(conditions);
+end
+
