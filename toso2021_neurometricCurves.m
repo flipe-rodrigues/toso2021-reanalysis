@@ -47,7 +47,7 @@ conditions.test.contrast.values = cellfun(...
     'uniformoutput',false);
 
 %% run settings
-n_runs = 1;
+n_runs = 10;
 
 %% concatenation settings
 n_concatspercond = 2^7; % 2^8
