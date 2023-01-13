@@ -9,9 +9,9 @@ end
 if strcmpi(contrast_str,'t1')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),t_set(t1_mode_idx),...
-        'i1',i1(valid_flags),[],...
+        'i1',i1(valid_flags),[],...i_set(i1_mode_idx),...
         't2',t2(valid_flags),t_set([1:t2_mode_idx-1,t2_mode_idx+1:n_t]),...
-        'i2',i2(valid_flags),[]);
+        'i2',i2(valid_flags),[]); % i_set(i2_mode_idx));
 elseif strcmpi(contrast_str,'i1')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),[],...
@@ -54,7 +54,7 @@ conditions.test.values
 n_runs = 5;
 
 %% concatenation settings
-n_concatspercond = 2^8; % 2^8
+n_concatspercond = 2^7; % 2^8
 n_concats = n_concatspercond * (conditions.train.n + conditions.test.n);
 
 %% neurometric curve settings
@@ -538,9 +538,9 @@ plot(xlim,[1,1]*.5,':k');
 
 % iterate through contrasts
 for kk = 1 : n_contrasts
-    if sum(neurocurve_pools(kk).n ~= 0) < 2
-        continue;
-    end
+%     if sum(neurocurve_pools(kk).n ~= 0) < 2
+%         continue;
+%     end
     
     % plot psychometric curve
     psyopt.plot.datafaceclr = contrast_clrs(kk,:);
