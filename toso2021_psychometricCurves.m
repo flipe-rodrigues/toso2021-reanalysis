@@ -76,12 +76,12 @@ end
 % psychometric fit settings
 psyopt.fit = struct();
 psyopt.fit.expType = 'YesNo';
-psyopt.fit.sigmoidName = 'logistic';
+psyopt.fit.sigmoidName = 'gauss';
 psyopt.fit.estimateType = 'MAP';
 psyopt.fit.confP = [.95,.9,.68];
-psyopt.fit.borders = [0,1;0,1;0,.25;0,.25;0,0];
+psyopt.fit.borders = [0,1; 0,1; 0,.25; 0,.25; 0,0];
 psyopt.fit.fixedPars = [nan,nan,nan,nan,0];
-psyopt.fit.stepN = [100,100,20,20,20];
+psyopt.fit.stepN = [100,100,40,40,20];
 
 % iterate through contrasts
 for kk = 1 : n_contrasts
@@ -115,7 +115,7 @@ psyopt.plot.markersize = 8.5;
 psyopt.plot.plotdata = true;
 psyopt.plot.gradeclrs = false;
 psyopt.plot.patchci = false;
-psyopt.plot.normalizemarkersize = false;
+psyopt.plot.normalizemarkersize = true;
 
 % figure initialization
 fig = figure(figopt,...
@@ -142,7 +142,6 @@ for kk = 1 : n_contrasts
     % plot psychometric curve
     psyopt.plot.datafaceclr = contrast_clrs(kk,:);
     psyopt.plot.overallvisibility = 'off';
-    psyopt.plot.normalizemarkersize = true;
     psyopt.plot.plotfit = sum(psycurves(kk).n ~= 0) >= 2;
     p(kk) = plotpsy(psycurves(kk),psycurves(kk).fit,psyopt.plot);
 end
@@ -156,9 +155,13 @@ end
 % plotpsy(bigpsy,bigpsy.fit,psyopt.plot);
 
 % legend
-leg_str = cellfun(@(x,y)sprintf('%s = %i %s',x,y,contrast_units),...
-    repmat({contrast_lbl},n_contrasts,1),num2cell(contrast_set),...
-    'uniformoutput',false);
+if iscategorical(contrasts)
+    leg_str = categories(contrast_set);
+else
+    leg_str = cellfun(@(x,y)sprintf('%s = %i %s',x,y,contrast_units),...
+        repmat({contrast_lbl},n_contrasts,1),num2cell(contrast_set),...
+        'uniformoutput',false);
+end
 legend(p(isgraphics(p)),leg_str(isgraphics(p)),...
     'edgecolor','k',...
     'position',[0.085,0.66,.27,.2],...
@@ -199,7 +202,7 @@ legend(p(isgraphics(p)),leg_str(isgraphics(p)),...
 % % axes adjustments
 % ylim([0,max(ylim)*2]);
 
-%% inset with delta P(long)
+%% inset with delta P(T2 > T1)
 axes(...
     axesopt.default,...
     axesopt.stimulus,...
@@ -225,6 +228,8 @@ for kk = 1 : n_contrasts
     if kk == contrast_mode_idx
         continue;
     end
+    
+    % plot delta P(T2 > T1)
     p_ctrl = psycurves(contrast_mode_idx).y ./ psycurves(contrast_mode_idx).n;
     p_cond = psycurves(kk).y ./ psycurves(kk).n;
     delta_p = p_cond - p_ctrl;

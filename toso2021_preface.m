@@ -116,6 +116,16 @@ trial_idcs = data.Trial;
 subjects = data.Subject;
 subject_set = unique(subjects(~isnan(subjects)));
 n_subjects = numel(subject_set);
+n_total_trials = numel(t1);
+
+%% categorical T1
+t1_cat = zeros(n_total_trials,1);
+t1_cat(t1 > t_set(t1_mode_idx)) = +1;
+t1_cat(t1 < t_set(t1_mode_idx)) = -1;
+t1_cat = categorical(t1_cat,[-1,0,+1],...
+    {'T_1 > 334 ms','T_1 = 334 ms','T_1 < 334 ms'});
+t1_cat_set = unique(t1_cat(~isundefined(t1_cat)));
+n_t1_cat = numel(t1_cat_set);
 
 %% interaction terms
 t1t2 = t1 .* t2;
@@ -140,6 +150,7 @@ i2_units = 'mm.s^{-1}';
 prev_i1_units = 'mm.s^{-1}';
 prev_i2_units = 'mm.s^{-1}';
 choice_units = 'a.u.';
+t1_cat_units = '';
 
 %% color scheme
 t1_clrs = cool(n_t) * .95;
@@ -156,6 +167,10 @@ reward_clrs = [.25,.25,.25; .25,.9,.8];
 prevreward_clrs = reward_clrs / 2;
 subject_clr = [1,1,1] * .75;
 stim_clrs = [1,1,1] .* [.75; 0];
+t1_cat_clrs = [...
+    mean(t1_clrs(1:t1_mode_idx-1,:));...
+    mean(t1_clrs(t1_mode_idx+1:end,:))];
+t1_cat_clrs = cool(n_t1_cat);
 
 %% task variant adaptations
 
@@ -171,7 +186,7 @@ if strcmpi(task_str,'duration')
     d1 = i1;
     d2 = i2;
     d_set = i_set;
-
+    
     % labels
     s1_lbl = 'T_1';
     s2_lbl = 'T_2';
@@ -196,7 +211,7 @@ elseif strcmpi(task_str,'intensity')
     d1 = t1;
     d2 = t2;
     d_set = t_set;
-
+    
     % labels
     s1_lbl = 'I_1';
     s2_lbl = 'I_2';
@@ -268,7 +283,7 @@ for ii = 1 : n_pseudosession_transitions
         end
     end
     prev_session_rows = pseudo_session_rows;
-end 
+end
 
 %% trial pre-selection
 valid_flags = ...
@@ -277,7 +292,6 @@ valid_flags = ...
     ismember(t1,t_set) & ...
     ismember(i2,i_set) & ...
     ismember(t2,t_set);
-n_total_trials = numel(valid_flags);
 
 %% normalized stimulus dimensions
 
@@ -300,6 +314,7 @@ figopt.menubar = 'figure';
 figopt.toolbar = 'auto';
 
 %% axes options
+axesopt = struct();
 
 % default axes properties
 axesopt.default.plotboxaspectratio = [1,1,1];

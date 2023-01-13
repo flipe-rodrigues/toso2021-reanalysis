@@ -7,8 +7,8 @@ end
 
 % selected for being good examples of i2-modulation
 if strcmpi(task_str,'duration')
-    neurons2plot = [...
-        393,473,215,72,526];
+    neurons2plot = fliplr([...
+        393,215,72,459,526]);
 elseif strcmpi(task_str,'intensity')
     neurons2plot = [...
         19,22,30,61,66,70,100,111,112,115,...
@@ -20,7 +20,8 @@ n_neurons2plot = numel(neurons2plot);
 
 %% construct Si-aligned, Ti- & Ii-split psths
 ti_padd = [-0,0];
-sdf_gain = .8;
+sdf_gain = .75;
+sdf_spacing = 1.05;
 
 % figure initialization
 fig = figure(figopt,...
@@ -131,7 +132,7 @@ for nn = 1 : n_neurons2plot
             s2_range = range(s2on_mu);
         end
         s2on_mu = (s2on_mu - s2_min) / s2_range - .5;
-        s2on_mu = s2on_mu * sdf_gain + .5 + (nn - 1);
+        s2on_mu = s2on_mu * sdf_gain + .5 + (nn - 1) * sdf_spacing;
         s2on_xpatch = flagged_time;
         s2on_ypatch = s2on_mu(~nan_flags);
         s2on_ypatch(end) = nan;
@@ -207,7 +208,7 @@ for nn = 1 : n_neurons2plot
         %             s2_range = range(s2off_mu);
         %         end
         s2off_mu = (s2off_mu - s2_min) / s2_range - .5;
-        s2off_mu = s2off_mu * sdf_gain + .5 + (nn - 1);
+        s2off_mu = s2off_mu * sdf_gain + .5 + (nn - 1) * sdf_spacing;
         s2off_xpatch = flagged_time;
         s2off_ypatch = s2off_mu(~nan_flags);
         s2off_ypatch(end) = nan;
