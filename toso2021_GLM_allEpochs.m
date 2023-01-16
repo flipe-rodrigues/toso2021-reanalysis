@@ -4,7 +4,7 @@ if ~exist('data','var')
 end
 
 %% run settings
-n_runs = 25;
+n_runs = 1;
 
 %% bootstrap settings
 n_boots = 0; % 1e3;
@@ -394,7 +394,7 @@ for rr = 1 : n_runs
         end
         
         %% spike count GLMs
-        
+        continue;
         % design matrix
         design = [prev_choice,prev_correct,s1,s2,d1,d2,choice,correct,trial_idcs];
         n_regressors = size(design,2);

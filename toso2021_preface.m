@@ -123,7 +123,7 @@ t1_cat = zeros(n_total_trials,1);
 t1_cat(t1 > t_set(t1_mode_idx)) = +1;
 t1_cat(t1 < t_set(t1_mode_idx)) = -1;
 t1_cat = categorical(t1_cat,[-1,0,+1],...
-    {'T_1 > 334 ms','T_1 = 334 ms','T_1 < 334 ms'});
+    {'T_1 < 334 ms','T_1 = 334 ms','T_1 > 334 ms'});
 t1_cat_set = unique(t1_cat(~isundefined(t1_cat)));
 n_t1_cat = numel(t1_cat_set);
 
