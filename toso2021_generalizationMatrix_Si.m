@@ -28,14 +28,14 @@ invfun = @(x) exp(x);
 % pair specification
 s_pairs = [s1,s2];
 s_pairset = unique(s_pairs(valid_flags,:),'rows');
-n_pairs = size(s_pairset,1);
+n_s_pairs = size(s_pairset,1);
 
 % preallocation
-p_choice = nan(n_pairs,1);
-n_trials_perpair = nan(n_pairs,1);
+p_choice = nan(n_s_pairs,1);
+n_trials_perpair = nan(n_s_pairs,1);
 
 % iterate through S1-S2 pairs
-for ii = 1 : n_pairs
+for ii = 1 : n_s_pairs
     s_flags = all(s_pairs == s_pairset(ii,:),2);
     trial_flags = ...
         valid_flags & ...
@@ -116,7 +116,7 @@ scatter(...
     'linewidth',1.5);
 
 % iterate through pairs
-for ii = 1 : n_pairs
+for ii = 1 : n_s_pairs
     if s_pairset(ii,2) > s_pairset(ii,1)
         vertical_gain = .865;
     else
@@ -211,7 +211,7 @@ scatter(...
     'linewidth',1.5);
 
 % iterate through pairs
-for ii = 1 : n_pairs
+for ii = 1 : n_s_pairs
     if s_pairset(ii,2) > s_pairset(ii,1)
         vertical_gain = .865;
         font_clr = 'k';
@@ -230,10 +230,10 @@ for ii = 1 : n_pairs
 end
 
 % graphical object preallocation
-p = gobjects(n_pairs,1);
+p = gobjects(n_s_pairs,1);
 
 % iterate through pairs
-for ii = 1 : n_pairs
+for ii = 1 : n_s_pairs
     
     % compute post-contraction percept
     s_dv = (s_pairset(ii,2) - si_x) ./ (s_pairset(ii,2) + si_x);

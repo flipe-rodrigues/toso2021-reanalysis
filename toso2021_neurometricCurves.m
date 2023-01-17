@@ -8,7 +8,7 @@ end
 % training set conditions
 if strcmpi(contrast_str,'t1')
     conditions.train = intersectconditions(...
-        't1',t1(valid_flags),t_set(t1_mode_idx),...
+        't1',t1(valid_flags),[],...t_set(t1_mode_idx),...
         'i1',i1(valid_flags),[],...i_set(i1_mode_idx),...
         't2',t2(valid_flags),t_set,...([1:t2_mode_idx-1,t2_mode_idx+1:n_t]),...
         'i2',i2(valid_flags),[]); % i_set(i2_mode_idx));
@@ -20,7 +20,7 @@ elseif strcmpi(contrast_str,'i1')
         'i2',i2(valid_flags),[]);
 elseif strcmpi(contrast_str,'i2')
     conditions.train = intersectconditions(...
-        't1',t1(valid_flags),[],...
+        't1',t1(valid_flags),[],...t_set,...
         'i1',i1(valid_flags),[],...
         't2',t2(valid_flags),t_set,...([1:t2_mode_idx-1,t2_mode_idx+1:n_t]),...
         'i2',i2(valid_flags),i_set(i2_mode_idx));
@@ -47,8 +47,23 @@ elseif strcmpi(contrast_str,'i2')
         'i2',i2(valid_flags),i_set);
 end
 
-conditions.train.values
-conditions.test.values
+%
+conditions.train = intersectconditions(...
+    't1',t1(valid_flags),t_set,...
+    'i1',i1(valid_flags),[],...
+    't2',t2(valid_flags),t_set,...
+    'i2',i2(valid_flags),i_set(i2_mode_idx),...
+    'choice',choice(valid_flags),choice_set);
+conditions.test = intersectconditions(...
+    't1',t1(valid_flags),t_set,...
+    'i1',i1(valid_flags),[],...
+    't2',t2(valid_flags),t_set,...
+    'i2',i2(valid_flags),i_set,...
+    'choice',choice(valid_flags),choice_set);
+
+% print training & test conditions
+disp(conditions.train.values);
+disp(conditions.test.values);
 
 %% run settings
 n_runs = 10;
@@ -70,8 +85,9 @@ for rr = 1 : n_runs
     
     % preallocation
     concat_spkrates = nan(n_neurons,n_concats);
-    concat_contrasts = nan(n_concats,1);
+    concat_s1 = nan(n_concats,1);
     concat_stimuli = nan(n_concats,1);
+    concat_contrasts = nan(n_concats,1);
     concat_choices = nan(n_concats,1);
     concat_evalset = categorical(nan(n_concats,1),[0,1],{'train','test'});
     
@@ -188,8 +204,9 @@ for rr = 1 : n_runs
                 n_concatspercond * (kk - 1);
             concat_spkrates(nn,concat_idcs) = ...
                 nanmean(aligned_spkrates(rand_idcs,:),2);
-            concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
+            concat_s1(concat_idcs) = s1(flagged_trials(rand_idcs));
             concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
+            concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
             concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
             concat_evalset(concat_idcs) = 'train';
         end
@@ -251,8 +268,9 @@ for rr = 1 : n_runs
                 n_concatspercond * (kk + conditions.train.n - 1);
             concat_spkrates(nn,concat_idcs) = ...
                 nanmean(aligned_spkrates(rand_idcs,:),2);
-            concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
+            concat_s1(concat_idcs) = s1(flagged_trials(rand_idcs));
             concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
+            concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
             concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
             concat_evalset(concat_idcs) = 'test';
         end
@@ -266,9 +284,10 @@ for rr = 1 : n_runs
     % linear discriminant analysis
     X = concat_spkrates(:,train_flags)';
     threshold = median(s1(valid_flags));
-    y = concat_stimuli(train_flags) > threshold;
-    ambiguous_flags = concat_stimuli(train_flags) == threshold;
-    y(ambiguous_flags) = rand(sum(ambiguous_flags),1) > .5;
+%     y = concat_stimuli(train_flags) > threshold;
+%     ambiguous_flags = concat_stimuli(train_flags) == threshold;
+%     y(ambiguous_flags) = rand(sum(ambiguous_flags),1) > .5;
+    y = concat_choices(train_flags);
     within_class_var = cell2mat(...
         arrayfun(@(x)nanvar(X(y==x,:)),unique(y),...
         'uniformoutput',false));
@@ -291,7 +310,7 @@ for rr = 1 : n_runs
     % iterate through contrasts
     for kk = 1 : n_contrasts
         contrast_flags = concat_contrasts == contrast_set(kk);
-        
+
         % iterate through stimuli
         for ii = 1 : n_stimuli
             stimulus_flags = concat_stimuli == stim_set(ii);
@@ -310,6 +329,23 @@ end
 
 %% visualize population state at T2 offset
 X = concat_spkrates(~invalid_flags,:)';
+% X = [concat_spkrates(~invalid_flags,concat_s2 > concat_s1),...
+%     concat_spkrates(~invalid_flags,concat_s2 < concat_s1)]';
+
+% % preallocation
+% X = nan(sum(~invalid_flags),n_concats*n_s_pairs);
+% 
+% % iterate through stimulus pairs
+% for ii = 1 : n_s_pairs
+%     s1_flags = concat_s1 == s_pairset(ii,1);
+%     s2_flags = concat_s2 == s_pairset(ii,2);
+%     concat_flags = ...
+%         train_flags & ...
+%         s1_flags & ...
+%         s2_flags;
+%     X(:,concat_flags) = concat_spkrates(~invalid_flags,concat_flags);
+% end
+% X = X';
 
 % normalization
 Z = zscore(X);
@@ -332,6 +368,48 @@ xlabel(sprintf('%s\n%.1f%% variance','PC 1',explained(1)),...
     'horizontalalignment','center');
 ylabel(sprintf('%s\n%.1f%% variance','PC 2',explained(2)),...
     'horizontalalignment','center');
+
+% % iterate through stimulus pairs
+% for ii = 1 : n_s_pairs
+%     s1_flags = concat_s1 == s_pairset(ii,1);
+%     s2_flags = concat_s2 == s_pairset(ii,2);
+%     concat_flags = ...
+%         train_flags & ...
+%         s1_flags & ...
+%         s2_flags;
+%   
+%     % plot state space projections
+%     plot3(score(concat_flags,1),...
+%         score(concat_flags,2),...
+%         score(concat_flags,3),...
+%         'linestyle','none',...
+%         'linewidth',1.5,...
+%         'marker','o',...
+%         'markersize',6,...
+%         'markerfacecolor','none',...
+%         'markeredgecolor','k');
+% end
+% 
+% % iterate through stimulus pairs
+% for ii = 1 : n_s_pairs
+%     s1_flags = concat_s1 == s_pairset(ii,1);
+%     s2_flags = concat_s2 == s_pairset(ii,2);
+%     concat_flags = ...
+%         train_flags & ...
+%         s1_flags & ...
+%         s2_flags;
+%   
+%     % plot state space projections
+%     plot3(score(concat_flags,1),...
+%         score(concat_flags,2),...
+%         score(concat_flags,3),...
+%         'linestyle','none',...
+%         'linewidth',1.5,...
+%         'marker','o',...
+%         'markersize',6-1.5,...
+%         'markerfacecolor' ,s2_clrs(s_pairset(ii,2)==s_set,:),...
+%         'markeredgecolor','none');
+% end
 
 % iterate through stimuli
 for ii = 1 : n_stimuli
@@ -367,20 +445,22 @@ for ii = 1 : n_stimuli
         'markersize',6-1.5,...
         'markerfacecolor',s2_clrs(ii,:),...
         'markeredgecolor','none');
-    %     plot3(score(stimulus_flags,1),...
-    %         score(stimulus_flags,2),...
-    %         score(stimulus_flags,3),...
-    %         'linestyle','none',...
-    %         'linewidth',1.5,...
-    %         'marker','o',...
-    %         'markersize',6-1.5,...
-    %         'markerfacecolor',s2_clrs(ii,:),...
-    %         'markeredgecolor','none');
 end
 
 % update axes
 xlim(xlim + [-1,1] * .05 * range(xlim));
 ylim(ylim + [-1,1] * .05 * range(ylim));
+
+%
+lda_reduced_mdl = fitcdiscr(score(:,1:2),y,...
+    'discrimtype','linear');
+betas = lda_mdl.Coeffs(2,1).Linear * coeff(:,2);
+
+% plot decision boundary
+x = linspace(min(xlim),max(xlim),1e3);
+y = betas(1) + betas(2) * x;
+plot(x,y,'--k',...
+    'linewidth',1.5);
 
 % save figure
 if want2save
@@ -523,7 +603,7 @@ ylabel('P(T_2 > T_1)');
 psyopt.plot = struct();
 psyopt.plot.linewidth = 1.5;
 psyopt.plot.marker = 's';
-psyopt.plot.markersize = 9;
+psyopt.plot.markersize = 9.5;
 psyopt.plot.plotdata = true;
 psyopt.plot.gradeclrs = false;
 psyopt.plot.patchci = false;
