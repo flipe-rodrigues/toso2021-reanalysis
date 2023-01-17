@@ -69,11 +69,11 @@ conditions.test.values
 n_runs = 10;
 
 %% concatenation settings
-n_concatspercond = 2^8; % 2^8
+n_concatspercond = 2^7; % 2^8
 n_concats = n_concatspercond * (conditions.train.n + conditions.test.n);
 
 %% neurometric curve settings
-spkintegration_window = min(t_set);
+spk_integration_win = min(t_set);
 
 % preallocation
 neurocurves = struct();
@@ -98,27 +98,26 @@ for rr = 1 : n_runs
         neuron_flags = data.NeuronNumb == flagged_neurons(nn);
         
         % preallocation
-        xval_train_trials = cell(conditions.test.n,1);
+        xval_train_trials_bab = cell(conditions.train.n,conditions.test.n);
         
         % iterate through training conditions
         for kk = 1 : conditions.train.n
             
             % flag trials for the current condition
-            t1_flags = ismember(t1,conditions.train.values.t1(kk,:));
-            i1_flags = ismember(i1,conditions.train.values.i1(kk,:));
-            t2_flags = ismember(t2,conditions.train.values.t2(kk,:));
-            i2_flags = ismember(i2,conditions.train.values.i2(kk,:));
-            choice_flags = ismember(choice,conditions.train.values.choice(kk,:));
-            
+            feature_flags = false(n_total_trials,conditions.train.features.n);
+            for ff = 1 : conditions.train.features.n
+                feature_lbl = conditions.train.features.labels{ff};
+                feature = eval(feature_lbl);
+                feature_flags(:,ff) = ismember(...
+                    feature,conditions.train.values.(feature_lbl)(kk,:));
+            end
+            condition_flags = all(feature_flags,2);
+
             % trial selection
             trial_flags = ...
                 valid_flags & ...
                 neuron_flags & ...
-                t1_flags & ...
-                i1_flags & ...
-                t2_flags & ...
-                i2_flags & ...
-                choice_flags;
+                condition_flags;
             flagged_trials = find(trial_flags);
             n_flagged_trials = numel(flagged_trials);
             if n_flagged_trials == 0
@@ -138,40 +137,48 @@ for rr = 1 : n_runs
                 isi + ...
                 t2(trial_flags);
             alignment_flags = ...
-                valid_time >= alignment - spkintegration_window & ...
+                valid_time >= alignment - spk_integration_win & ...
                 valid_time < alignment;
             chunk_flags = alignment_flags;
             aligned_spkrates = spike_rates;
             aligned_spkrates(~alignment_flags') = nan;
             aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
-                [spkintegration_window,n_flagged_trials])';
+                [spk_integration_win,n_flagged_trials])';
             
             % detect any test conditions that overlap with the current training condition
-            t1_xval_condition_flags = any(ismember(...
-                conditions.test.values.t1,conditions.train.values.t1(kk,:)),2);
-            i1_xval_condition_flags = any(ismember(...
-                conditions.test.values.i1,conditions.train.values.i1(kk,:)),2);
-            t2_xval_condition_flags = any(ismember(...
-                conditions.test.values.t2,conditions.train.values.t2(kk,:)),2);
-            i2_xval_condition_flags = any(ismember(...
-                conditions.test.values.i2,conditions.train.values.i2(kk,:)),2);
-            choice_xval_condition_flags = any(ismember(...
-                conditions.test.values.choice,conditions.train.values.choice(kk,:)),2);
-            xval_condition_flags = ...
-                t1_xval_condition_flags & ...
-                i1_xval_condition_flags & ...
-                t2_xval_condition_flags & ...
-                i2_xval_condition_flags & ...
-                choice_xval_condition_flags;
+            feature_flags = false(conditions.test.n,1);
+            for ff = 1 : conditions.test.features.n
+                feature_lbl = conditions.test.features.labels{ff};
+                feature_flags(:,ff) = any(ismember(...
+                    conditions.test.values.(feature_lbl),...
+                    conditions.train.values.(feature_lbl)(kk,:)),2);
+            end
+            xval_condition_flags = all(feature_flags,2);
             
             % handle cross-validation for all detected test conditions
             if any(xval_condition_flags)
                 xval_condition_idcs = find(xval_condition_flags)';
+                if numel(xval_condition_idcs) > 1
+                    a=1
+                end
                 
                 % iterate through detected test conditions
                 for ii = xval_condition_idcs
                     
                     % detect overlap between training & test trials
+                    feature_flags = false(n_flagged_trials,1);
+                    for ff = 1 : conditions.test.features.n
+                        feature_lbl = conditions.test.features.labels{ff};
+                        feature = eval(feature_lbl);
+                        feature_flags(:,ff) = any(ismember(...
+                            feature(flagged_trials),...
+                            conditions.test.values.(feature_lbl)(ii,:)),2);
+                    end
+                    xval_trial_flags = all(feature_flags,2);
+                    if ~all(xval_trial_flags)
+                        a=1
+                    end
+                    
                     t1_xval_trial_flags = any(ismember(...
                         t1(flagged_trials),conditions.test.values.t1(ii,:)),2);
                     i1_xval_trial_flags = any(ismember(...
@@ -188,18 +195,21 @@ for rr = 1 : n_runs
                         t2_xval_trial_flags & ...
                         i2_xval_trial_flags & ...
                         choice_xval_trial_flags;
+                    if ~all(xval_trial_flags)
+                        a=1
+                    end
                     
                     % split the conflicting trials into training & test subsets
                     xval_trials = flagged_trials(xval_trial_flags);
                     n_xval_trials = numel(xval_trials);
                     n_train_trials = round(n_xval_trials * 1 / 2);
                     xval_train_idcs = randperm(n_xval_trials,n_train_trials);
-                    xval_train_trials{ii} = xval_trials(xval_train_idcs);
+                    xval_train_trials_bab{kk,ii} = xval_trials(xval_train_idcs);
                 end
                 
                 % concatenate sub-sampled training sets across test conditions
                 train_idcs = find(ismember(...
-                    flagged_trials,vertcat(xval_train_trials{:})));
+                    flagged_trials,vertcat(xval_train_trials_bab{kk,:})));
             else
                 
                 % train using all trials in the remaining conditions
@@ -223,21 +233,20 @@ for rr = 1 : n_runs
         for kk = 1 : conditions.test.n
             
             % flag trials for the current condition
-            t1_flags = ismember(t1,conditions.test.values.t1(kk,:));
-            i1_flags = ismember(i1,conditions.test.values.i1(kk,:));
-            t2_flags = ismember(t2,conditions.test.values.t2(kk,:));
-            i2_flags = ismember(i2,conditions.test.values.i2(kk,:));
-            choice_flags = ismember(choice,conditions.test.values.choice(kk,:));
-            
+            feature_flags = false(n_total_trials,conditions.train.features.n);
+            for ff = 1 : conditions.train.features.n
+                feature_lbl = conditions.test.features.labels{ff};
+                feature = eval(feature_lbl);
+                feature_flags(:,ff) = ismember(...
+                    feature,conditions.test.values.(feature_lbl)(kk,:));
+            end
+            condition_flags = all(feature_flags,2);
+
             % trial selection
             trial_flags = ...
                 valid_flags & ...
                 neuron_flags & ...
-                t1_flags & ...
-                i1_flags & ...
-                t2_flags & ...
-                i2_flags & ...
-                choice_flags;
+                condition_flags;
             flagged_trials = find(trial_flags);
             n_flagged_trials = numel(flagged_trials);
             if n_flagged_trials == 0
@@ -257,17 +266,17 @@ for rr = 1 : n_runs
                 isi + ...
                 t2(trial_flags);
             alignment_flags = ...
-                valid_time >= alignment - spkintegration_window & ...
+                valid_time >= alignment - spk_integration_win & ...
                 valid_time < alignment;
             chunk_flags = alignment_flags;
             aligned_spkrates = spike_rates;
             aligned_spkrates(~alignment_flags') = nan;
             aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
-                [spkintegration_window,n_flagged_trials])';
+                [spk_integration_win,n_flagged_trials])';
             
             % handle cross-validation
-            xval_test_flags = ~ismember(flagged_trials,xval_train_trials{kk});
-            test_idcs = find(xval_test_flags);
+            test_idcs = find(~ismember(...
+                flagged_trials,vertcat(xval_train_trials_bab{:,kk})));
             if isempty(test_idcs)
                 continue;
             end
@@ -294,9 +303,9 @@ for rr = 1 : n_runs
     % linear discriminant analysis
     X = concat_spkrates(:,train_flags)';
     threshold = median(s1(valid_flags));
-    y = concat_stimuli(train_flags) > threshold;
-    ambiguous_flags = concat_stimuli(train_flags) == threshold;
-    y(ambiguous_flags) = rand(sum(ambiguous_flags),1) > .5;
+%     y = concat_stimuli(train_flags) > threshold;
+%     ambiguous_flags = concat_stimuli(train_flags) == threshold;
+%     y(ambiguous_flags) = rand(sum(ambiguous_flags),1) > .5;
     y = concat_choices(train_flags);
 %     y = concat_stimuli(train_flags) > concat_s1(train_flags);
     within_class_var = cell2mat(...

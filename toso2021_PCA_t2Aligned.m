@@ -495,8 +495,8 @@ fig = figure(figopt,...
 axes(...
     axesopt.default,...
     'clipping','off');
-xlabel('Rotated PC 1_{1}');
-ylabel('Rotated PC 2_{2}');
+xlabel('Neural dimension 1_{1}');
+ylabel('Neural dimension 2_{2}');
 
 % rotation specification
 rotfuns = {@rotxd,@rotyd,@rotzd};
