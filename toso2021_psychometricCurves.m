@@ -44,12 +44,12 @@ for kk = 1 : n_contrasts
     
     % iterate through stimuli
     for ii = 1 : n_stimuli
-        stim_flags = stimuli == stim_set(ii);
+        stimulus_flags = stimuli == stim_set(ii);
         trial_flags = ...
             valid_flags & ...
             unique_flags & ...
             contrast_flags & ...
-            stim_flags;
+            stimulus_flags;
         psycurves(kk).x(ii,1) = normstim_set(ii);
         psycurves(kk).y(ii,1) = sum(choice(trial_flags));
         psycurves(kk).n(ii,1) = sum(trial_flags);
@@ -60,10 +60,10 @@ end
 
 % iterate through stimuli
 for ii = 1 : n_stimuli
-    stim_flags = stimuli == stim_set(ii);
+    stimulus_flags = stimuli == stim_set(ii);
     trial_flags = ...
         valid_flags & ...
-        stim_flags;
+        stimulus_flags;
     bigpsy.x(ii,1) = normstim_set(ii);
     bigpsy.y(ii,1) = sum(choice(trial_flags));
     bigpsy.n(ii,1) = sum(trial_flags);
