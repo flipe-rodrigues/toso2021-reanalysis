@@ -6,70 +6,72 @@ end
 %% training & test set conditions
 
 % training set conditions
-if strcmpi(contrast_str,'t1')
-    conditions.train = intersectconditions(...
-        't1',t1(valid_flags),[],...t_set(t1_mode_idx),...
-        'i1',i1(valid_flags),[],...i_set(i1_mode_idx),...
-        't2',t2(valid_flags),t_set,...([1:t2_mode_idx-1,t2_mode_idx+1:n_t]),...
-        'i2',i2(valid_flags),[]); % i_set(i2_mode_idx));
-elseif strcmpi(contrast_str,'i1')
-    conditions.train = intersectconditions(...
-        't1',t1(valid_flags),[],...
-        'i1',i1(valid_flags),i_set(i1_mode_idx),...
-        't2',t2(valid_flags),t_set,...([1:t2_mode_idx-1,t2_mode_idx+1:n_t]),...
-        'i2',i2(valid_flags),[]);
-elseif strcmpi(contrast_str,'i2')
-    conditions.train = intersectconditions(...
-        't1',t1(valid_flags),[],...t_set,...
-        'i1',i1(valid_flags),[],...
-        't2',t2(valid_flags),t_set,...([1:t2_mode_idx-1,t2_mode_idx+1:n_t]),...
-        'i2',i2(valid_flags),i_set(i2_mode_idx));
-end
-
-% test set conditions
-if strcmpi(contrast_str,'t1')
-    conditions.test = intersectconditions(...
-        't1',t1(valid_flags),t_set,...
-        'i1',i1(valid_flags),[],...
-        't2',t2(valid_flags),t_set,...
-        'i2',i2(valid_flags),[]);
-elseif strcmpi(contrast_str,'i1')
-    conditions.test = intersectconditions(...
-        't1',t1(valid_flags),[],...
-        'i1',i1(valid_flags),i_set,...
-        't2',t2(valid_flags),t_set,...
-        'i2',i2(valid_flags),[]);
-elseif strcmpi(contrast_str,'i2')
-    conditions.test = intersectconditions(...
-        't1',t1(valid_flags),[],...
-        'i1',i1(valid_flags),[],...
-        't2',t2(valid_flags),t_set,...
-        'i2',i2(valid_flags),i_set);
-end
+% if strcmpi(contrast_str,'t1')
+%     conditions.train = intersectconditions(...
+%         't1',t1(valid_flags),[],...t_set(t1_mode_idx),...
+%         'i1',i1(valid_flags),[],...i_set(i1_mode_idx),...
+%         't2',t2(valid_flags),t_set,...([1:t2_mode_idx-1,t2_mode_idx+1:n_t]),...
+%         'i2',i2(valid_flags),[]); % i_set(i2_mode_idx));
+% elseif strcmpi(contrast_str,'i1')
+%     conditions.train = intersectconditions(...
+%         't1',t1(valid_flags),[],...
+%         'i1',i1(valid_flags),i_set(i1_mode_idx),...
+%         't2',t2(valid_flags),t_set,...([1:t2_mode_idx-1,t2_mode_idx+1:n_t]),...
+%         'i2',i2(valid_flags),[]);
+% elseif strcmpi(contrast_str,'i2')
+%     conditions.train = intersectconditions(...
+%         't1',t1(valid_flags),[],...t_set,...
+%         'i1',i1(valid_flags),[],...
+%         't2',t2(valid_flags),t_set,...([1:t2_mode_idx-1,t2_mode_idx+1:n_t]),...
+%         'i2',i2(valid_flags),i_set(i2_mode_idx));
+% end
+% 
+% % test set conditions
+% if strcmpi(contrast_str,'t1')
+%     conditions.test = intersectconditions(...
+%         't1',t1(valid_flags),t_set,...
+%         'i1',i1(valid_flags),[],...
+%         't2',t2(valid_flags),t_set,...
+%         'i2',i2(valid_flags),[]);
+% elseif strcmpi(contrast_str,'i1')
+%     conditions.test = intersectconditions(...
+%         't1',t1(valid_flags),[],...
+%         'i1',i1(valid_flags),i_set,...
+%         't2',t2(valid_flags),t_set,...
+%         'i2',i2(valid_flags),[]);
+% elseif strcmpi(contrast_str,'i2')
+%     conditions.test = intersectconditions(...
+%         't1',t1(valid_flags),[],...
+%         'i1',i1(valid_flags),[],...
+%         't2',t2(valid_flags),t_set,...
+%         'i2',i2(valid_flags),i_set);
+% end
 
 %
 conditions.train = intersectconditions(...
-    't1',t1(valid_flags),[],...
-    'i1',i1(valid_flags),[],...i_set(i1_mode_idx),...
-    't2',t2(valid_flags),t_set,...
-    'i2',i2(valid_flags),i_set(i2_mode_idx),...
-    'choice',choice(valid_flags),choice_set);
+    't1',t1(valid_flags),[],0,...([1:2,end-1:end]),0,...[],...
+    'i1',i1(valid_flags),[],1,...i_set(i1_mode_idx),...
+    't2',t2(valid_flags),t_set,1,...
+    'i2',i2(valid_flags),i_set(i2_mode_idx),1,...%i_set(i2_mode_idx),...
+    'choice',choice(valid_flags),choice_set,1);
 conditions.test = intersectconditions(...
-    't1',t1(valid_flags),[],...
-    'i1',i1(valid_flags),[],...
-    't2',t2(valid_flags),t_set,...
-    'i2',i2(valid_flags),i_set,...
-    'choice',choice(valid_flags),[]);
+    't1',t1(valid_flags),[],1,...
+    'i1',i1(valid_flags),[],1,...
+    't2',t2(valid_flags),t_set,1,...
+    'i2',i2(valid_flags),i_set,1,...
+    'choice',choice(valid_flags),[],1);
 
 % print training & test conditions
-conditions.train.values
+fprintf('\nTRAINING CONDITIONS:\n');
+disp(conditions.train.values);
+fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
 %% run settings
-n_runs = 10;
+n_runs = 5;
 
 %% concatenation settings
-n_concatspercond = 2^7; % 2^8
+n_concatspercond = 2^9; % 2^8
 n_concats = n_concatspercond * (conditions.train.n + conditions.test.n);
 
 %% neurometric curve settings
@@ -80,6 +82,8 @@ neurocurves = struct();
 
 % iterate through runs
 for rr = 1 : n_runs
+    train_counter = 0;
+    test_counter = 0;
     
     %% construct spike counts tensor (neurons X concatenations)
     
@@ -98,7 +102,7 @@ for rr = 1 : n_runs
         neuron_flags = data.NeuronNumb == flagged_neurons(nn);
         
         % preallocation
-        xval_train_trials = cell(conditions.test.n,1);
+        xval_train_trials_bab = cell(conditions.train.n,conditions.test.n);
         
         % iterate through training conditions
         for kk = 1 : conditions.train.n
@@ -106,10 +110,10 @@ for rr = 1 : n_runs
             % flag trials for the current condition
             feature_flags = false(n_total_trials,conditions.train.features.n);
             for ff = 1 : conditions.train.features.n
-                feature_label = conditions.train.features.labels{ff};
-                feature = eval(feature_label);
+                feature_lbl = conditions.train.features.labels{ff};
+                feature = eval(feature_lbl);
                 feature_flags(:,ff) = ismember(...
-                    feature,conditions.train.values.(feature_label)(kk,:));
+                    feature,conditions.train.values.(feature_lbl)(kk,:));
             end
             condition_flags = all(feature_flags,2);
 
@@ -122,6 +126,10 @@ for rr = 1 : n_runs
             n_flagged_trials = numel(flagged_trials);
             if n_flagged_trials == 0
                 continue;
+            end
+            
+            if n_flagged_trials == 1
+                train_counter = train_counter + 1;
             end
             
             % fetch spike counts & compute spike rates
@@ -147,11 +155,11 @@ for rr = 1 : n_runs
             
             % detect any test conditions that overlap with the current training condition
             feature_flags = false(conditions.test.n,1);
-            for ff = 1 : conditions.train.features.n
-                feature_label = conditions.train.features.labels{ff};
+            for ff = 1 : conditions.test.features.n
+                feature_lbl = conditions.test.features.labels{ff};
                 feature_flags(:,ff) = any(ismember(...
-                    conditions.test.values.(feature_label),...
-                    conditions.train.values.(feature_label)(kk,:)),2);
+                    conditions.test.values.(feature_lbl),...
+                    conditions.train.values.(feature_lbl)(kk,:)),2);
             end
             xval_condition_flags = all(feature_flags,2);
             
@@ -163,44 +171,27 @@ for rr = 1 : n_runs
                 for ii = xval_condition_idcs
                     
                     % detect overlap between training & test trials
-                    feature_flags = false(conditions.test.n,1);
-            for ff = 1 : conditions.train.features.n
-                feature_label = conditions.train.features.labels{ff};
-                feature_flags(:,ff) = any(ismember(...
-                    conditions.test.values.(feature_label),...
-                    conditions.train.values.(feature_label)(kk,:)),2);
-            end
-            xval_condition_flags = all(feature_flags,2);
-                    
-                    
-                    t1_xval_trial_flags = any(ismember(...
-                        t1(flagged_trials),conditions.test.values.t1(ii,:)),2);
-                    i1_xval_trial_flags = any(ismember(...
-                        i1(flagged_trials),conditions.test.values.i1(ii,:)),2);
-                    t2_xval_trial_flags = any(ismember(...
-                        t2(flagged_trials),conditions.test.values.t2(ii,:)),2);
-                    i2_xval_trial_flags = any(ismember(...
-                        i2(flagged_trials),conditions.test.values.i2(ii,:)),2);
-                    choice_xval_trial_flags = any(ismember(...
-                        choice(flagged_trials),conditions.test.values.choice(ii,:)),2);
-                    xval_trial_flags = ...
-                        t1_xval_trial_flags & ...
-                        i1_xval_trial_flags & ...
-                        t2_xval_trial_flags & ...
-                        i2_xval_trial_flags & ...
-                        choice_xval_trial_flags;
+                    feature_flags = false(n_flagged_trials,1);
+                    for ff = 1 : conditions.test.features.n
+                        feature_lbl = conditions.test.features.labels{ff};
+                        feature = eval(feature_lbl);
+                        feature_flags(:,ff) = any(ismember(...
+                            feature(flagged_trials),...
+                            conditions.test.values.(feature_lbl)(ii,:)),2);
+                    end
+                    xval_trial_flags = all(feature_flags,2);
                     
                     % split the conflicting trials into training & test subsets
                     xval_trials = flagged_trials(xval_trial_flags);
                     n_xval_trials = numel(xval_trials);
                     n_train_trials = round(n_xval_trials * 1 / 2);
                     xval_train_idcs = randperm(n_xval_trials,n_train_trials);
-                    xval_train_trials{ii} = xval_trials(xval_train_idcs);
+                    xval_train_trials_bab{kk,ii} = xval_trials(xval_train_idcs);
                 end
                 
                 % concatenate sub-sampled training sets across test conditions
                 train_idcs = find(ismember(...
-                    flagged_trials,vertcat(xval_train_trials{:})));
+                    flagged_trials,vertcat(xval_train_trials_bab{kk,:})));
             else
                 
                 % train using all trials in the remaining conditions
@@ -226,10 +217,10 @@ for rr = 1 : n_runs
             % flag trials for the current condition
             feature_flags = false(n_total_trials,conditions.train.features.n);
             for ff = 1 : conditions.train.features.n
-                feature_label = conditions.test.features.labels{ff};
-                feature = eval(feature_label);
+                feature_lbl = conditions.test.features.labels{ff};
+                feature = eval(feature_lbl);
                 feature_flags(:,ff) = ismember(...
-                    feature,conditions.test.values.(feature_label)(kk,:));
+                    feature,conditions.test.values.(feature_lbl)(kk,:));
             end
             condition_flags = all(feature_flags,2);
 
@@ -266,8 +257,13 @@ for rr = 1 : n_runs
                 [spk_integration_win,n_flagged_trials])';
             
             % handle cross-validation
-            xval_test_flags = ~ismember(flagged_trials,xval_train_trials{kk});
-            test_idcs = find(xval_test_flags);
+            test_idcs = find(~ismember(...
+                flagged_trials,vertcat(xval_train_trials_bab{:,kk})));
+            
+            if numel(test_idcs) <= 1
+                test_counter = test_counter + 1;
+            end
+            
             if isempty(test_idcs)
                 continue;
             end
@@ -286,6 +282,8 @@ for rr = 1 : n_runs
         end
     end
     
+    [train_counter,test_counter]
+    
     %% construct neurometric curves
     
     % flag training concatenations
@@ -299,6 +297,8 @@ for rr = 1 : n_runs
 %     y(ambiguous_flags) = rand(sum(ambiguous_flags),1) > .5;
     y = concat_choices(train_flags);
 %     y = concat_stimuli(train_flags) > concat_s1(train_flags);
+% weighted combination
+% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     within_class_var = cell2mat(...
         arrayfun(@(x)nanvar(X(y==x,:)),unique(y),...
         'uniformoutput',false));
@@ -572,15 +572,18 @@ psyopt.fit.borders = [0,1; 0,1; 0,.25; 0,.25; 0,0];
 psyopt.fit.fixedPars = [nan,nan,nan,nan,0];
 psyopt.fit.stepN = [100,100,40,40,20];
 
+% average & error function selection
+avgfun = @(x,d) nanmedian(x,d);
+errfun = @(x,d) abs(quantile(x,[.25,.75],d) - nanmedian(x,d));
+
 % iterate through contrasts
 for kk = 1 : n_contrasts
     
     % pool neural choices across runs
     neurocurve_pools(kk).x = unique(neurocurves(kk).x);
-    neurocurve_pools(kk).y = sum(neurocurves(kk).y,2);
-    neurocurve_pools(kk).n = sum(neurocurves(kk).n,2);
-    neurocurve_pools(kk).err = ...
-        std(neurocurves(kk).y ./ neurocurves(kk).n,0,2); % / sqrt(n_runs);
+    neurocurve_pools(kk).y = avgfun(neurocurves(kk).y,2); % sum(neurocurves(kk).y,2);
+    neurocurve_pools(kk).n = avgfun(neurocurves(kk).n,2);
+    neurocurve_pools(kk).err = avgfun(neurocurves(kk).y ./ neurocurves(kk).n,2);
     
     % neurophysical triple
     neuro_triple = [...
@@ -677,7 +680,7 @@ for kk = 1 : n_contrasts
     p_cond = neurocurve_pools(kk).y ./ neurocurve_pools(kk).n;
     delta_p = p_cond - p_ctrl;
     err = sqrt((neurocurve_pools(kk).err .^ 2) + (neurocurve_pools(kk).err .^ 2));
-    errorbar(normstim_set,delta_p,err,...
+    errorbar(normstim_set,delta_p,err(:,1),err(:,2),...
         'color','k',...
         'marker',psyopt.plot.marker,...
         'markersize',psyopt.plot.markersize-2.5,...
