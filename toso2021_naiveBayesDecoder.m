@@ -12,21 +12,21 @@ if strcmpi(contrast_str,'t1')
         'i1',i1(valid_flags),[],[],...
         't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),[],[],...
-        'choice',choice(valid_flags),choice_set,[]);
+        'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i1')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),[],t_set([1,end]),...
         'i1',i1(valid_flags),i_set(i1_mode_idx),[],...
         't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),[],[],...
-        'choice',choice(valid_flags),choice_set,[]);
+        'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i2')
     conditions.train = intersectconditions(...
-        't1',t1(valid_flags),[],t_set([1,end]),...
+        't1',t1(valid_flags),[],[],...t_set([1,end]),...
         'i1',i1(valid_flags),[],[],...
         't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
-        'choice',choice(valid_flags),choice_set,[]);
+        'choice',choice(valid_flags),[],[]);
 end
 
 % test set conditions
@@ -59,49 +59,6 @@ disp(conditions.train.values);
 fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
-% %% stimulus selection (for training & test sets)
-% 
-% % stimuli
-% stim2train_idcs = [1 + [0,1], n_stimuli + [-1,0]];
-% stim2train_n = numel(stim2train_idcs);
-% stim2test_idcs = 1 : n_stimuli; % stim_mode_idx + [-1,0,1]; %
-% stim2test_n = numel(stim2test_idcs);
-% 
-% % contrasts
-% contrast2train_idcs = contrast_mode_idx;
-% contrast2train_n = numel(contrast2train_idcs);
-% contrast2test_idcs = 1 : n_contrasts;
-% contrast2test_n = numel(contrast2test_idcs);
-% 
-% %% condition properties (for training & test sets)
-% conditions = struct();
-% 
-% % training set conditions
-% conditions.train.n = stim2train_n * contrast2train_n;
-% conditions.train.stimulus.idcs = ...
-%     num2cell(repmat(stim2train_idcs',contrast2train_n,1));
-% conditions.train.stimulus.values = cellfun(...
-%     @(x) stim_set(x),conditions.train.stimulus.idcs,...
-%     'uniformoutput',false);
-% conditions.train.contrast.idcs = ...
-%     num2cell(repmat(contrast2train_idcs',stim2train_n,1));
-% conditions.train.contrast.values = cellfun(...
-%     @(x) contrast_set(x),conditions.train.contrast.idcs,...
-%     'uniformoutput',false);
-% 
-% % test set conditions
-% conditions.test.n = stim2test_n * contrast2test_n;
-% conditions.test.stimulus.idcs = ...
-%     num2cell(sort(repmat(stim2test_idcs',contrast2test_n,1)));
-% conditions.test.stimulus.values = cellfun(...
-%     @(x) stim_set(x),conditions.test.stimulus.idcs,...
-%     'uniformoutput',false);
-% conditions.test.contrast.idcs = ...
-%     num2cell(repmat(contrast2test_idcs',stim2test_n,1));
-% conditions.test.contrast.values = cellfun(...
-%     @(x) contrast_set(x),conditions.test.contrast.idcs,...
-%     'uniformoutput',false);
-
 %% run settings
 n_runs = 1;
 
@@ -121,6 +78,9 @@ roi_n_bins = range(roi) * psthbin;
 roi_time = linspace(roi(1),roi(2),roi_n_bins);
 
 %% construct spike rate tensor (time X neurons X concatenations)
+
+% data clearance
+clear concat_tensor P_tR;
 
 % preallocation
 nbd = struct();
@@ -160,7 +120,7 @@ for rr = 1 : n_runs
                     feature,conditions.train.values.(feature_lbl)(kk,:));
             end
             condition_flags = all(feature_flags,2);
-
+            
             % trial selection
             trial_flags = ...
                 valid_flags & ...
@@ -171,7 +131,7 @@ for rr = 1 : n_runs
             if n_flagged_trials == 0
                 continue;
             end
-
+            
             % fetch spike counts & compute spike rates
             spike_counts = data.FR(trial_flags,:);
             spike_rates = ...
@@ -185,14 +145,14 @@ for rr = 1 : n_runs
                 isi;
             alignment_flags = ...
                 valid_time >= alignment + roi(1) & ...
-                valid_time < alignment + t2(s2_spike_flags);
+                valid_time < alignment + t2(trial_flags);
             chunk_flags = ...
                 valid_time >= alignment + roi(1) & ...
                 valid_time < alignment + roi(2);
             aligned_spkrates = spike_rates;
             aligned_spkrates(~alignment_flags') = nan;
             aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
-                [spk_integration_win,n_flagged_trials])';
+                [roi_n_bins,n_flagged_trials])';
             
             % detect any test conditions that overlap with the current training condition
             feature_flags = false(conditions.test.n,1);
@@ -207,7 +167,7 @@ for rr = 1 : n_runs
             % handle cross-validation for all detected test conditions
             if any(xval_condition_flags)
                 xval_condition_idcs = find(xval_condition_flags)';
-
+                
                 % iterate through detected test conditions
                 for ii = xval_condition_idcs
                     
@@ -262,7 +222,7 @@ for rr = 1 : n_runs
                     feature,conditions.test.values.(feature_lbl)(kk,:));
             end
             condition_flags = all(feature_flags,2);
-
+            
             % trial selection
             trial_flags = ...
                 valid_flags & ...
@@ -287,14 +247,14 @@ for rr = 1 : n_runs
                 isi;
             alignment_flags = ...
                 valid_time >= alignment + roi(1) & ...
-                valid_time < alignment + t2(s2_spike_flags);
+                valid_time < alignment + t2(trial_flags);
             chunk_flags = ...
                 valid_time >= alignment + roi(1) & ...
                 valid_time < alignment + roi(2);
             aligned_spkrates = spike_rates;
             aligned_spkrates(~alignment_flags') = nan;
             aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
-                [spk_integration_win,n_flagged_trials])';
+                [roi_n_bins,n_flagged_trials])';
             
             % handle cross-validation
             test_idcs = find(~ismember(...
@@ -319,9 +279,9 @@ for rr = 1 : n_runs
     nbdopt = struct();
     nbdopt.n_xpoints = 100;
     nbdopt.time = roi_time;
-    nbdopt.train.trial_idcs = find(concat_evalset(:,rr) == 'train');
+    nbdopt.train.trial_idcs = find(concat_evalset == 'train');
     nbdopt.train.n_trials = numel(nbdopt.train.trial_idcs);
-    nbdopt.test.trial_idcs = find(concat_evalset(:,rr) == 'test');
+    nbdopt.test.trial_idcs = find(concat_evalset == 'test');
     nbdopt.test.n_trials = numel(nbdopt.test.trial_idcs);
     nbdopt.assumepoissonmdl = false;
     
@@ -330,12 +290,12 @@ for rr = 1 : n_runs
     toc
     
     % save current run
-%     nbd.P_tR(:,:,:,rr) = P_tR;
-%     nbd.P_Rt(:,:,:,rr) = P_Rt;
-%     nbd.pthat.mode(:,:,rr) = pthat.mode;
-%     nbd.pthat.median(:,:,rr) = pthat.median;
-%     nbd.pthat.mean(:,:,rr) = pthat.mean;
-%     nbd.neurons(:,rr) = neurons;
+    %     nbd.P_tR(:,:,:,rr) = P_tR;
+    %     nbd.P_Rt(:,:,:,rr) = P_Rt;
+    %     nbd.pthat.mode(:,:,rr) = pthat.mode;
+    %     nbd.pthat.median(:,:,rr) = pthat.median;
+    %     nbd.pthat.mean(:,:,rr) = pthat.mean;
+    %     nbd.neurons(:,rr) = neurons;
 end
 
 %% plot likelihoods
@@ -413,16 +373,16 @@ end
 %% choice of average function
 avgfun = @nanmean;
 
-%% plot condition-split posterior averages
+%% plot contrast- & stimulus-split posterior averages
 figure(...
-    'name','posterior averages',...
+    'name','stimulus-split posterior averages',...
     'numbertitle','off',...
     'windowstyle','docked');
-sps = gobjects(n_contrasts,stim2test_n);
+sps = gobjects(n_contrasts,n_stimuli);
 for ii = 1 : n_contrasts
-    for jj = 1 : stim2test_n
-        sp_idx = jj + (ii - 1) * stim2test_n;
-        sps(ii,jj) = subplot(n_contrasts,stim2test_n,sp_idx);
+    for jj = 1 : n_stimuli
+        sp_idx = jj + (ii - 1) * n_stimuli;
+        sps(ii,jj) = subplot(n_contrasts,n_stimuli,sp_idx);
         %         xlabel(sps(ii,jj),'Real time since S_2 onset (ms)');
         %         ylabel(sps(ii,jj),'Decoded time since S_2 onset (ms)');
     end
@@ -440,15 +400,18 @@ for ii = 1 : n_contrasts
     contrast_flags = concat_contrasts(concat_evalset == 'test') == contrast_set(ii);
     
     % iterate through stimuli
-    for jj = 1 : stim2test_n
-        t2_flags = concat_stimuli(concat_evalset == 'test') == t_set(stim2test_idcs(jj));
+    for jj = 1 : n_stimuli
+        stimulus_flags = concat_stimuli(concat_evalset == 'test') == stim_set(jj);
         concat_flags = ...
             contrast_flags & ...
-            t2_flags;
+            stimulus_flags;
+        if sum(concat_flags) == 0
+            continue;
+        end
         title(sps(ii,jj),sprintf('T_2 = %.0f ms, %s = %.0f mm/s',...
-            t_set(stim2test_idcs(jj)),contrast_lbl,contrast_set(ii)),...
+            t_set(jj),contrast_lbl,contrast_set(ii)),...
             'fontsize',10);
-        p_cond = avgfun(P_tR(concat_flags,:,:),1);
+        p_cond = avgfun(P_tR(:,:,concat_flags),3);
         p_cond = p_cond ./ nansum(p_cond,2);
         p_cond(isnan(p_cond)) = max(p_cond(:));
         imagesc(sps(ii,jj),[0,t_set(end)],[0,t_set(end)],p_cond');
@@ -456,16 +419,16 @@ for ii = 1 : n_contrasts
     end
 end
 
-%% plot control-subtracted posterior averages
+%% plot intermediate subtractions of stimulus-split posterior averages
 figure(...
-    'name','posterior subtractions',...
+    'name','stimulus-split posterior subtractions (intermediate)',...
     'numbertitle','off',...
     'windowstyle','docked');
-sps = gobjects(n_contrasts,stim2test_n);
+sps = gobjects(n_contrasts,n_stimuli);
 for ii = 1 : n_contrasts
-    for jj = 1 : stim2test_n
-        sp_idx = jj + (ii - 1) * stim2test_n;
-        sps(ii,jj) = subplot(n_contrasts,stim2test_n,sp_idx);
+    for jj = 1 : n_stimuli
+        sp_idx = jj + (ii - 1) * n_stimuli;
+        sps(ii,jj) = subplot(n_contrasts,n_stimuli,sp_idx);
         %         xlabel(sps(ii,jj),'Real time since S_2 onset (ms)');
         %         ylabel(sps(ii,jj),'Decoded time since S_2 onset (ms)');
     end
@@ -486,21 +449,24 @@ for ii = 1 : n_contrasts
     contrast_flags = concat_contrasts(concat_evalset == 'test') == contrast_set(ii);
     
     % iterate through stimuli
-    for jj = 1 : stim2test_n
-        t2_flags = concat_stimuli(concat_evalset == 'test') == t_set(stim2test_idcs(jj));
+    for jj = 1 : n_stimuli
+        stimuli_flags = concat_stimuli(concat_evalset == 'test') == stim_set(jj);
         ref_flags = ...
             contrast_ref_flags & ...
-            t2_flags;
+            stimuli_flags;
         concat_flags = ...
             contrast_flags & ...
-            t2_flags;
+            stimuli_flags;
+        if sum(ref_flags) == 0 || sum(concat_flags) == 0
+            continue;
+        end
         title(sps(ii,jj),sprintf('T_2: %.0f ms, %s: %.0f - %.0f mm/s',...
-            t_set(stim2test_idcs(jj)),contrast_lbl,...
+            t_set(jj),contrast_lbl,...
             contrast_set(ii),contrast_set(contrast_mode_idx)),...
             'fontsize',10);
-        p_ref = squeeze(gather(avgfun(tall_P_tR(ref_flags,:,:),1)));
+        p_ref = avgfun(P_tR(:,:,ref_flags),3);
         p_ref = p_ref ./ nansum(p_ref,2);
-        p_cond = squeeze(gather(avgfun(tall_P_tR(concat_flags,:,:),1)));
+        p_cond = avgfun(P_tR(:,:,concat_flags),3);
         p_cond = p_cond ./ nansum(p_cond,2);
         p_diff = p_cond - p_ref;
         imagesc(sps(ii,jj),[0,t_set(end)],[0,t_set(end)],p_diff',...
@@ -509,14 +475,14 @@ for ii = 1 : n_contrasts
     end
 end
 
-%% plot stimulus-split subtractions of extreme posterior averages
+%% plot extreme subtractions of stimulus-split posterior averages
 figure(...
-    'name','posterior subtractions (extreme)',...
+    'name','stimulus-split posterior subtractions (extreme)',...
     'numbertitle','off',...
     'windowstyle','docked');
-sps = gobjects(stim2test_n,1);
-for jj = 1 : stim2test_n
-    sps(jj) = subplot(1,stim2test_n,jj);
+sps = gobjects(n_stimuli,1);
+for jj = 1 : n_stimuli
+    sps(jj) = subplot(1,n_stimuli,jj);
     xlabel(sps(jj),'Real time since S_2 onset (ms)');
 end
 ylabel(sps(1),'Decoded time since S_2 onset (ms)');
@@ -529,20 +495,20 @@ set(sps,...
 linkaxes(sps);
 
 % iterate through stimuli
-for jj = 1 : stim2test_n
-    t2_flags = concat_stimuli(concat_evalset == 'test') == t_set(stim2test_idcs(jj));
+for jj = 1 : n_stimuli
+    stimulus_flags = concat_stimuli(concat_evalset == 'test') == stim_set(jj);
     contrast_min_flags = ...
         concat_contrasts(concat_evalset == 'test') == contrast_set(1) & ...
-        t2_flags;
+        stimulus_flags;
     contrast_max_flags = ...
         concat_contrasts(concat_evalset == 'test') == contrast_set(end) & ...
-        t2_flags;
+        stimulus_flags;
     title(sps(jj),sprintf('%s: %.0f - %.0f mm/s',...
         contrast_lbl,contrast_set(end),contrast_set(1)),...
         'fontsize',10);
-    p_contrast_min = squeeze(gather(avgfun(tall_P_tR(contrast_min_flags,:,:),1)));
+    p_contrast_min = avgfun(P_tR(:,:,contrast_min_flags),3);
     p_contrast_min = p_contrast_min ./ nansum(p_contrast_min,2);
-    p_contrast_max = squeeze(gather(avgfun(tall_P_tR(contrast_max_flags,:,:),1)));
+    p_contrast_max = avgfun(P_tR(:,:,contrast_max_flags),3);
     p_contrast_max = p_contrast_max ./ nansum(p_contrast_max,2);
     p_diff = p_contrast_max - p_contrast_min;
     imagesc(sps(jj),[0,t_set(end)],[0,t_set(end)],p_diff',...
@@ -550,12 +516,12 @@ for jj = 1 : stim2test_n
     plot(sps(jj),xlim,ylim,'--w');
 end
 
-%% plot subtractions of extreme posterior averages
+%% plot extreme subtractions of posterior averages
 
 % figure initialization
 fig = figure(...
     figopt,...
-    'name',sprintf('decoder_point_estimates_%s',contrast_str),...
+    'name','posterior subtractions (extreme)',...
     'numbertitle','off');
 
 % axes initialization
@@ -569,16 +535,17 @@ xlabel('Real time since S_2 onset (ms)');
 ylabel('Decoded time since S_2 onset (ms)');
 
 % posterior subtraction
-t2_flags = ismember(concat_stimuli(concat_evalset == 'test'),t_set(stim2test_idcs(1:end)));
+stimulus_flags = ismember(...
+    concat_stimuli(concat_evalset == 'test'),conditions.test.values.t2);
 contrast_min_flags = ...
     concat_contrasts(concat_evalset == 'test') == contrast_set(1) & ...
-    t2_flags;
+    stimulus_flags;
 contrast_max_flags = ...
     concat_contrasts(concat_evalset == 'test') == contrast_set(end) & ...
-    t2_flags;
-p_contrast_min = squeeze(gather(avgfun(tall_P_tR(contrast_min_flags,:,:),1)));
+    stimulus_flags;
+p_contrast_min = avgfun(P_tR(:,:,contrast_min_flags),3);
 p_contrast_min = p_contrast_min ./ nansum(p_contrast_min,2);
-p_contrast_max = squeeze(gather(avgfun(tall_P_tR(contrast_max_flags,:,:),1)));
+p_contrast_max = avgfun(P_tR(:,:,contrast_max_flags),3);
 p_contrast_max = p_contrast_max ./ nansum(p_contrast_max,2);
 p_diff = p_contrast_max - p_contrast_min;
 imagesc([0,t_set(end)],[0,t_set(end)],p_diff',...
@@ -591,7 +558,45 @@ if want2save
     print(fig,svg_file,'-dsvg','-painters');
 end
 
-%% plot condition-split point estimate averages
+%% plot contrast-split posterior averages
+figure(...
+    'name','posterior averages',...
+    'numbertitle','off',...
+    'windowstyle','docked');
+sps = gobjects(n_contrasts,1);
+for ii = 1 : n_contrasts
+    sps(ii) = subplot(1,n_contrasts,ii);
+    xlabel(sps(ii),'Real time since S_2 onset (ms)');
+    ylabel(sps(ii),'Decoded time since S_2 onset (ms)');
+end
+set(sps,...
+    axesopt.default,...
+    'xlim',[0,t_set(end)],...
+    'xtick',[],...sort([0;t_set]),...
+    'ylim',[0,t_set(end)],...
+    'ytick',[]); % sort([0;t_set]));
+linkaxes(sps);
+clims = quantile(avgfun(P_tR,3),[0,1],[1,2])';
+
+% iterate through contrast conditions
+for ii = 1 : n_contrasts
+    contrast_flags = concat_contrasts(concat_evalset == 'test') == contrast_set(ii);
+    concat_flags = ...
+        contrast_flags;
+    if sum(concat_flags) == 0
+        continue;
+    end
+    title(sps(ii),sprintf('%s = %.0f mm/s',...
+        contrast_lbl,contrast_set(ii)),...
+        'fontsize',10);
+    p_cond = avgfun(P_tR(:,:,concat_flags),3);
+    p_cond = p_cond ./ nansum(p_cond,2);
+    p_cond(isnan(p_cond)) = max(p_cond(:));
+    imagesc(sps(ii),[0,t_set(end)],[0,t_set(end)],p_cond',clims);
+    plot(sps(ii),xlim,ylim,'--w');
+end
+
+%% plot contrast- & stimulus-split point estimate averages
 pthat_avgfuns = {...
     ...@(x)nanmean(x,2),...
     @(x)nanmedian(x,2),...
@@ -610,11 +615,11 @@ for tt = 1 : n_pthats
     
     % figure initialization
     figure(...
-        'name',sprintf('point estimates (%s)',type),...
+        'name',sprintf('stimulus-split point estimates (%s)',type),...
         'numbertitle','off',...
         'windowstyle','docked');
     n_rows = n_funs * 2;
-    n_cols = ceil(stim2test_n / 2);
+    n_cols = ceil(n_stimuli / 2);
     n_sps = n_rows * n_cols;
     sps = gobjects(n_sps,1);
     for ii = 1 : n_rows
@@ -641,18 +646,22 @@ for tt = 1 : n_pthats
             contrast_flags = concat_contrasts(concat_evalset == 'test') == contrast_set(ii);
             
             % iterate through stimuli
-            for jj = 1 : stim2test_n
+            for jj = 1 : n_stimuli
                 sp_idx = jj + (ff - 1) * n_cols;
-                t2_flags = concat_stimuli(concat_evalset == 'test') == t_set(stim2test_idcs(jj));
+                stimulus_flags = concat_stimuli(concat_evalset == 'test') == stim_set(jj);
                 concat_flags = ...
                     contrast_flags & ...
-                    t2_flags;
-                title(sps(sp_idx),sprintf('T_2 = %.2f ms',t_set(stim2test_idcs(jj))));
+                    stimulus_flags;
+                if sum(concat_flags) == 0
+                    continue;
+                end
+                
+                title(sps(sp_idx),sprintf('T_2 = %.2f ms',t_set(jj)));
                 
                 pthat_avg = pthat_avgfuns{ff}(pthat.(type)(:,concat_flags));
                 pthat_err = pthat_errfuns{ff}(pthat.(type)(:,concat_flags));
                 
-                t2bin_idcs = (1 : t_set(stim2test_idcs(jj))) * psthbin;
+                t2bin_idcs = (1 : t_set(jj)) * psthbin;
                 
                 xpatch = [nbdopt.time(t2bin_idcs),fliplr(nbdopt.time(t2bin_idcs))];
                 ypatch = [pthat_err(t2bin_idcs,1);flipud(pthat_err(t2bin_idcs,2))];
@@ -675,7 +684,7 @@ for tt = 1 : n_pthats
                     'markersize',8.5,...
                     'markerfacecolor','w',...
                     'markeredgecolor',contrast_clrs(ii,:));
-                offset_idx = find(nbdopt.time >= t_set(stim2test_idcs(jj)),1) - 1;
+                offset_idx = find(nbdopt.time >= t_set(jj),1) - 1;
                 plot(sps(sp_idx),...
                     nbdopt.time(offset_idx),pthat_avg(offset_idx),...
                     'color',contrast_clrs(ii,:),...
@@ -691,20 +700,26 @@ for tt = 1 : n_pthats
     end
 end
 
-%% plot point estimate point-dropping averages
+%% plot contrast-split point estimate averages
+
+% fade settings
+fadeifnoisy = true;
+alphabounds_sem = [.05,.3];
+alphabounds_mu = [.15,.85];
 
 % point estimate selection
-type = 'median';
+type = 'mean';
 
 % figure initialization
 fig = figure(...
     figopt,...
-    'name',sprintf('decoder_point_estimates_%s',contrast_str),...
+    'name',sprintf('point estimates (%s)',type),...
     'numbertitle','off');
 
 % axes initialization
 axes(...
     axesopt.default,...
+    'layer','bottom',...
     'xlim',[0,t_set(end)],...
     'xtick',sort([0;t_set]),...
     'ylim',[0,t_set(end)],...
@@ -718,45 +733,94 @@ plot(xlim,ylim,'--k');
 % iterate through contrast conditions
 for ii = 1 : n_contrasts
     contrast_flags = concat_contrasts(concat_evalset == 'test') == contrast_set(ii);
-    t2_flags = ismember(concat_stimuli(concat_evalset == 'test'),t_set(stim2test_idcs(1:end)));
+    stimulus_flags = ...
+        ismember(concat_stimuli(concat_evalset == 'test'),conditions.test.values.t2);
     concat_flags = ...
         contrast_flags & ...
-        t2_flags;
+        stimulus_flags;
+    if sum(concat_flags) == 0
+        continue;
+    end
     
+    % compute point estimate average & error
     pthat_avg = pthat_avgfuns{ff}(pthat.(type)(:,concat_flags));
     pthat_err = pthat_errfuns{ff}(pthat.(type)(:,concat_flags));
     
-    t2bin_idcs = (1 : t_set(stim2test_idcs(end))) * psthbin;
+    % compute surviving trial count
+    if fadeifnoisy
+        trials_throughtime = sum(~isnan(pthat.(type)),2)';
+    end
     
-    xpatch = [nbdopt.time(t2bin_idcs),fliplr(nbdopt.time(t2bin_idcs))];
-    ypatch = [pthat_err(t2bin_idcs,1);flipud(pthat_err(t2bin_idcs,2))];
-    patch(xpatch,ypatch,contrast_clrs(ii,:),...
-        'facecolor',contrast_clrs(ii,:),...
-        'edgecolor','none',...
-        'facealpha',.25);
-    plot(nbdopt.time(t2bin_idcs),pthat_avg(t2bin_idcs),...
-        'color',contrast_clrs(ii,:),...
-        'linewidth',1.5);
+    % patch error
+    xpatch = [nbdopt.time,fliplr(nbdopt.time)];
+    ypatch = [pthat_err(:,1);flipud(pthat_err(:,2))];
+    if fadeifnoisy
+        patch_alpha = [trials_throughtime,fliplr(trials_throughtime)];
+        patch_alpha = (patch_alpha - min(trials_throughtime)) / ...
+            range(trials_throughtime);
+        patch_alpha = patch_alpha * alphabounds_sem(2) + alphabounds_sem(1);
+        alpha_levels = unique(patch_alpha,'stable');
+        n_alpha_levels = numel(alpha_levels);
+        for aa = 1 : n_alpha_levels
+            alpha_flags = patch_alpha == alpha_levels(aa);
+            patch(...
+                xpatch(alpha_flags),...
+                ypatch(alpha_flags),0,...
+                'facealpha',alpha_levels(aa),...
+                'edgecolor','none',...
+                'facecolor',contrast_clrs(ii,:));
+        end
+    else
+        patch(xpatch,ypatch,contrast_clrs(ii,:),...
+            'facecolor',contrast_clrs(ii,:),...
+            'edgecolor','none',...
+            'facealpha',.25);
+    end
     
+    % patch average
+    if fadeifnoisy
+        patch_alpha = trials_throughtime;
+        patch_alpha = (patch_alpha - min(trials_throughtime)) / ...
+            range(trials_throughtime);
+        patch_alpha = patch_alpha * alphabounds_mu(2) + alphabounds_mu(1);
+        alpha_levels = unique(patch_alpha,'stable');
+        n_alpha_levels = numel(alpha_levels);
+        for aa = 1 : n_alpha_levels
+            alpha_flags = patch_alpha == alpha_levels(aa);
+            patch(...
+                [nbdopt.time(alpha_flags),nan],...
+                [pthat_avg(alpha_flags)',nan],0,...
+                'edgealpha',alpha_levels(aa),...
+                'edgecolor',contrast_clrs(ii,:),...
+                'facecolor','none',...
+                'linewidth',1.5);
+        end
+    else
+        plot(nbdopt.time,pthat_avg,...
+            'color',contrast_clrs(ii,:),...
+            'linewidth',1.5);
+    end
+    
+    % plot stimulus onset
     onset_idx = 1;
     plot(nbdopt.time(onset_idx),pthat_avg(onset_idx),...
-        'color',contrast_clrs(ii,:),...
         'linewidth',1.5,...
         'marker','o',...
-        'markersize',8.5,...
+        'markersize',7.5,...
         'markerfacecolor','w',...
         'markeredgecolor',contrast_clrs(ii,:));
     
     % iterate through stimuli
-    for jj = 1 : stim2test_n
-        offset_idx = find(nbdopt.time >= t_set(stim2test_idcs(jj)),1) - 1;
-        plot(nbdopt.time(offset_idx),pthat_avg(offset_idx),...
-            'color',contrast_clrs(ii,:),...
+    for jj = 1 : n_t
+
+        % plot stimulus offset
+        offset_idx = find(nbdopt.time >= t_set(jj),1) - 1;
+        scatter(nbdopt.time(offset_idx),pthat_avg(offset_idx),60,...
             'linewidth',1.5,...
             'marker','o',...
-            'markersize',8.5,...
+            'markerfacealpha',alpha_levels(jj).^fadeifnoisy,...
             'markerfacecolor',contrast_clrs(ii,:),...
-            'markeredgecolor','k');
+            'markeredgecolor','none');
     end
 end
 

@@ -23,9 +23,9 @@ fractions = struct();
 for rr = 1 : n_runs
     if n_runs > 1
         toso2021_simulateSpikes;
-        spike_data = data.FakeFR;
+        spike_data_field = 'FakeFR';
     else
-        spike_data = data.FR;
+        spike_data_field = 'FR';
     end
     
     %% iterate through spike integration windows
@@ -121,7 +121,7 @@ for rr = 1 : n_runs
             end
             
             % fetch spike counts & compute spike rates
-            spike_counts = spike_data(trial_flags,:)';
+            spike_counts = data.(spike_data_field)(trial_flags,:)';
             n_trials = sum(trial_flags);
             
             % around approach spike rates

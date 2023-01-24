@@ -133,10 +133,10 @@ for rr = 1 : n_runs
                 isi + ...
                 t2(trial_flags);
             alignment_flags = ...
-                padded_time >= alignment - spk_integration_win & ...
-                padded_time < alignment;
+                valid_time >= alignment - spk_integration_win & ...
+                valid_time < alignment;
             chunk_flags = alignment_flags;
-            aligned_spkrates = spike_counts;
+            aligned_spkrates = spike_rates;
             aligned_spkrates(~alignment_flags') = nan;
             aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
                 [spk_integration_win,n_flagged_trials])';
@@ -240,10 +240,10 @@ for rr = 1 : n_runs
                 isi + ...
                 t2(trial_flags);
             alignment_flags = ...
-                padded_time >= alignment - spk_integration_win & ...
-                padded_time < alignment;
+                valid_time >= alignment - spk_integration_win & ...
+                valid_time < alignment;
             chunk_flags = alignment_flags;
-            aligned_spkrates = spike_counts;
+            aligned_spkrates = spike_rates;
             aligned_spkrates(~alignment_flags') = nan;
             aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
                 [spk_integration_win,n_flagged_trials])';
@@ -284,10 +284,10 @@ for rr = 1 : n_runs
     % linear discriminant analysis
     X = concat_spkrates(:,train_flags)';
     threshold = median(s1(valid_flags));
-    y = concat_stimuli(train_flags) > threshold;
+%     y = concat_stimuli(train_flags) > threshold;
 %     ambiguous_flags = concat_stimuli(train_flags) == threshold;
 %     y(ambiguous_flags) = rand(sum(ambiguous_flags),1) > .5;
-%     y = concat_choices(train_flags);
+    y = concat_choices(train_flags);
 % %     y = concat_stimuli(train_flags) * w2 + concat_s1(train_flags) * w1 > 220;
 % %     y = concat_stimuli(train_flags) > + concat_s1(train_flags);
 % weighted combination
