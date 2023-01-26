@@ -12,21 +12,21 @@ if strcmpi(contrast_str,'t1')
         'i1',i1(valid_flags),[],[],...
         't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),[],[],...
-        'choice',choice(valid_flags),choice_set,[]);
+        'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i1')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),[],t_set([1,end]),...
         'i1',i1(valid_flags),i_set(i1_mode_idx),[],...
         't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),[],[],...
-        'choice',choice(valid_flags),choice_set,[]);
+        'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i2')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),[],t_set([1,end]),...
         'i1',i1(valid_flags),[],[],...
         't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
-        'choice',choice(valid_flags),choice_set,[]);
+        'choice',choice(valid_flags),1,[]);
 end
 
 % test set conditions
@@ -59,49 +59,6 @@ disp(conditions.train.values);
 fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
-% %% stimulus selection (for training & test sets)
-% 
-% % stimuli
-% stim2train_idcs = [1 + [0,1], n_stimuli + [-1,0]];
-% stim2train_n = numel(stim2train_idcs);
-% stim2test_idcs = 1 : n_stimuli; % stim_mode_idx + [-1,0,1]; %
-% stim2test_n = numel(stim2test_idcs);
-% 
-% % contrasts
-% contrast2train_idcs = contrast_mode_idx;
-% contrast2train_n = numel(contrast2train_idcs);
-% contrast2test_idcs = 1 : n_contrasts;
-% contrast2test_n = numel(contrast2test_idcs);
-% 
-% %% condition properties (for training & test sets)
-% conditions = struct();
-% 
-% % training set conditions
-% conditions.train.n = stim2train_n * contrast2train_n;
-% conditions.train.stimulus.idcs = ...
-%     num2cell(repmat(stim2train_idcs',contrast2train_n,1));
-% conditions.train.stimulus.values = cellfun(...
-%     @(x) stim_set(x),conditions.train.stimulus.idcs,...
-%     'uniformoutput',false);
-% conditions.train.contrast.idcs = ...
-%     num2cell(repmat(contrast2train_idcs',stim2train_n,1));
-% conditions.train.contrast.values = cellfun(...
-%     @(x) contrast_set(x),conditions.train.contrast.idcs,...
-%     'uniformoutput',false);
-% 
-% % test set conditions
-% conditions.test.n = stim2test_n * contrast2test_n;
-% conditions.test.stimulus.idcs = ...
-%     num2cell(sort(repmat(stim2test_idcs',contrast2test_n,1)));
-% conditions.test.stimulus.values = cellfun(...
-%     @(x) stim_set(x),conditions.test.stimulus.idcs,...
-%     'uniformoutput',false);
-% conditions.test.contrast.idcs = ...
-%     num2cell(repmat(contrast2test_idcs',stim2test_n,1));
-% conditions.test.contrast.values = cellfun(...
-%     @(x) contrast_set(x),conditions.test.contrast.idcs,...
-%     'uniformoutput',false);
-
 %% run settings
 n_runs = 1;
 
@@ -121,6 +78,9 @@ roi_n_bins = range(roi) * psthbin;
 roi_time = linspace(roi(1),roi(2),roi_n_bins);
 
 %% construct spike rate tensor (time X neurons X concatenations)
+
+% data clearance
+clear concat_tensor P_tR;
 
 % preallocation
 nbd = struct();
@@ -160,7 +120,7 @@ for rr = 1 : n_runs
                     feature,conditions.train.values.(feature_lbl)(kk,:));
             end
             condition_flags = all(feature_flags,2);
-
+            
             % trial selection
             trial_flags = ...
                 valid_flags & ...
@@ -171,7 +131,7 @@ for rr = 1 : n_runs
             if n_flagged_trials == 0
                 continue;
             end
-
+            
             % fetch spike counts & compute spike rates
             spike_counts = data.FR(trial_flags,:);
             spike_rates = ...
@@ -207,7 +167,7 @@ for rr = 1 : n_runs
             % handle cross-validation for all detected test conditions
             if any(xval_condition_flags)
                 xval_condition_idcs = find(xval_condition_flags)';
-
+                
                 % iterate through detected test conditions
                 for ii = xval_condition_idcs
                     
@@ -262,7 +222,7 @@ for rr = 1 : n_runs
                     feature,conditions.test.values.(feature_lbl)(kk,:));
             end
             condition_flags = all(feature_flags,2);
-
+            
             % trial selection
             trial_flags = ...
                 valid_flags & ...
@@ -330,12 +290,12 @@ for rr = 1 : n_runs
     toc
     
     % save current run
-%     nbd.P_tR(:,:,:,rr) = P_tR;
-%     nbd.P_Rt(:,:,:,rr) = P_Rt;
-%     nbd.pthat.mode(:,:,rr) = pthat.mode;
-%     nbd.pthat.median(:,:,rr) = pthat.median;
-%     nbd.pthat.mean(:,:,rr) = pthat.mean;
-%     nbd.neurons(:,rr) = neurons;
+    %     nbd.P_tR(:,:,:,rr) = P_tR;
+    %     nbd.P_Rt(:,:,:,rr) = P_Rt;
+    %     nbd.pthat.mode(:,:,rr) = pthat.mode;
+    %     nbd.pthat.median(:,:,rr) = pthat.median;
+    %     nbd.pthat.mean(:,:,rr) = pthat.mean;
+    %     nbd.neurons(:,rr) = neurons;
 end
 
 %% plot likelihoods
@@ -411,7 +371,7 @@ for kk = randperm(nbdopt.test.n_trials,min(nbdopt.test.n_trials,100))
 end
 
 %% choice of average function
-avgfun = @nanmean;
+avgfun = @nanmedian;
 
 %% plot contrast- & stimulus-split posterior averages
 figure(...
@@ -600,14 +560,12 @@ end
 
 %% plot contrast-split posterior averages
 figure(...
-    'name','posterior averages',...
+    'name','stimulus-split posterior averages',...
     'numbertitle','off',...
     'windowstyle','docked');
 sps = gobjects(n_contrasts,1);
 for ii = 1 : n_contrasts
     sps(ii) = subplot(1,n_contrasts,ii);
-    xlabel(sps(ii),'Real time since S_2 onset (ms)');
-    ylabel(sps(ii),'Decoded time since S_2 onset (ms)');
 end
 set(sps,...
     axesopt.default,...
@@ -616,7 +574,6 @@ set(sps,...
     'ylim',[0,t_set(end)],...
     'ytick',[]); % sort([0;t_set]));
 linkaxes(sps);
-clims = quantile(avgfun(P_tR,3),[0,1],[1,2])';
 
 % iterate through contrast conditions
 for ii = 1 : n_contrasts
@@ -632,9 +589,56 @@ for ii = 1 : n_contrasts
     p_cond = avgfun(P_tR(:,:,concat_flags),3);
     p_cond = p_cond ./ nansum(p_cond,2);
     p_cond(isnan(p_cond)) = max(p_cond(:));
-    imagesc(sps(ii),[0,t_set(end)],[0,t_set(end)],p_cond',clims);
+    imagesc(sps(ii),[0,t_set(end)],[0,t_set(end)],p_cond');
     plot(sps(ii),xlim,ylim,'--w');
 end
+
+%% plot superimposed contrast-split posterior averages
+figure(...
+    'name','posterior averages',...
+    'numbertitle','off');
+sps = gobjects(n_contrasts,1);
+for ii = 1 : n_contrasts
+    sps(ii) = axes(...
+        axesopt.default,...
+        'layer','bottom',...
+        'xlim',[0,t_set(end)],...
+        'xtick',sort([0;t_set]),...
+        'ylim',[0,t_set(end)],...
+        'ytick',sort([0;t_set]),...
+        'colormap',colorlerp([[1,1,1];contrast_clrs(ii,:)],2^8));
+    xlabel('Real time since S_2 onset (ms)');
+    ylabel('Decoded time since S_2 onset (ms)');
+    if ii > 1
+        set(sps(ii),...
+            'xcolor','none',...
+            'ycolor','none');
+    end
+end
+linkaxes(sps);
+clims = quantile(avgfun(P_tR,3),[0,1],[1,2])';
+
+% iterate through contrast conditions
+for ii = 1 : n_contrasts
+    contrast_flags = concat_contrasts(concat_evalset == 'test') == contrast_set(ii);
+    concat_flags = ...
+        contrast_flags;
+    if sum(concat_flags) == 0
+        continue;
+    end
+    p_cond = avgfun(P_tR(:,:,concat_flags),3);
+    p_cond = p_cond ./ nansum(p_cond,2);
+    p_cond(isnan(p_cond)) = max(p_cond(:));
+    p_patch = mat2patch(p_cond);
+    patch(sps(ii),p_patch,...
+        'facevertexalphadata',p_patch.facevertexcdata,...
+        'edgecolor','none',...
+        'facecolor','flat',...
+        'facealpha','interp');
+end
+
+% plot identity line
+plot(sps(ii),xlim,ylim,'--k');
 
 %% plot contrast- & stimulus-split point estimate averages
 pthat_avgfuns = {...
@@ -782,10 +786,9 @@ for ii = 1 : n_contrasts
         continue;
     end
     
+    % compute point estimate average & error
     pthat_avg = pthat_avgfuns{ff}(pthat.(type)(:,concat_flags));
     pthat_err = pthat_errfuns{ff}(pthat.(type)(:,concat_flags));
-    xpatch = [nbdopt.time,fliplr(nbdopt.time)];
-    ypatch = [pthat_err(:,1);flipud(pthat_err(:,2))];
     
     % compute surviving trial count
     if fadeifnoisy
@@ -793,6 +796,8 @@ for ii = 1 : n_contrasts
     end
     
     % patch error
+    xpatch = [nbdopt.time,fliplr(nbdopt.time)];
+    ypatch = [pthat_err(:,1);flipud(pthat_err(:,2))];
     if fadeifnoisy
         patch_alpha = [trials_throughtime,fliplr(trials_throughtime)];
         patch_alpha = (patch_alpha - min(trials_throughtime)) / ...
@@ -840,7 +845,7 @@ for ii = 1 : n_contrasts
             'linewidth',1.5);
     end
     
-    % plot alignment onset
+    % plot stimulus onset
     onset_idx = 1;
     plot(nbdopt.time(onset_idx),pthat_avg(onset_idx),...
         'linewidth',1.5,...
@@ -850,39 +855,16 @@ for ii = 1 : n_contrasts
         'markeredgecolor',contrast_clrs(ii,:));
     
     % iterate through stimuli
-        pseudo_tt = 1;
-        for jj = 1 : n_t
-            t2_flags = t2 == t_set(jj);
-            trial_flags = ...
-                t1_spike_flags & ...
-                t2_flags;
-            if sum(trial_flags) < 1
-                continue;
-            end
-            
-            % plot stimulus offset
-            offset_flags = time2plot < t_set(jj) & ...
-                [time2plot(2:end),nan] >= t_set(jj);
-            scatter(sps(1),time2plot(offset_flags),t1_mu(offset_flags),36,...
-                'linewidth',1.5,...
-                'marker','o',...
-                'markerfacealpha',alpha_levels(pseudo_tt).^fadeifnoisy,...
-                'markerfacecolor',t1_clrs(tt,:),...
-                'markeredgecolor','none');
-            pseudo_tt = pseudo_tt + 1;
-        end
-    
-    
-    % iterate through stimuli
-    for jj = 1 : n_stimuli
+    for jj = 1 : n_t
+
+        % plot stimulus offset
         offset_idx = find(nbdopt.time >= t_set(jj),1) - 1;
-        plot(nbdopt.time(offset_idx),pthat_avg(offset_idx),...
-            'color',contrast_clrs(ii,:),...
+        scatter(nbdopt.time(offset_idx),pthat_avg(offset_idx),60,...
             'linewidth',1.5,...
             'marker','o',...
-            'markersize',8.5,...
+            'markerfacealpha',alpha_levels(jj).^fadeifnoisy,...
             'markerfacecolor',contrast_clrs(ii,:),...
-            'markeredgecolor','k');
+            'markeredgecolor','none');
     end
 end
 
