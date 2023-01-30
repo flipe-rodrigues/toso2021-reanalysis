@@ -71,10 +71,7 @@ toso2021_psychometricCurves;
 % ephys
 toso2021_neuronSelection;
 return;
-toso2021_GLM_poisson_allEpochs;
-toso2021_trialTypeDistributions;
-toso2021_tiling;
-toso2021_overallModulation;
+toso2021_averageActivity
 toso2021_PCA_t2Aligned;
 toso2021_neurometricCurves;
 toso2021_naiveBayesDecoder;
