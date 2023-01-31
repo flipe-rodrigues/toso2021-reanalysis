@@ -24,7 +24,7 @@ elseif strcmpi(contrast_str,'i2')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),t_set,[],...
         'i1',i1(valid_flags),[],[],...
-        't2',t2(valid_flags),t_set(end),[],...
+        't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
         'choice',choice(valid_flags),[],[]);
 end
@@ -73,7 +73,7 @@ n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 % end
 
 %% time settings
-roi = [-0,t_set(end)]; % [-500,t_set(end)] !!!!!!!!!!!
+roi = [-500,t_set(end)];
 roi_n_bins = range(roi) * psthbin;
 roi_time = linspace(roi(1),roi(2),roi_n_bins);
 
@@ -88,6 +88,9 @@ concat_stimuli = nan(n_concats,n_runs);
 concat_contrasts = nan(n_concats,n_runs);
 concat_choices = nan(n_concats,n_runs);
 concat_evalset = categorical(nan(n_concats,n_runs),[0,1],{'train','test'});
+
+%
+spike_data_field = 'FR';
 
 % iterate through runs
 for rr = 1 : n_runs
@@ -133,7 +136,7 @@ for rr = 1 : n_runs
             end
             
             % fetch spike counts & compute spike rates
-            spike_counts = data.FR(trial_flags,:);
+            spike_counts = data.(spike_data_field)(trial_flags,:);
             spike_rates = ...
                 conv2(1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
             
@@ -235,7 +238,7 @@ for rr = 1 : n_runs
             end
             
             % fetch spike counts & compute spike rates
-            spike_counts = data.FR(trial_flags,:);
+            spike_counts = data.(spike_data_field)(trial_flags,:);
             spike_rates = ...
                 conv2(1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
             
@@ -283,7 +286,7 @@ for rr = 1 : n_runs
     nbdopt.train.n_trials = numel(nbdopt.train.trial_idcs);
     nbdopt.test.trial_idcs = find(concat_evalset == 'test');
     nbdopt.test.n_trials = numel(nbdopt.test.trial_idcs);
-    nbdopt.assumepoissonmdl = true;
+    nbdopt.assumepoissonmdl = false;
     
     tic
     [P_tR,P_Rt,pthat,neurons] = bayesdecoder(concat_tensor,nbdopt);
@@ -636,12 +639,12 @@ plot(xlim,ylim,'--k');
 
 %% plot contrast- & stimulus-split point estimate averages
 pthat_avgfuns = {...
-    @(x)nanmean(x,2),...
-    ...@(x)nanmedian(x,2),...
+    ...@(x)nanmean(x,2),...
+    @(x)nanmedian(x,2),...
     };
 pthat_errfuns = {...
-    @(x)nanmean(x,2) + [-1,1] .* nanstd(x,0,2) / sqrt(size(x,2));
-    ...@(x)quantile(x,[.25,.75],2),...
+    ...@(x)nanmean(x,2) + [-1,1] .* nanstd(x,0,2) / sqrt(size(x,2));
+    @(x)quantile(x,[.25,.75],2),...
     };
 n_funs = numel(pthat_avgfuns);
 

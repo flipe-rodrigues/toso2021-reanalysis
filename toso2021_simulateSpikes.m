@@ -12,7 +12,7 @@ time = struct();
 psths = struct();
 
 % smoothing settings
-gauss_kernel = gausskernel('mu',0,'sig',15,'binwidth',psthbin);
+gauss_kernel = gausskernel('mu',0,'sig',50,'binwidth',psthbin);
 gauss_padded_time = ...
     (1 : psthbin : n_paddedtimebins * psthbin) - psthbin;
 gauss_validtime_flags = ...
@@ -24,17 +24,10 @@ gauss_valid_time = gauss_padded_time(gauss_validtime_flags);
 rois.pre_s1 = [gauss_kernel.paddx(1),unique(pre_s1_delay(valid_flags))];
 rois.s1 = [0,t_set(end)];
 rois.isi = [0,isi];
-rois.s2 = [0,t_set(end)];
+rois.s2on = [0,t_set(end)];
+rois.s2off = sort(-rois.s2on);
 rois.post_s2 = [0,post_s2_delay];
 rois.go = [0,gauss_kernel.paddx(2)];
-
-% roi alignment labels
-alignments.pre_s1 = 'pre-T_{1}-delay';
-alignments.s1 = 'T_{1}';
-alignments.isi = 'inter T_{1}-T_{2} delay';
-alignments.s2 = 'T_{2}';
-alignments.post_s2 = 'post-T_{2}-delay';
-alignments.go = 'go cue';
 
 % iterate through task epochs
 task_epochs = fieldnames(rois);
@@ -116,40 +109,40 @@ for nn = 1 : n_neurons_total
     isi_spkrates = reshape(...
         isi_spkrates(isi_chunk_flags'),[n_bins.isi,n_trials])';
     
-    % S2-aligned spike rates
-    s2_alignment = ...
+    % S2-onset-aligned spike rates
+    s2on_alignment = ...
         pre_init_padding + ...
         pre_s1_delay(spike_flags) + ...
         t1(spike_flags) + ...
         isi;
-    s2_alignment_flags = ...
-        gauss_valid_time >= s2_alignment + rois.s2(1) & ...
-        gauss_valid_time < s2_alignment + t2(spike_flags);
-    s2_chunk_flags = ...
-        gauss_valid_time >= s2_alignment + rois.s2(1) & ...
-        gauss_valid_time < s2_alignment + rois.s2(2);
-    s2_spkrates = spike_rates;
-    s2_spkrates(~s2_alignment_flags') = nan;
-    s2_spkrates = reshape(...
-        s2_spkrates(s2_chunk_flags'),[n_bins.s2,n_trials])';
+    s2on_alignment_flags = ...
+        gauss_valid_time >= s2on_alignment + rois.s2on(1) & ...
+        gauss_valid_time < s2on_alignment + t2(spike_flags);
+    s2on_chunk_flags = ...
+        gauss_valid_time >= s2on_alignment + rois.s2on(1) & ...
+        gauss_valid_time < s2on_alignment + rois.s2on(2);
+    s2on_spkrates = spike_rates;
+    s2on_spkrates(~s2on_alignment_flags') = nan;
+    s2on_spkrates = reshape(...
+        s2on_spkrates(s2on_chunk_flags'),[n_bins.s2on,n_trials])';
     
-    % S2-aligned spike rates
-    s2_alignment = ...
+    % S2-offset-aligned spike rates
+    s2off_alignment = ...
         pre_init_padding + ...
         pre_s1_delay(spike_flags) + ...
         t1(spike_flags) + ...
         isi + ...
         t2(spike_flags);
-    s2_alignment_flags = ...
-        gauss_valid_time >= s2_alignment - t2(spike_flags) & ...
-        gauss_valid_time < s2_alignment + rois.s2(1);
-    s2_chunk_flags = ...
-        gauss_valid_time >= s2_alignment - rois.s2(2) & ...
-        gauss_valid_time < s2_alignment + rois.s2(1);
-    s2_spkrates_off = spike_rates;
-    s2_spkrates_off(~s2_alignment_flags') = nan;
-    s2_spkrates_off = reshape(...
-        s2_spkrates_off(s2_chunk_flags'),[n_bins.s2,n_trials])';
+    s2off_alignment_flags = ...
+        gauss_valid_time >= s2off_alignment - t2(spike_flags) & ...
+        gauss_valid_time < s2off_alignment + rois.s2off(2);
+    s2off_chunk_flags = ...
+        gauss_valid_time >= s2off_alignment + rois.s2off(1) & ...
+        gauss_valid_time < s2off_alignment + rois.s2off(2);
+    s2off_spkrates = spike_rates;
+    s2off_spkrates(~s2off_alignment_flags') = nan;
+    s2off_spkrates = reshape(...
+        s2off_spkrates(s2off_chunk_flags'),[n_bins.s2off,n_trials])';
     
     % post S2 delay-aligned spike rates
     post_s2_alignment = ...
@@ -188,10 +181,10 @@ for nn = 1 : n_neurons_total
     
     % compute mean spike density function
     psths.pre_s1(:,nn,i2_mode_idx) = nanmean(pre_s1_spkrates,1);
-    psths.s1(:,nn,i2_mode_idx) = nanmean(s2_spkrates,1); % !!! IMPORTANT DETAIL: S2, NOT S1
+    psths.s1(:,nn,i2_mode_idx) = nanmean(s2on_spkrates,1); % !!! IMPORTANT DETAIL: S2, NOT S1
     psths.isi(:,nn,i2_mode_idx) = nanmean(isi_spkrates,1);
-    psths.s2(:,nn,i2_mode_idx) = nanmean(s2_spkrates,1);
-    psths.s2off(:,nn,i2_mode_idx) = nanmean(s2_spkrates_off,1);
+    psths.s2on(:,nn,i2_mode_idx) = nanmean(s2on_spkrates,1);
+    psths.s2off(:,nn,i2_mode_idx) = nanmean(s2off_spkrates,1);
     psths.post_s2(:,nn,i2_mode_idx) = nanmean(post_s2_spkrates,1);
     psths.go(:,nn,i2_mode_idx) = nanmean(go_spkrates,1);
 end
@@ -200,8 +193,8 @@ end
 
 % modulation settings
 modulation = log(i_set) ./ log(i_set(i2_mode_idx));
-scaling = modulation .^ 0 * 1;
-gain = modulation .^ 1 * 1;
+scaling = modulation .^ 1 * 1;
+gain = modulation .^ 0 * 1;
 
 % iterate through neurons
 for nn = 1 : n_neurons_total
@@ -218,10 +211,10 @@ for nn = 1 : n_neurons_total
             psths.s1(:,nn,i1_mode_idx);
         
         % apply I2 modulation at S2 presentation
-        psths.s2(:,nn,ii) = gain(ii) * ......
-            interp1(time.s2,psths.s2(:,nn,i2_mode_idx),time.s2*scaling(ii));
+        psths.s2on(:,nn,ii) = gain(ii) * ......
+            interp1(time.s2on,psths.s2on(:,nn,i2_mode_idx),time.s2on*scaling(ii));
         psths.s2off(:,nn,ii) = gain(ii) * ...
-            psths.s2off(:,nn,i1_mode_idx);
+            interp1(time.s2off,psths.s2off(:,nn,i2_mode_idx),time.s2off*scaling(ii));
         
         % no intensity modulation in the remaining epochs
         psths.pre_s1(:,nn,ii) = psths.pre_s1(:,nn,i2_mode_idx);
@@ -255,18 +248,25 @@ for nn = 1 : n_neurons_total
     for kk = 1 : n_trials
         trial_idx = spike_trials(kk);
         
-        lambda_pre_s1 = psths.pre_s1(:,nn,i1(trial_idx)==i_set);
-        lambda_s1 = psths.s1(time.s1<=t1(trial_idx),nn,i1(trial_idx)==i_set); ... + ...
-%             lambda_pre_s1(end) - psths.s1(1,nn,i1(trial_idx)==i_set);
-        lambda_isi = psths.isi(:,nn,i1(trial_idx)==i_set); ... + ...
-%             lambda_s1(end) - psths.isi(1,nn,i1(trial_idx)==i_set);
-        lambda_s2 = psths.s2(time.s2<=t2(trial_idx),nn,i2(trial_idx)==i_set); ... + ...
-%             lambda_isi(end) - psths.s2(1,nn,i2(trial_idx)==i_set);
-        lambda_post_s2 = psths.post_s2(:,nn,i2(trial_idx)==i_set); ... + ...
-%             lambda_s2(end) - psths.post_s2(1,nn,i2(trial_idx)==i_set);
-        lambda_go = psths.go(:,nn,i2(trial_idx)==i_set); ... + ...
-%             lambda_post_s2(end) - psths.go(1,nn,i2(trial_idx)==i_set);
+%         lambda_pre_s1 = psths.pre_s1(:,nn,i1(trial_idx)==i_set);
+%         lambda_s1 = psths.s1(time.s1<=t1(trial_idx),nn,i1(trial_idx)==i_set);
+%         lambda_isi = psths.isi(:,nn,i1(trial_idx)==i_set);
+%         lambda_s2 = psths.s2on(time.s2on<=t2(trial_idx),nn,i2(trial_idx)==i_set);
+%         lambda_post_s2 = psths.post_s2(:,nn,i2(trial_idx)==i_set);
+%         lambda_go = psths.go(:,nn,i2(trial_idx)==i_set);
         
+        lambda_pre_s1 = psths.pre_s1(:,nn,i1(trial_idx)==i_set);
+        lambda_s1 = psths.s1(time.s1<=t1(trial_idx),nn,i1(trial_idx)==i_set) + ...
+            lambda_pre_s1(end) - psths.s1(1,nn,i1(trial_idx)==i_set);
+        lambda_isi = psths.isi(:,nn,i1(trial_idx)==i_set) + ...
+            lambda_s1(end) - psths.isi(1,nn,i1(trial_idx)==i_set);
+        lambda_s2 = psths.s2on(time.s2on<=t2(trial_idx),nn,i2(trial_idx)==i_set) + ...
+            lambda_isi(end) - psths.s2on(1,nn,i2(trial_idx)==i_set);
+        lambda_post_s2 = psths.post_s2(:,nn,i2(trial_idx)==i_set) + ...
+            lambda_s2(end) - psths.post_s2(1,nn,i2(trial_idx)==i_set);
+        lambda_go = psths.go(:,nn,i2(trial_idx)==i_set) + ...
+            lambda_post_s2(end) - psths.go(1,nn,i2(trial_idx)==i_set);
+
         lambda = [...
             lambda_pre_s1;...
             lambda_s1;...

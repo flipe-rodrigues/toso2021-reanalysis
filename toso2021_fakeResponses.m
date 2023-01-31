@@ -18,6 +18,10 @@ end
 % neurons2plot = neuron_idcs;
 n_neurons2plot = numel(neurons2plot);
 
+
+%% fade settings
+alphabounds_mu = [.15,.85];
+
 %% construct Si-aligned, Ti- & Ii-split psths
 ti_padd = [-0,0];
 sdf_gain = .75;
@@ -76,45 +80,45 @@ for nn = 1 : n_neurons2plot
     % iterate through intensities
     for ii = n_i : -1 : 1
         i2_flags = i2 == i_set(ii);
-        s2_spike_flags = ...
+        trial_flags = ...
             valid_flags & ...
             neuron_flags & ...
             i2_flags;
-        if sum(s2_spike_flags) == 0
+        n_flagged_trials = sum(trial_flags);
+        if n_flagged_trials == 0
             continue;
         end
         
         % fetch spike counts & compute spike rates
-        s2_spike_counts = data.FakeFR(s2_spike_flags,:);
-        s2_spike_rates = conv2(...
-            1,kernel.pdf,s2_spike_counts,'valid')' / psthbin * 1e3;
-        s2_n_trials = size(s2_spike_counts,1);
-        s2on_n_tbins = range(xlim(sps(1)))  * psthbin;
+        spike_counts = data.FakeFR(trial_flags,:);
+        spike_rates = conv2(...
+            1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
+        s2on_n_tbins = range(xlim(sps(1))) * psthbin;
         s2off_n_tbins = range(xlim(sps(2)))  * psthbin;
         
         % S2-onset-aligned, I2-split spike rates
         s2on_alignment_onset = ...
             pre_init_padding + ...
-            pre_s1_delay(s2_spike_flags) + ...
-            t1(s2_spike_flags) + ...
+            pre_s1_delay(trial_flags) + ...
+            t1(trial_flags) + ...
             isi;
         s2on_alignment_flags = ...
             valid_time >= s2on_alignment_onset + min(xlim(sps(1))) & ...
-            valid_time < s2on_alignment_onset + t2(s2_spike_flags);
+            valid_time < s2on_alignment_onset + t2(trial_flags);
         s2on_chunk_flags = ...
             valid_time >= s2on_alignment_onset + min(xlim(sps(1))) & ...
             valid_time < s2on_alignment_onset + max(xlim(sps(1)));
-        s2on_spkrates = s2_spike_rates;
+        s2on_spkrates = spike_rates;
         s2on_spkrates(~s2on_alignment_flags') = nan;
         s2on_spkrates = reshape(...
-            s2on_spkrates(s2on_chunk_flags'),[s2on_n_tbins,s2_n_trials])';
+            s2on_spkrates(s2on_chunk_flags'),[s2on_n_tbins,n_flagged_trials])';
         
         % time selection
         time2plot = min(xlim(sps(1))) + psthbin : psthbin : max(xlim(sps(1)));
         time_flags = time2plot <= max(xlim(sps(1)));
         
         % compute mean spike density function
-        s2on_mu = nanmean(s2on_spkrates(:,time_flags),1);
+        s2on_mu = nanmean(s2on_spkrates(:,time_flags),1)';
         s2on_std = nanstd(s2on_spkrates(:,time_flags),0,1);
         s2on_trials_throughtime = sum(~isnan(s2on_spkrates),1);
         s2on_sem = s2on_std ./ sqrt(s2on_trials_throughtime);
@@ -122,11 +126,11 @@ for nn = 1 : n_neurons2plot
         % flag current stimulus period
         nan_flags = isnan(s2on_mu);
         onset_flags = time2plot <= 0 & [time2plot(2:end),nan] > 0;
-        offset_flags = diff([nan_flags,true]) == 1;
+        offset_flags = diff([nan_flags;true]) == 1;
         flagged_time = time2plot(~nan_flags);
         
         % patch average activity
-        s2on_mu = psths.s2(:,neurons2plot(nn),ii);
+        s2on_mu = psths.s2on(:,neurons2plot(nn),ii);
         if ii == n_i
             s2_min = min(s2on_mu);
             s2_range = range(s2on_mu);
@@ -139,7 +143,7 @@ for nn = 1 : n_neurons2plot
         patch_alpha = s2on_trials_throughtime(~nan_flags);
         patch_alpha = (patch_alpha - min(s2on_trials_throughtime)) / ...
             range(s2on_trials_throughtime);
-        patch_alpha = patch_alpha * .95 + .05;
+        patch_alpha = patch_alpha * alphabounds_mu(2) + alphabounds_mu(1);
         alpha_levels = unique(patch_alpha);
         n_alpha_levels = numel(alpha_levels);
         for aa = 1 : n_alpha_levels
@@ -167,30 +171,30 @@ for nn = 1 : n_neurons2plot
             'markerfacecolor','w',...
             'markeredgecolor',i2_clrs(ii,:));
         
-        % S2-onset-aligned, I2-split spike rates
+        % S2-offset-aligned, I2-split spike rates
         s2off_alignment_onset = ...
             pre_init_padding + ...
-            pre_s1_delay(s2_spike_flags) + ...
-            t1(s2_spike_flags) + ...
+            pre_s1_delay(trial_flags) + ...
+            t1(trial_flags) + ...
             isi + ...
-            t2(s2_spike_flags);
+            t2(trial_flags);
         s2off_alignment_flags = ...
-            valid_time >= s2off_alignment_onset - t2(s2_spike_flags) & ...
+            valid_time >= s2off_alignment_onset - t2(trial_flags) & ...
             valid_time < s2off_alignment_onset + max(xlim(sps(2)));
         s2off_chunk_flags = ...
             valid_time >= s2off_alignment_onset + min(xlim(sps(2))) & ...
             valid_time < s2off_alignment_onset + max(xlim(sps(2)));
-        s2off_spkrates = s2_spike_rates;
+        s2off_spkrates = spike_rates;
         s2off_spkrates(~s2off_alignment_flags') = nan;
         s2off_spkrates = reshape(...
-            s2off_spkrates(s2off_chunk_flags'),[s2off_n_tbins,s2_n_trials])';
+            s2off_spkrates(s2off_chunk_flags'),[s2off_n_tbins,n_flagged_trials])';
         
         % time selection
         time2plot = min(xlim(sps(2))) + psthbin : psthbin : max(xlim(sps(2)));
         time_flags = time2plot <= max(xlim(sps(2)));
         
         % compute mean spike density function
-        s2off_mu = nanmean(s2off_spkrates(:,time_flags),1);
+        s2off_mu = nanmean(s2off_spkrates(:,time_flags),1)';
         s2off_std = nanstd(s2off_spkrates(:,time_flags),0,1);
         s2off_trials_throughtime = sum(~isnan(s2off_spkrates),1);
         s2off_sem = s2off_std ./ sqrt(s2off_trials_throughtime);
@@ -198,7 +202,7 @@ for nn = 1 : n_neurons2plot
         % flag current stimulus period
         nan_flags = isnan(s2off_mu);
         onset_flags = time2plot <= 0 & [time2plot(2:end),nan] > 0;
-        offset_flags = diff([nan_flags,true]) == 1;
+        offset_flags = diff([nan_flags;true]) == 1;
         flagged_time = time2plot(~nan_flags);
         
         % patch average activity
@@ -215,7 +219,7 @@ for nn = 1 : n_neurons2plot
         patch_alpha = s2off_trials_throughtime(~nan_flags);
         patch_alpha = (patch_alpha - min(s2off_trials_throughtime)) / ...
             range(s2off_trials_throughtime);
-        patch_alpha = patch_alpha * .95 + .05;
+        patch_alpha = patch_alpha * alphabounds_mu(2) + alphabounds_mu(1);
         alpha_levels = unique(patch_alpha);
         n_alpha_levels = numel(alpha_levels);
         for aa = 1 : n_alpha_levels
