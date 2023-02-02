@@ -66,14 +66,8 @@ n_runs = 1;
 n_concatspercond = 2^7; % 2^8;
 n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
-%% memory consideration settings
-% tempfolder_name = 'posteriors (temp)';
-% if ~exist(tempfolder_name,'dir')
-%     mkdir(tempfolder_name);
-% end
-
 %% time settings
-roi = [-500,t_set(end)];
+roi = [-0,t_set(end)]; % [-500,t_set(end)] !!!!!!!!!!!
 roi_n_bins = range(roi) * psthbin;
 roi_time = linspace(roi(1),roi(2),roi_n_bins);
 
@@ -89,7 +83,7 @@ concat_contrasts = nan(n_concats,n_runs);
 concat_choices = nan(n_concats,n_runs);
 concat_evalset = categorical(nan(n_concats,n_runs),[0,1],{'train','test'});
 
-%
+% data type selection
 spike_data_field = 'FR';
 
 % iterate through runs

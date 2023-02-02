@@ -237,7 +237,7 @@ prev_correct = [nan;correct(1:end-1)];
 
 %% kernel settings
 psthbin = 1;
-kernel = gammakernel('peakx',75,'binwidth',psthbin);
+kernel = gammakernel('peakx',50,'binwidth',psthbin);
 n_paddedtimebins = size(data.FR,2);
 n_timebins = n_paddedtimebins - kernel.nbins + 1;
 n_tbins = max(t_set) * psthbin;

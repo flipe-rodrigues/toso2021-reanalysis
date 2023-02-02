@@ -194,11 +194,14 @@ end
 % modulation settings
 modulation = log(i_set) ./ log(i_set(i2_mode_idx));
 scaling = modulation .^ 1 * 1;
-gain = modulation .^ 0 * 1;
+gain = modulation .^ 1 * 1;
 
 % iterate through neurons
 for nn = 1 : n_neurons_total
     progressreport(nn,n_neurons_total,'generating fake rates');
+    if all(isnan(psths.s2on(:,nn,i2_mode_idx)))
+        continue;
+    end
     
     % iterate through intensities
     for ii = 1 : n_i
@@ -211,11 +214,14 @@ for nn = 1 : n_neurons_total
             psths.s1(:,nn,i1_mode_idx);
         
         % apply I2 modulation at S2 presentation
-        psths.s2on(:,nn,ii) = gain(ii) * ......
-            interp1(time.s2on,psths.s2on(:,nn,i2_mode_idx),time.s2on*scaling(ii));
+        psths.s2on(:,nn,ii) = linspace(1,gain(ii),n_bins.s2on) .* ......
+            interp1(time.s2on,psths.s2on(:,nn,i2_mode_idx),time.s2on*scaling(ii),...
+            'linear','extrap');
+%         nan_flags = isnan(psths.s2on(:,nn,ii));
+%         psths.s2on(nan_flags,nn,ii) = psths.s2on(find(~nan_flags,1,'last'),nn,ii);
         psths.s2off(:,nn,ii) = gain(ii) * ...
             interp1(time.s2off,psths.s2off(:,nn,i2_mode_idx),time.s2off*scaling(ii));
-        
+
         % no intensity modulation in the remaining epochs
         psths.pre_s1(:,nn,ii) = psths.pre_s1(:,nn,i2_mode_idx);
         psths.isi(:,nn,ii) = psths.isi(:,nn,i2_mode_idx);
@@ -236,7 +242,7 @@ data.FakeFR = nan(size(data.FR));
 for nn = 1 : n_neurons_total
     progressreport(nn,n_neurons_total,'generating fake spikes');
     neuron_flags = data.NeuronNumb == nn;
-
+    
     % trial selection
     spike_flags = ...
         valid_flags & ...
@@ -244,16 +250,20 @@ for nn = 1 : n_neurons_total
     spike_trials = find(spike_flags);
     n_trials = numel(spike_trials);
     
+%     if ismember(nn,flagged_neurons)
+%         figure;hold on;
+%     end
+    
     % iterate through trials
     for kk = 1 : n_trials
         trial_idx = spike_trials(kk);
         
-%         lambda_pre_s1 = psths.pre_s1(:,nn,i1(trial_idx)==i_set);
-%         lambda_s1 = psths.s1(time.s1<=t1(trial_idx),nn,i1(trial_idx)==i_set);
-%         lambda_isi = psths.isi(:,nn,i1(trial_idx)==i_set);
-%         lambda_s2 = psths.s2on(time.s2on<=t2(trial_idx),nn,i2(trial_idx)==i_set);
-%         lambda_post_s2 = psths.post_s2(:,nn,i2(trial_idx)==i_set);
-%         lambda_go = psths.go(:,nn,i2(trial_idx)==i_set);
+        %         lambda_pre_s1 = psths.pre_s1(:,nn,i1(trial_idx)==i_set);
+        %         lambda_s1 = psths.s1(time.s1<=t1(trial_idx),nn,i1(trial_idx)==i_set);
+        %         lambda_isi = psths.isi(:,nn,i1(trial_idx)==i_set);
+        %         lambda_s2 = psths.s2on(time.s2on<=t2(trial_idx),nn,i2(trial_idx)==i_set);
+        %         lambda_post_s2 = psths.post_s2(:,nn,i2(trial_idx)==i_set);
+        %         lambda_go = psths.go(:,nn,i2(trial_idx)==i_set);
         
         lambda_pre_s1 = psths.pre_s1(:,nn,i1(trial_idx)==i_set);
         lambda_s1 = psths.s1(time.s1<=t1(trial_idx),nn,i1(trial_idx)==i_set) + ...
@@ -266,7 +276,7 @@ for nn = 1 : n_neurons_total
             lambda_s2(end) - psths.post_s2(1,nn,i2(trial_idx)==i_set);
         lambda_go = psths.go(:,nn,i2(trial_idx)==i_set) + ...
             lambda_post_s2(end) - psths.go(1,nn,i2(trial_idx)==i_set);
-
+        
         lambda = [...
             lambda_pre_s1;...
             lambda_s1;...
@@ -274,6 +284,13 @@ for nn = 1 : n_neurons_total
             lambda_s2;...
             lambda_post_s2;...
             lambda_go];
+        
+%         if ismember(nn,flagged_neurons) && t2(trial_idx) == t_set(end)
+% 
+%             plot(lambda_s2,...*i2(trial_idx)/80,...
+%                 'color',i2_clrs(i_set==i2(trial_idx),:));
+%             a=1
+%         end
         
         dur = numel(lambda) * psthbin;
         
