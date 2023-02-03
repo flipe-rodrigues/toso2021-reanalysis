@@ -54,6 +54,35 @@ for nn = neuron_idcs'
     progressreport(nn,n_neurons_total,'computing selection criteria');
     neuron_flags = data.NeuronNumb == neuron_idcs(nn);
     
+%     % iterate through durations
+%     for ii = 1 : n_t
+%         t1_flags = t1 == t_set(ii);
+%         
+%         % iterate through durations
+%         for jj = 1 : n_t
+%             t2_flags = t2 == t_set(jj);
+%             
+%             % iterate through intensities
+%             for kk = 1 : n_i
+%                 i1_flags = i1 == i_set(kk);
+%                 
+%                 % iterate through intensities
+%                 for hh = 1 : n_i
+%                     i2_flags = i2 == i_set(hh);
+%                     
+%                     % trial selection
+%                     trial_flags = ...
+%                         valid_flags & ...
+%                         neuron_flags & ...
+%                         t1_flags & ...
+%                         i1_flags & ...
+%                         t2_flags & ...
+%                         i2_flags;
+%                 end
+%             end
+%         end 
+%     end
+    
     % iterate through durations
     for tt = 1 : n_t
         t1_flags = t2 == t_set(tt);
