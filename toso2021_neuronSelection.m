@@ -155,8 +155,8 @@ for nn = neuron_idcs'
     spike_rates = conv2(...
         1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
     n_trials = size(spike_counts,1);
-    pre_s1_n_bins = unique(pre_s1_delay(valid_flags)) * psthbin;
-    isi_n_bins = isi * psthbin;
+    pre_s1_n_bins = unique(pre_s1_delay(valid_flags)) / psthbin;
+    isi_n_bins = isi / psthbin;
     
     % pre-S1-aligned spike rates
     pre_s1_alignment_onset = ...

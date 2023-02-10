@@ -7,8 +7,8 @@ end
 pre_padd = 500;
 roi2use = [-pre_padd,t_set(end)];
 roi2plot = [-pre_padd,t_set(end)];
-roi2use_n_bins = range(roi2use) * psthbin;
-roi2plot_n_bins = range(roi2plot) * psthbin;
+roi2use_n_bins = range(roi2use) / psthbin;
+roi2plot_n_bins = range(roi2plot) / psthbin;
 roi2use_time = linspace(roi2use(1),roi2use(2),roi2use_n_bins);
 roi2plot_time = linspace(roi2plot(1),roi2plot(2),roi2plot_n_bins);
 roi2use_flags = ...

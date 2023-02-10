@@ -63,11 +63,12 @@ conditions.test.values
 n_runs = 10;
 
 %% concatenation settings
-n_concatspercond = 2^9; % 2^8
+n_concatspercond = 2^8; % 2^8
 n_concats = n_concatspercond * (conditions.train.n + conditions.test.n);
 
 %% neurometric curve settings
 spk_integration_win = min(t_set);
+n_integration_bins = spk_integration_win / psthbin;
 
 % preallocation
 neurocurves = struct();
@@ -139,7 +140,7 @@ for rr = 1 : n_runs
             aligned_spkrates = spike_rates;
             aligned_spkrates(~alignment_flags') = nan;
             aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
-                [spk_integration_win,n_flagged_trials])';
+                [n_integration_bins,n_flagged_trials])';
             
             % detect any test conditions that overlap with the current training condition
             feature_flags = false(conditions.test.n,1);
@@ -155,7 +156,7 @@ for rr = 1 : n_runs
             if any(xval_condition_flags)
                 xval_condition_idcs = find(xval_condition_flags)';
                 
-                if n_flagged_trials == 1
+                if n_flagged_trials <= 1
                     train_counter = train_counter + 1;
                 end
                 
@@ -246,7 +247,7 @@ for rr = 1 : n_runs
             aligned_spkrates = spike_rates;
             aligned_spkrates(~alignment_flags') = nan;
             aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
-                [spk_integration_win,n_flagged_trials])';
+                [n_integration_bins,n_flagged_trials])';
             
             % handle cross-validation
             test_idcs = find(~ismember(...

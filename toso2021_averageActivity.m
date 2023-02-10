@@ -8,7 +8,7 @@ end
 % roi definition
 roi = [-500,t_set(end)];
 padded_roi = roi + [-1,1] * .05 * range(roi);
-n_bins = range(padded_roi) * psthbin;
+n_bins = range(padded_roi) / psthbin;
 time = linspace(padded_roi(1),padded_roi(2),n_bins);
 
 % preallocation

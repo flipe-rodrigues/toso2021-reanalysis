@@ -68,7 +68,7 @@ n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% time settings
 roi = [-0,t_set(end)]; % [-500,t_set(end)] !!!!!!!!!!!
-roi_n_bins = range(roi) * psthbin;
+roi_n_bins = range(roi) / psthbin;
 roi_time = linspace(roi(1),roi(2),roi_n_bins);
 
 %% construct spike rate tensor (time X neurons X concatenations)
@@ -275,15 +275,17 @@ for rr = 1 : n_runs
     %% naive bayes decoder
     nbdopt = struct();
     nbdopt.n_xpoints = 100;
-    nbdopt.classes = roi_time;
+    nbdopt.time = roi_time;
     nbdopt.train.trial_idcs = find(concat_evalset == 'train');
     nbdopt.train.n_trials = numel(nbdopt.train.trial_idcs);
     nbdopt.test.trial_idcs = find(concat_evalset == 'test');
     nbdopt.test.n_trials = numel(nbdopt.test.trial_idcs);
+    nbdopt.n_shuffles = 10;
     nbdopt.assumepoissonmdl = false;
+    nbdopt.verbose = true;
     
     tic
-    [P_tR,P_Rt,pthat,neurons] = bayesdecoder(concat_tensor,nbdopt);
+    [P_tR,P_Rt,pthat,neurons] = naivebayestimedecoder(concat_tensor,nbdopt);
     toc
     
     % save current run
@@ -557,14 +559,12 @@ end
 
 %% plot contrast-split posterior averages
 figure(...
-    'name','stimulus-split posterior averages',...
+    'name','contrast-split posterior averages',...
     'numbertitle','off',...
     'windowstyle','docked');
 sps = gobjects(n_contrasts,1);
 for ii = 1 : n_contrasts
     sps(ii) = subplot(1,n_contrasts,ii);
-    set(sps(ii),...
-        'colormap',colorlerp([[1,1,1];contrast_clrs(ii,:)],2^8));
 end
 set(sps,...
     axesopt.default,...
@@ -588,7 +588,7 @@ for ii = 1 : n_contrasts
     p_cond = avgfun(P_tR(:,:,concat_flags),3);
     p_cond = p_cond ./ nansum(p_cond,2);
     p_cond(isnan(p_cond)) = max(p_cond(:));
-    imagesc(sps(ii),[0,t_set(end)],[0,t_set(end)],p_cond',clims);
+    imagesc(sps(ii),[0,t_set(end)],[0,t_set(end)],p_cond');
     plot(sps(ii),xlim,ylim,'--w');
 end
 
@@ -696,7 +696,7 @@ for tt = 1 : n_pthats
                 pthat_avg = pthat_avgfuns{ff}(pthat.(type)(:,concat_flags));
                 pthat_err = pthat_errfuns{ff}(pthat.(type)(:,concat_flags));
                 
-                t2bin_idcs = (1 : t_set(jj)) * psthbin;
+                t2bin_idcs = 1 : t_set(jj) / psthbin;
                 
                 xpatch = [roi_time(t2bin_idcs),fliplr(roi_time(t2bin_idcs))];
                 ypatch = [pthat_err(t2bin_idcs,1);flipud(pthat_err(t2bin_idcs,2))];

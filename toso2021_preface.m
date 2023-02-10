@@ -235,14 +235,24 @@ d2_mode_idx = find(d_set == mode(d2));
 correct = choice == (s2 > s1);
 prev_correct = [nan;correct(1:end-1)];
 
+%% down-sample original spike counts
+psthbin_src = 1;
+downsampling_factor = 2;
+psthbin = psthbin_src * downsampling_factor;
+n_timebins_src = size(data.FR,2);
+n_timebins = n_timebins_src / downsampling_factor;
+time_src = 1 : psthbin_src : n_timebins_src * psthbin_src;
+time = 1 : psthbin : n_timebins * psthbin;
+data.FR = ...
+    data.FR(:,1:downsampling_factor:end) + ...
+    data.FR(:,downsampling_factor:downsampling_factor:end);
+
 %% kernel settings
-psthbin = 1;
 kernel = gammakernel('peakx',50,'binwidth',psthbin);
 n_paddedtimebins = size(data.FR,2);
 n_timebins = n_paddedtimebins - kernel.nbins + 1;
-n_tbins = max(t_set) * psthbin;
-padded_time = ...
-    (1 : psthbin : n_paddedtimebins * psthbin) - psthbin;
+n_tbins = max(t_set) / psthbin;
+padded_time = time;
 validtime_flags = ...
     padded_time >= padded_time(1) - kernel.paddx(1) & ...
     padded_time <= padded_time(end) - kernel.paddx(end) + psthbin;
