@@ -280,6 +280,7 @@ for rr = 1 : n_runs
     nbdopt.train.n_trials = numel(nbdopt.train.trial_idcs);
     nbdopt.test.trial_idcs = find(concat_evalset == 'test');
     nbdopt.test.n_trials = numel(nbdopt.test.trial_idcs);
+    nbdopt.shuffle = false;
     nbdopt.n_shuffles = 10;
     nbdopt.assumepoissonmdl = false;
     nbdopt.verbose = true;
