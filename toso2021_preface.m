@@ -237,15 +237,17 @@ prev_correct = [nan;correct(1:end-1)];
 
 %% down-sample original spike counts
 psthbin_src = 1;
-downsampling_factor = 2;
+downsampling_factor = 1;
 psthbin = psthbin_src * downsampling_factor;
 n_timebins_src = size(data.FR,2);
 n_timebins = n_timebins_src / downsampling_factor;
 time_src = 1 : psthbin_src : n_timebins_src * psthbin_src;
 time = 1 : psthbin : n_timebins * psthbin;
-data.FR = ...
-    data.FR(:,1:downsampling_factor:end) + ...
-    data.FR(:,downsampling_factor:downsampling_factor:end);
+if psthbin_src ~= psthbin
+    data.FR = ...
+        data.FR(:,1:downsampling_factor:end) + ...
+        data.FR(:,downsampling_factor:downsampling_factor:end);
+end
 
 %% kernel settings
 kernel = gammakernel('peakx',50,'binwidth',psthbin);
