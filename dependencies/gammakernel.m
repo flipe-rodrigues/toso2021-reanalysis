@@ -5,7 +5,7 @@ function k = gammakernel(varargin)
     p = inputParser;
     p.addParameter('peakx',10);
     p.addParameter('binwidth',2);
-    p.parse(varargin{:});   
+    p.parse(varargin{:});
     
     k = p.Results;
     k.type = 'gamma';

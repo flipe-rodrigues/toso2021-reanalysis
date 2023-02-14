@@ -371,7 +371,7 @@ for kk = randperm(nbdopt.test.n_trials,min(nbdopt.test.n_trials,100))
 end
 
 %% choice of average function
-avgfun = @nanmean;
+avgfun = @nanmedian;
 
 %% plot contrast- & stimulus-split posterior averages
 figure(...
