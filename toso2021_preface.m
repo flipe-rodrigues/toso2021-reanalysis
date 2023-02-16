@@ -237,7 +237,7 @@ prev_correct = [nan;correct(1:end-1)];
 
 %% down-sample original spike counts
 psthbin_src = 1;
-downsampling_factor = 1;
+downsampling_factor = 2;
 psthbin = psthbin_src * downsampling_factor;
 n_timebins_src = size(data.FR,2);
 n_timebins = n_timebins_src / downsampling_factor;
