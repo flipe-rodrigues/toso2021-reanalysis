@@ -63,7 +63,7 @@ conditions.test.values
 n_runs = 1;
 
 %% concatenation settings
-n_concatspercond = 2^8; % 2^8;
+n_concatspercond = 2^7; % 2^8;
 n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% time settings
@@ -328,6 +328,7 @@ for nn = 1 : n_neurons
         plot([1,1]*t_set(ii),ylim,'--w');
     end
     drawnow;
+%     a=1
     pause(.1);
 end
 
