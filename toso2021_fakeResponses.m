@@ -93,8 +93,8 @@ for nn = 1 : n_neurons2plot
         spike_counts = data.FakeFR(trial_flags,:);
         spike_rates = conv2(...
             1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
-        s2on_n_tbins = range(xlim(sps(1))) * psthbin;
-        s2off_n_tbins = range(xlim(sps(2)))  * psthbin;
+        s2on_n_tbins = range(xlim(sps(1))) / psthbin;
+        s2off_n_tbins = range(xlim(sps(2))) / psthbin;
         
         % S2-onset-aligned, I2-split spike rates
         s2on_alignment_onset = ...

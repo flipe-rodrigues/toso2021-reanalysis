@@ -12,7 +12,7 @@ time = struct();
 psths = struct();
 
 % smoothing settings
-gauss_kernel = gausskernel('mu',0,'sig',50,'binwidth',psthbin);
+gauss_kernel = gausskernel('mu',0,'sig',15,'binwidth',psthbin);
 gauss_padded_time = ...
     (1 : psthbin : n_paddedtimebins * psthbin) - psthbin;
 gauss_validtime_flags = ...
@@ -34,7 +34,7 @@ task_epochs = fieldnames(rois);
 n_epochs = numel(task_epochs);
 for ii = 1 : n_epochs
     epoch = task_epochs{ii};
-    n_bins.(epoch) = range(rois.(epoch)) * psthbin;
+    n_bins.(epoch) = range(rois.(epoch)) / psthbin;
     time.(epoch) = linspace(rois.(epoch)(1),rois.(epoch)(2),n_bins.(epoch));
     psths.(epoch) = nan(n_bins.(epoch),n_neurons_total,n_i);
 end
@@ -297,6 +297,6 @@ for nn = 1 : n_neurons_total
         [n,ts] = poissonprocess(lambda,dur / 1e3);
         offset = pre_init_padding + rois.pre_s1(1);
         data.FakeFR(trial_idx,:) = ...
-            histcounts(ts*1e3,[gauss_padded_time,n_paddedtimebins]-offset);
+            histcounts(ts*1e3,[gauss_padded_time,n_paddedtimebins*psthbin]-offset);
     end
 end

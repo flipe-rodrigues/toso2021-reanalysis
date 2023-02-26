@@ -55,7 +55,7 @@ end
 
 % print training & test conditions
 fprintf('\nTRAINING CONDITIONS:\n');
-disp(conditions.train.values);
+conditions.train.values
 fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
@@ -84,7 +84,7 @@ concat_choices = nan(n_concats,n_runs);
 concat_evalset = categorical(nan(n_concats,n_runs),[0,1],{'train','test'});
 
 % data type selection
-spike_data_field = 'FakeFR';
+spike_data_field = 'FR';
 
 % iterate through runs
 for rr = 1 : n_runs
@@ -369,7 +369,7 @@ for kk = randperm(nbdopt.test.n_trials,min(nbdopt.test.n_trials,100))
 end
 
 %% choice of average function
-avgfun = @nanmean;
+avgfun = @nanmedian;
 
 %% plot contrast- & stimulus-split posterior averages
 figure(...
