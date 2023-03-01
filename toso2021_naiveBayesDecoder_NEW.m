@@ -289,7 +289,7 @@ for rr = 1 : n_runs
     nbdopt.verbose = true;
     
     tic
-    [P_tR,~,map_cond] = naivebayestimedecoder(concat_tensor,nbdopt);
+    [P_tR,~,pthat] = naivebayestimedecoder(concat_tensor,nbdopt);
     toc
     
     %% store current run
@@ -299,7 +299,7 @@ for rr = 1 : n_runs
         contrast_flags = ...
             concat_contrasts(concat_evalset == 'test') == contrast_set(ii);
         P_tR_avgs(:,:,ii,rr) = avgfun(P_tR(:,:,contrast_flags),3);
-        map_avgs(:,ii,rr) = avgfun(map_cond.mode(:,contrast_flags),2);
+        map_avgs(:,ii,rr) = avgfun(pthat.mode(:,contrast_flags),2);
     end
 end
 

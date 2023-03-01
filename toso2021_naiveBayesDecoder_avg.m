@@ -1,6 +1,7 @@
 %% initialization
 if ~exist('data','var')
     toso2021_wrapper;
+    close all;
 end
 
 %% training & test set conditions
@@ -24,7 +25,7 @@ elseif strcmpi(contrast_str,'i2')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),[],[],...
         'i1',i1(valid_flags),[],[],...
-        't2',t2(valid_flags),[],[],...
+        't2',t2(valid_flags),[],t_set(t2_mode_idx+[-1,0,1]),...
         'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
         'choice',choice(valid_flags),[],[]);
 end
@@ -48,7 +49,7 @@ elseif strcmpi(contrast_str,'i2')
     conditions.test = intersectconditions(...
         't1',t1(valid_flags),[],[],...
         'i1',i1(valid_flags),[],[],...
-        't2',t2(valid_flags),[],[],...
+        't2',t2(valid_flags),[],t_set([1,end]),...
         'i2',i2(valid_flags),i_set,[],...
         'choice',choice(valid_flags),[],[]);
 end
@@ -80,6 +81,7 @@ clear concat_tensor P_tR;
 
 % preallocation
 P_tR = nan(roi_n_bins,roi_n_bins,conditions.test.n,n_runs);
+MAP = nan(roi_n_bins,conditions.test.n,n_runs);
 % concat_stimuli = nan(n_concats,n_runs);
 % concat_contrasts = nan(n_concats,n_runs);
 % concat_choices = nan(n_concats,n_runs);
@@ -212,43 +214,30 @@ for rr = 1 : n_runs
             r = aligned_spkrates(rand_idcs,:);
             r_mu = nanmean(r);
             nan_flags = isnan(r_mu);
-            
-%             t_mat = roi_time' + (0 : n_concatspercond - 1);
-%             r_mat = r';
-%             nan_flags = isnan(r_mat);
-%             r_vec = r_mat(~nan_flags);
-%             t_vec = t_mat(~nan_flags);
-%             mdl = fit(t_vec,r_vec,'poly9',...
-%                 'robust','lar');
-%             mdl_poly = fit(t_vec,r_vec,'poly9');
-%             r_poly = max(0,mdl_poly(roi_time));
 
-%             mdl_poly = fit(roi_time(~nan_flags)',r_mu(~nan_flags)','poly9');
-%             r_poly = max(0,mdl_poly(roi_time));
-%             r_poly(nan_flags) = nan;
-
-            mdl_spline = fit(...
-                roi_time(~nan_flags)',r_mu(~nan_flags)','smoothingspline',...
-                'smoothingparam',1e-6);
-            r_spline = max(0,mdl_spline(roi_time));
-            r_spline(nan_flags) = nan;
+%             mdl_spline = fit(...
+%                 roi_time(~nan_flags)',r_mu(~nan_flags)','smoothingspline',...
+%                 'smoothingparam',1e-6);
+%             r_spline = max(realmin,mdl_spline(roi_time));
+%             r_spline(nan_flags) = nan;
             
-%             p = polyfit(t_vec,r_vec,7);
-%             r_poly = max(0,polyval(p,roi_time));
-            
-%             mdl = fit(roi_time(~nan_flags)',r_mu(~nan_flags)','poly9',...
-%                 'weights',sum(~isnan(r(:,~nan_flags))));
-%             r_polyw = max(0,mdl(roi_time));
+            t_mat = repmat(roi_time,n_concatspercond,1)';
+            r_mat = r';
+            r_vec = r_mat(~isnan(r_mat));
+            t_vec = t_mat(~isnan(r_mat));
+            mdl_poly = fit(t_vec,r_vec,'poly9');
+            r_poly = max(realmin,mdl_poly(roi_time));
+            r_poly(nan_flags) = nan;
             
 %             figure('position',[119.4000 53.8000 560 712.8000]);
 %             subplot(3,1,[1,2]);
-%             imagesc(r);
+%             imagesc(roi_time,[],r);
 %             subplot(3,1,3); hold on;
 %             plot(roi_time,r_mu);
 %             plot(roi_time,r_poly);
 %             plot(roi_time,r_spline);
             
-            R(:,nn,kk) = r_spline;
+            R(:,nn,kk) = r_poly;
         end
         
         % iterate through conditions
@@ -318,34 +307,29 @@ for rr = 1 : n_runs
             r_mu = nanmean(r);
             nan_flags = isnan(r_mu);
             
-%             t_mat = roi_time' + (0 : n_concatspercond - 1);
-%             r_mat = r';
-%             nan_flags = isnan(r_mat);
-%             r_vec = r_mat(~nan_flags);
-%             t_vec = t_mat(~nan_flags);
-%             mdl = fit(t_vec,r_vec,'poly9',...
-%                 'robust','lar');
-%             mdl_poly = fit(t_vec,r_vec,'poly9');
-%             r_poly = max(0,mdl_poly(roi_time));
-
-%             mdl_poly = fit(roi_time(~nan_flags)',r_mu(~nan_flags)','poly9');
-%             r_poly = max(0,mdl_poly(roi_time));
-%             r_poly(nan_flags) = nan;
-
             mdl_spline = fit(...
                 roi_time(~nan_flags)',r_mu(~nan_flags)','smoothingspline',...
                 'smoothingparam',1e-6);
-            r_spline = max(0,mdl_spline(roi_time));
+            r_spline = max(realmin,mdl_spline(roi_time));
             r_spline(nan_flags) = nan;
             
-%             p = polyfit(roi_time,r_mu,7);
-%             r_poly = max(0,polyval(p,roi_time));
+            t_mat = repmat(roi_time,n_concatspercond,1)';
+            r_mat = r';
+            r_vec = r_mat(~isnan(r_mat));
+            t_vec = t_mat(~isnan(r_mat));
+            mdl_poly = fit(t_vec,r_vec,'poly9');
+            r_poly = max(realmin,mdl_poly(roi_time));
+            r_poly(nan_flags) = nan;
             
-            %             mdl = fit(roi_time(~nan_flags)',r_mu(~nan_flags)','poly9',...
-            %                 'weights',sum(~isnan(r(:,~nan_flags))));
-            %             r_polyw = max(0,mdl(roi_time));
+%             figure('position',[119.4000 53.8000 560 712.8000]);
+%             subplot(3,1,[1,2]);
+%             imagesc(roi_time,[],r);
+%             subplot(3,1,3); hold on;
+%             plot(roi_time,r_mu);
+%             plot(roi_time,r_poly);
+%             plot(roi_time,r_spline);
             
-            R(:,nn,kk+conditions.train.n) = r_spline;
+            R(:,nn,kk+conditions.train.n) = r_poly;
         end
     end
     
@@ -361,12 +345,14 @@ for rr = 1 : n_runs
     nbdopt.verbose = true;
     
     tic
-    P_tR(:,:,:,rr) = naivebayestimedecoder(R,nbdopt);
+    [P_tR(:,:,:,rr),~,pthat] = naivebayestimedecoder(R,nbdopt);
+    MAP(:,:,rr) = pthat.mode;
     toc
 end
 
 %% choice of average function
-avgfun = @nanmean;
+avgfun = @(x,d)nanmean(x,d);
+errfun = @(x,d)nanstd(x,0,d);
 
 %% plot extreme subtractions of posterior averages
 
@@ -379,19 +365,26 @@ fig = figure(...
 % axes initialization
 axes(...
     axesopt.default,...
-    'xlim',roi,...
+    'xlim',[roi(1),t_set(end-2)],...
     'xtick',unique([roi';0;t_set]),...
-    'ylim',roi,...
-    'ytick',unique([roi';0;t_set]));
-xlabel('Real time since S_2 onset (ms)');
+    'ylim',[roi(1),t_set(end-2)],...
+    'ytick',unique([roi';0;t_set]),...
+    'colormap',colorlerp(...
+    [contrast_clrs(1,:);[1,1,1];contrast_clrs(end,:)],2^8));
+xlabel('Time since S_2 onset (ms)');
 ylabel('Decoded time since S_2 onset (ms)');
 
 % posterior subtraction
 p_contrast_min = avgfun(P_tR(:,:,1,:),4);
-p_contrast_max = avgfun(P_tR(:,:,3,:),4);
+p_contrast_max = avgfun(P_tR(:,:,end,:),4);
 p_diff = p_contrast_max - p_contrast_min;
-imagesc(roi,roi,p_diff',...
-    [-1,1] * n_t / n_tbins * 5);
+imagesc(roi,roi,p_diff',[-1,1] * n_t / n_tbins * 5);
+
+% zero lines
+plot([1,1]*0,ylim,':k');
+plot(xlim,[1,1]*0,':k');
+
+% identity line
 plot(xlim,ylim,'--w');
 
 % save figure
@@ -408,7 +401,7 @@ figure(...
 sps = gobjects(n_contrasts,1);
 for ii = 1 : n_contrasts
     sps(ii) = subplot(1,n_contrasts,ii);
-    xlabel(sps(ii),'Real time since S_2 onset (ms)');
+    xlabel(sps(ii),'Time since S_2 onset (ms)');
     ylabel(sps(ii),'Decoded time since S_2 onset (ms)');
 end
 set(sps,...
@@ -431,20 +424,25 @@ for ii = 1 : n_contrasts
 end
 
 %% plot superimposed contrast-split posterior averages
-figure(...
-    'name','posterior averages',...
+fig = figure(...
+    'color','w',...
+    'name','superimposed posterior averages',...
     'numbertitle','off');
 axes(...
     axesopt.default,...
-    'xlim',roi,...
+    'xlim',[roi(1),t_set(end-2)],...
     'xtick',unique([roi';0;t_set]),...
-    'ylim',roi,...
+    'ylim',[roi(1),t_set(end-2)],...
     'ytick',unique([roi';0;t_set]));
-xlabel('Real time since S_2 onset (ms)');
+xlabel('Time since S_2 onset (ms)');
 ylabel('Decoded time since S_2 onset (ms)');
 
 % color limits
 clims = quantile(avgfun(P_tR,4),[0,1],'all')';
+
+% zero lines
+plot([1,1]*0,ylim,':k');
+plot(xlim,[1,1]*0,':k');
 
 % iterate through contrast conditions
 for ii = 1 : n_contrasts
@@ -462,6 +460,12 @@ end
 
 % plot identity line
 plot(xlim,ylim,'--k');
+
+% save figure
+% if want2save
+%     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+%     print(fig,svg_file,'-dsvg','-painters');
+% end
 
 %% plot slices through condition-split posterior averages
 
@@ -511,7 +515,7 @@ set(sps(1:end-1),...
     abs(contrast_set-contrast_set(contrast_mode_idx)),'descend');
 for ii = cond_idcs'
     p_cond = squeeze(avgfun(P_tR(:,:,ii,:),4));
-
+    
     % iterate through slices
     for jj = 1 : n_slices
         slice_idx = find(roi_time >= slices(jj),1);
@@ -567,17 +571,21 @@ axes(...
     'xtick',unique([roi';0;t_set]),...
     'ylim',roi,...
     'ytick',unique([roi';0;t_set]));
-xlabel('Real time since S_2 onset (ms)');
+xlabel('Time since S_2 onset (ms)');
 ylabel('Decoded time since S_2 onset (ms)');
 
 % iterate through contrast conditions
 for ii = 1 : n_contrasts
-    p_cond = squeeze(avgfun(P_tR(:,:,ii,:),4));
-    [~,mode_idcs] = max(p_cond,[],2);
-    map_cond = roi_time(mode_idcs);
-    plot(roi_time,map_cond,...
+    %     p_cond = squeeze(avgfun(P_tR(:,:,ii,:),4));
+    %     [~,mode_idcs] = max(p_cond,[],2);
+    %     map_cond = roi_time(mode_idcs);
+    map_avg = squeeze(avgfun(MAP(:,ii,:),3));
+    map_err = squeeze(errfun(MAP(:,ii,:),3));
+    errorpatch(roi_time,map_avg,map_err,contrast_clrs(ii,:),...
+        'facealpha',.25);
+    plot(roi_time,map_avg,...
         'color',contrast_clrs(ii,:),...
-        'linewidth',2);
+        'linewidth',1.5);
 end
 
 % plot identity line
@@ -589,37 +597,37 @@ if want2save
     print(fig,svg_file,'-dsvg','-painters');
 end
 
-%% 
-
-% figure initialization
-fig = figure(...
-    figopt,...
-    'name','posterior subtractions (extreme)',...
-    'numbertitle','off');
-
-% axes initialization
-axes(...
-    axesopt.default,...
-    'xlim',roi,...
-    'xtick',unique([roi';0;t_set]),...
-    'ylim',roi,...
-    'ytick',unique([roi';0;t_set]));
-xlabel('Real time since S_2 onset (ms)');
-ylabel('Decoded time since S_2 onset (ms)');
-
-p_ref = squeeze(avgfun(P_tR(:,:,contrast_mode_idx,:),4));
-[~,mode_idcs] = max(p_ref,[],2);
-map_ref = roi_time(mode_idcs);
-
-% iterate through contrast conditions
-for ii = 1 : n_contrasts
-    p_cond = squeeze(avgfun(P_tR(:,:,ii,:),4));
-    [~,mode_idcs] = max(p_cond,[],2);
-    map_cond = roi_time(mode_idcs);
-    plot(map_ref,map_cond,...
-        'color',contrast_clrs(ii,:),...
-        'linewidth',1.5);
-end
-
-% plot identity line
-plot(xlim,ylim,'--k');
+%%
+%
+% % figure initialization
+% fig = figure(...
+%     figopt,...
+%     'name','posterior subtractions (extreme)',...
+%     'numbertitle','off');
+%
+% % axes initialization
+% axes(...
+%     axesopt.default,...
+%     'xlim',roi,...
+%     'xtick',unique([roi';0;t_set]),...
+%     'ylim',roi,...
+%     'ytick',unique([roi';0;t_set]));
+% xlabel('Time since S_2 onset (ms)');
+% ylabel('Decoded time since S_2 onset (ms)');
+%
+% p_ref = squeeze(avgfun(P_tR(:,:,contrast_mode_idx,:),4));
+% [~,mode_idcs] = max(p_ref,[],2);
+% map_ref = roi_time(mode_idcs);
+%
+% % iterate through contrast conditions
+% for ii = 1 : n_contrasts
+%     p_cond = squeeze(avgfun(P_tR(:,:,ii,:),4));
+%     [~,mode_idcs] = max(p_cond,[],2);
+%     map_cond = roi_time(mode_idcs);
+%     plot(map_ref,map_cond,...
+%         'color',contrast_clrs(ii,:),...
+%         'linewidth',1.5);
+% end
+%
+% % plot identity line
+% plot(xlim,ylim,'--k');
