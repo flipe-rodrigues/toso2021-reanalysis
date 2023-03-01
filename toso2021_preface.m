@@ -239,11 +239,11 @@ prev_correct = [nan;correct(1:end-1)];
 psthbin_src = 1;
 downsampling_factor = 2;
 psthbin = psthbin_src * downsampling_factor;
-n_timebins_src = size(data.FR,2);
+n_timebins_src = 6700;
 n_timebins = n_timebins_src / downsampling_factor;
 time_src = 1 : psthbin_src : n_timebins_src * psthbin_src;
 time = 1 : psthbin : n_timebins * psthbin;
-if psthbin_src ~= psthbin
+if (psthbin_src ~= psthbin) && (size(data.FR,2) == n_timebins_src)
     data.FR = ...
         data.FR(:,1:downsampling_factor:end) + ...
         data.FR(:,downsampling_factor:downsampling_factor:end);

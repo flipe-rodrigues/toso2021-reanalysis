@@ -4,7 +4,6 @@ if ~exist('data','var')
 end
 
 %% training & test set conditions
-t_idx = 1;
 
 % training set conditions
 if strcmpi(contrast_str,'t1')
@@ -70,7 +69,7 @@ n_concatspercond = 2^8; % 2^8;
 n_concats = n_concatspercond * n_conditions;
 
 %% time settings
-roi = [-500,t_set(end)]; % [-500,t_set(end)] !!!!!!!!!!!
+roi = [-500,t_set(end)];
 roi_n_bins = range(roi) / psthbin;
 roi_time = linspace(roi(1),roi(2),roi_n_bins);
 
@@ -94,11 +93,11 @@ for rr = 1 : n_runs
     
     % preallocation
     R = nan(roi_n_bins,n_neurons,n_conditions);
-%     concat_tensor = nan(roi_n_bins,n_neurons,n_concats);
-%     concat_stimuli = nan(n_concats,1);
-%     concat_contrasts = nan(n_concats,1);
-%     concat_choices = nan(n_concats,1);
-%     concat_evalset = categorical(nan(n_concats,1),[0,1],{'train','test'});
+    %     concat_tensor = nan(roi_n_bins,n_neurons,n_concats);
+    %     concat_stimuli = nan(n_concats,1);
+    %     concat_contrasts = nan(n_concats,1);
+    %     concat_choices = nan(n_concats,1);
+    %     concat_evalset = categorical(nan(n_concats,1),[0,1],{'train','test'});
     
     % iterate through units
     for nn = 1 : n_neurons
@@ -202,26 +201,44 @@ for rr = 1 : n_runs
             
             % store tensor & concatenation data
             rand_idcs = randsample(train_idcs,n_concatspercond,true);
-%             concat_idcs = (1 : n_concatspercond) + ...
-%                 n_concatspercond * (kk - 1);
-%             concat_tensor(:,nn,concat_idcs) = aligned_spkrates(rand_idcs,:)';
-%             concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
-%             concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
-%             concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
-%             concat_evalset(concat_idcs) = 'train';
+            %             concat_idcs = (1 : n_concatspercond) + ...
+            %                 n_concatspercond * (kk - 1);
+            %             concat_tensor(:,nn,concat_idcs) = aligned_spkrates(rand_idcs,:)';
+            %             concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
+            %             concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
+            %             concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
+            %             concat_evalset(concat_idcs) = 'train';
             
             r = aligned_spkrates(rand_idcs,:);
             r_mu = nanmean(r);
+            nan_flags = isnan(r_mu);
             
-%             time_mat = roi_time' + (0 : n_concatspercond - 1);% * range(roi);
-%             nan_flags = isnan(r);
-%             r_mat = r(~nan_flags)';
-%             time_mat = time_mat(~nan_flags)';
-%             p = polyfit(time_mat(:),r_mat(:),10);
-%             r_poly = polyval(p,roi_time);
+%             t_mat = roi_time' + (0 : n_concatspercond - 1);
+%             r_mat = r';
+%             nan_flags = isnan(r_mat);
+%             r_vec = r_mat(~nan_flags);
+%             t_vec = t_mat(~nan_flags);
+%             mdl = fit(t_vec,r_vec,'poly9',...
+%                 'robust','lar');
+%             mdl_poly = fit(t_vec,r_vec,'poly9');
+%             r_poly = max(0,mdl_poly(roi_time));
+
+%             mdl_poly = fit(roi_time(~nan_flags)',r_mu(~nan_flags)','poly9');
+%             r_poly = max(0,mdl_poly(roi_time));
+%             r_poly(nan_flags) = nan;
+
+            mdl_spline = fit(...
+                roi_time(~nan_flags)',r_mu(~nan_flags)','smoothingspline',...
+                'smoothingparam',1e-6);
+            r_spline = max(0,mdl_spline(roi_time));
+            r_spline(nan_flags) = nan;
             
-            p = polyfit(roi_time,r_mu,10);
-            r_poly = max(0,polyval(p,roi_time));
+%             p = polyfit(t_vec,r_vec,7);
+%             r_poly = max(0,polyval(p,roi_time));
+            
+%             mdl = fit(roi_time(~nan_flags)',r_mu(~nan_flags)','poly9',...
+%                 'weights',sum(~isnan(r(:,~nan_flags))));
+%             r_polyw = max(0,mdl(roi_time));
             
 %             figure('position',[119.4000 53.8000 560 712.8000]);
 %             subplot(3,1,[1,2]);
@@ -229,8 +246,9 @@ for rr = 1 : n_runs
 %             subplot(3,1,3); hold on;
 %             plot(roi_time,r_mu);
 %             plot(roi_time,r_poly);
-
-            R(:,nn,kk) = r_poly;
+%             plot(roi_time,r_spline);
+            
+            R(:,nn,kk) = r_spline;
         end
         
         % iterate through conditions
@@ -288,21 +306,46 @@ for rr = 1 : n_runs
             
             % store tensor & concatenation data
             rand_idcs = randsample(test_idcs,n_concatspercond,true);
-%             concat_idcs = (1 : n_concatspercond) + ...
-%                 n_concatspercond * (kk + conditions.train.n - 1);
-%             concat_tensor(:,nn,concat_idcs) = aligned_spkrates(rand_idcs,:)';
-%             concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
-%             concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
-%             concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
-%             concat_evalset(concat_idcs) = 'test';
-
+            %             concat_idcs = (1 : n_concatspercond) + ...
+            %                 n_concatspercond * (kk + conditions.train.n - 1);
+            %             concat_tensor(:,nn,concat_idcs) = aligned_spkrates(rand_idcs,:)';
+            %             concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
+            %             concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
+            %             concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
+            %             concat_evalset(concat_idcs) = 'test';
+            
             r = aligned_spkrates(rand_idcs,:);
             r_mu = nanmean(r);
+            nan_flags = isnan(r_mu);
             
-            p = polyfit(roi_time,r_mu,10);
-            r_poly = max(0,polyval(p,roi_time));
+%             t_mat = roi_time' + (0 : n_concatspercond - 1);
+%             r_mat = r';
+%             nan_flags = isnan(r_mat);
+%             r_vec = r_mat(~nan_flags);
+%             t_vec = t_mat(~nan_flags);
+%             mdl = fit(t_vec,r_vec,'poly9',...
+%                 'robust','lar');
+%             mdl_poly = fit(t_vec,r_vec,'poly9');
+%             r_poly = max(0,mdl_poly(roi_time));
 
-            R(:,nn,kk+conditions.train.n) = r_poly;
+%             mdl_poly = fit(roi_time(~nan_flags)',r_mu(~nan_flags)','poly9');
+%             r_poly = max(0,mdl_poly(roi_time));
+%             r_poly(nan_flags) = nan;
+
+            mdl_spline = fit(...
+                roi_time(~nan_flags)',r_mu(~nan_flags)','smoothingspline',...
+                'smoothingparam',1e-6);
+            r_spline = max(0,mdl_spline(roi_time));
+            r_spline(nan_flags) = nan;
+            
+%             p = polyfit(roi_time,r_mu,7);
+%             r_poly = max(0,polyval(p,roi_time));
+            
+            %             mdl = fit(roi_time(~nan_flags)',r_mu(~nan_flags)','poly9',...
+            %                 'weights',sum(~isnan(r(:,~nan_flags))));
+            %             r_polyw = max(0,mdl(roi_time));
+            
+            R(:,nn,kk+conditions.train.n) = r_spline;
         end
     end
     
@@ -337,9 +380,9 @@ fig = figure(...
 axes(...
     axesopt.default,...
     'xlim',roi,...
-    'xtick',sort([0;t_set]),...
+    'xtick',unique([roi';0;t_set]),...
     'ylim',roi,...
-    'ytick',sort([0;t_set]));
+    'ytick',unique([roi';0;t_set]));
 xlabel('Real time since S_2 onset (ms)');
 ylabel('Decoded time since S_2 onset (ms)');
 
@@ -365,13 +408,15 @@ figure(...
 sps = gobjects(n_contrasts,1);
 for ii = 1 : n_contrasts
     sps(ii) = subplot(1,n_contrasts,ii);
+    xlabel(sps(ii),'Real time since S_2 onset (ms)');
+    ylabel(sps(ii),'Decoded time since S_2 onset (ms)');
 end
 set(sps,...
     axesopt.default,...
     'xlim',roi,...
-    'xtick',[],...sort([0;t_set]),...
+    'xtick',unique([roi';0;t_set]),...
     'ylim',roi,...
-    'ytick',[]); % sort([0;t_set]));
+    'ytick',unique([roi';0;t_set]));
 linkaxes(sps);
 
 clims = quantile(P_tR,[0,.999],'all')';
@@ -384,3 +429,197 @@ for ii = 1 : n_contrasts
     imagesc(sps(ii),roi,roi,p_cond',clims);
     plot(sps(ii),xlim,ylim,'--w');
 end
+
+%% plot superimposed contrast-split posterior averages
+figure(...
+    'name','posterior averages',...
+    'numbertitle','off');
+axes(...
+    axesopt.default,...
+    'xlim',roi,...
+    'xtick',unique([roi';0;t_set]),...
+    'ylim',roi,...
+    'ytick',unique([roi';0;t_set]));
+xlabel('Real time since S_2 onset (ms)');
+ylabel('Decoded time since S_2 onset (ms)');
+
+% color limits
+clims = quantile(avgfun(P_tR,4),[0,1],'all')';
+
+% iterate through contrast conditions
+for ii = 1 : n_contrasts
+    p_cond = squeeze(avgfun(P_tR(:,:,ii,:),4));
+    p_cond(p_cond < clims(1)) = clims(1);
+    p_cond(p_cond > clims(2)) = clims(2);
+    p_cond(isnan(p_cond)) = max(p_cond(:));
+    p_patch = mat2patch(p_cond,roi,roi);
+    patch(p_patch,...
+        'facevertexalphadata',p_patch.facevertexcdata,...
+        'edgecolor','none',...
+        'facecolor',contrast_clrs(ii,:),...
+        'facealpha','flat');
+end
+
+% plot identity line
+plot(xlim,ylim,'--k');
+
+%% plot slices through condition-split posterior averages
+
+% figure initialization
+fig = figure(...
+    'name','slices through condition-split posterior averages',...
+    'numbertitle','off',...
+    'position',[769.8000 41.8000 766.4000 740.8000],...
+    'color','w');
+
+% slice settings
+n_slices = 5;
+slices = linspace(0,t_set(end-2),n_slices);
+
+slices = [0,50,100,200,400];
+n_slices = numel(slices);
+
+% axes initialization
+sps = gobjects(n_slices,1);
+for ii = 1 : n_slices
+    sps(ii) = subplot(n_slices,1,ii);
+    xlabel(sps(ii),'Decoded time since S_2 onset (ms)');
+    ylabel(sps(ii),'P(t|R)');
+end
+set(sps,...
+    'xlim',[roi(1),t_set(end-2)],...
+    'xtick',unique([roi';0;t_set]),...
+    'ylimspec','tight',...
+    'xdir','normal',...
+    'ydir','normal',...
+    'layer','top',...
+    'clipping','on',...
+    'fontsize',12,...
+    'linewidth',2,...
+    'tickdir','out',...
+    'nextplot','add',...
+    'ticklength',[1,1]*.025,...
+    'nextplot','add',...
+    'plotboxaspectratio',[4,1,1]);
+set(sps,...
+    'xlim',xlim(sps(1)) + [-1,1] * .05 * range(xlim(sps(1))));
+set(sps(1:end-1),...
+    'xcolor','none');
+
+% iterate through contrast conditions
+[~,cond_idcs] = sort(...
+    abs(contrast_set-contrast_set(contrast_mode_idx)),'descend');
+for ii = cond_idcs'
+    p_cond = squeeze(avgfun(P_tR(:,:,ii,:),4));
+
+    % iterate through slices
+    for jj = 1 : n_slices
+        slice_idx = find(roi_time >= slices(jj),1);
+        p_slice = p_cond(slice_idx,:);
+        p_slice = p_slice / nansum(p_slice);
+        
+        % plot posterior slice
+        plot(sps(jj),roi_time,p_slice,...
+            'color',contrast_clrs(ii,:),...
+            'linewidth',1.5);
+    end
+end
+
+% linkage
+linkaxes(sps);
+
+% iterate through slices
+for ii = 1 : n_slices
+    
+    % update axes
+    set(sps(ii),...
+        'ylim',[0,max(ylim(sps(ii)))] + [0,1] * .1 * max(ylim(sps(ii))),...
+        'ytick',0,...
+        'yticklabel','0');
+    
+    % plot real time
+    slice_idx = find(t >= slices(ii),1);
+    plot(sps(ii),t(slice_idx),max(ylim(sps(ii))),...
+        'marker','v',...
+        'markersize',8.5,...
+        'markerfacecolor','k',...
+        'markeredgecolor','none');
+end
+
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
+end
+
+%% plot superimposed contrast-split MAPs
+
+% figure initialization
+fig = figure(...
+    figopt,...
+    'name','posterior subtractions (extreme)',...
+    'numbertitle','off');
+
+% axes initialization
+axes(...
+    axesopt.default,...
+    'xlim',roi,...
+    'xtick',unique([roi';0;t_set]),...
+    'ylim',roi,...
+    'ytick',unique([roi';0;t_set]));
+xlabel('Real time since S_2 onset (ms)');
+ylabel('Decoded time since S_2 onset (ms)');
+
+% iterate through contrast conditions
+for ii = 1 : n_contrasts
+    p_cond = squeeze(avgfun(P_tR(:,:,ii,:),4));
+    [~,mode_idcs] = max(p_cond,[],2);
+    map_cond = roi_time(mode_idcs);
+    plot(roi_time,map_cond,...
+        'color',contrast_clrs(ii,:),...
+        'linewidth',2);
+end
+
+% plot identity line
+plot(xlim,ylim,'--k');
+
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
+end
+
+%% 
+
+% figure initialization
+fig = figure(...
+    figopt,...
+    'name','posterior subtractions (extreme)',...
+    'numbertitle','off');
+
+% axes initialization
+axes(...
+    axesopt.default,...
+    'xlim',roi,...
+    'xtick',unique([roi';0;t_set]),...
+    'ylim',roi,...
+    'ytick',unique([roi';0;t_set]));
+xlabel('Real time since S_2 onset (ms)');
+ylabel('Decoded time since S_2 onset (ms)');
+
+p_ref = squeeze(avgfun(P_tR(:,:,contrast_mode_idx,:),4));
+[~,mode_idcs] = max(p_ref,[],2);
+map_ref = roi_time(mode_idcs);
+
+% iterate through contrast conditions
+for ii = 1 : n_contrasts
+    p_cond = squeeze(avgfun(P_tR(:,:,ii,:),4));
+    [~,mode_idcs] = max(p_cond,[],2);
+    map_cond = roi_time(mode_idcs);
+    plot(map_ref,map_cond,...
+        'color',contrast_clrs(ii,:),...
+        'linewidth',1.5);
+end
+
+% plot identity line
+plot(xlim,ylim,'--k');
