@@ -66,11 +66,11 @@ n_runs = 10;
 avgfun = @nanmedian;
 
 %% concatenation settings
-n_concatspercond = 2^6;
+n_concatspercond = 2^7;
 n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% time settings
-roi = [-500,t_set(end)];
+roi = [-0,t_set(end)];
 roi_n_bins = range(roi) / psthbin;
 roi_time = linspace(roi(1),roi(2),roi_n_bins);
 
@@ -81,6 +81,8 @@ clear concat_tensor P_tR;
 
 % preallocation
 P_tR_avgs = nan(roi_n_bins,roi_n_bins,n_contrasts,n_runs);
+map_avgs = nan(roi_n_bins,n_contrasts,n_runs);
+
 concat_stimuli = nan(n_concats,n_runs);
 concat_contrasts = nan(n_concats,n_runs);
 concat_choices = nan(n_concats,n_runs);
@@ -287,7 +289,7 @@ for rr = 1 : n_runs
     nbdopt.verbose = true;
     
     tic
-    P_tR = naivebayestimedecoder(concat_tensor,nbdopt);
+    [P_tR,~,map_cond] = naivebayestimedecoder(concat_tensor,nbdopt);
     toc
     
     %% store current run
@@ -297,6 +299,7 @@ for rr = 1 : n_runs
         contrast_flags = ...
             concat_contrasts(concat_evalset == 'test') == contrast_set(ii);
         P_tR_avgs(:,:,ii,rr) = avgfun(P_tR(:,:,contrast_flags),3);
+        map_avgs(:,ii,rr) = avgfun(map_cond.mode(:,contrast_flags),2);
     end
 end
 
@@ -362,3 +365,42 @@ for ii = 1 : n_contrasts
     imagesc(sps(ii),roi,roi,p_cond');
     plot(sps(ii),xlim,ylim,'--w');
 end
+
+%% plot superimposed contrast-split MAPs
+
+% figure initialization
+fig = figure(...
+    figopt,...
+    'name','posterior subtractions (extreme)',...
+    'numbertitle','off');
+
+% axes initialization
+axes(...
+    axesopt.default,...
+    'xlim',roi,...
+    'xtick',sort([0;t_set]),...
+    'ylim',roi,...
+    'ytick',sort([0;t_set]));
+xlabel('Real time since S_2 onset (ms)');
+ylabel('Decoded time since S_2 onset (ms)');
+
+% iterate through contrast conditions
+for ii = 1 : n_contrasts
+    map_cond = nanmean(map_avgs(:,ii,:),3);
+    
+%     p_cond = nanmean(P_tR_avgs(:,:,ii,:),4);
+%     [~,mode_idcs] = max(p_cond,[],2);
+%     map_cond = roi_time(mode_idcs);
+%     test_time_flags = ~all(isnan(p_cond),2);
+%     median_flags = [false(sum(test_time_flags),1),...
+%         diff(cumsum(p_cond,2) > .5,1,2) == 1];
+%     [~,median_idcs] = max(median_flags,[],2);
+%     map_cond = roi_time(median_idcs);
+    
+    plot(roi_time,map_cond,...
+        'color',contrast_clrs(ii,:),...
+        'linewidth',1.5);
+end
+
+% plot identity line
+plot(xlim,ylim,'--k');
