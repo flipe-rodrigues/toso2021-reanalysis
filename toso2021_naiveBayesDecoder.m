@@ -22,7 +22,7 @@ elseif strcmpi(contrast_str,'i1')
         'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i2')
     conditions.train = intersectconditions(...
-        't1',t1(valid_flags),t_set,[],...
+        't1',t1(valid_flags),[],[],...
         'i1',i1(valid_flags),[],[],...
         't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
@@ -63,7 +63,7 @@ conditions.test.values
 n_runs = 1;
 
 %% concatenation settings
-n_concatspercond = 2^8; % 2^8;
+n_concatspercond = 2^8;
 n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
 
 %% time settings
@@ -84,7 +84,7 @@ concat_choices = nan(n_concats,n_runs);
 concat_evalset = categorical(nan(n_concats,n_runs),[0,1],{'train','test'});
 
 % data type selection
-spike_data_field = 'FR';
+spike_data_field = 'FakeFR';
 
 % iterate through runs
 for rr = 1 : n_runs
@@ -182,7 +182,7 @@ for rr = 1 : n_runs
                     % split the conflicting trials into training & test subsets
                     xval_trials = flagged_trials(xval_trial_flags);
                     n_xval_trials = numel(xval_trials);
-                    n_train_trials = round(n_xval_trials * 1 / 2);
+                    n_train_trials = round(n_xval_trials * 2 / 3);
                     xval_train_idcs = randperm(n_xval_trials,n_train_trials);
                     xval_train_trials_bab{kk,ii} = xval_trials(xval_train_idcs);
                 end

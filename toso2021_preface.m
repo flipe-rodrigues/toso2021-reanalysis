@@ -118,6 +118,13 @@ subject_set = unique(subjects(~isnan(subjects)));
 n_subjects = numel(subject_set);
 n_total_trials = numel(t1);
 
+%% choice & correctness intersection
+choice_correct = (choice * 2 - 1) .* (correct + 1);
+choice_correct = categorical(choice_correct,[-2,-1,1,2],...
+    {'T2<T1_{correct}','T2<T1_{incorrect}','T2>T1_{incorrect}','T2>T1_{correct}'});
+choice_correct_set = unique(choice_correct);
+n_choice_correct = numel(choice_correct_set);
+
 %% categorical T1
 t1_cat = zeros(n_total_trials,1);
 t1_cat(t1 > t_set(t1_mode_idx)) = +1;
@@ -171,6 +178,7 @@ t1_cat_clrs = [...
     mean(t1_clrs(1:t1_mode_idx-1,:));...
     mean(t1_clrs(t1_mode_idx+1:end,:))];
 t1_cat_clrs = cool(n_t1_cat);
+choice_correct_clrs = colorlerp(choice_clrs,n_choice_correct);
 
 %% task variant adaptations
 

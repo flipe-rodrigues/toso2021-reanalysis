@@ -24,7 +24,7 @@ elseif strcmpi(contrast_str,'i1')
 elseif strcmpi(contrast_str,'i2')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),[],[],...
-        'i1',i1(valid_flags),i_set(i1_mode_idx),[],...
+        'i1',i1(valid_flags),[],[],...
         't2',t2(valid_flags),[],[],...t_set(t2_mode_idx+[-1,0,1]),...
         'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
         'choice',choice(valid_flags),[],[]);
@@ -63,10 +63,10 @@ fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
 %% run settings
-n_runs = 10;
+n_runs = 30;
 
 %% concatenation settings
-n_concatspercond = 2^7;
+n_concatspercond = 2^6;
 n_concats = n_concatspercond * n_conditions;
 
 %% time settings
