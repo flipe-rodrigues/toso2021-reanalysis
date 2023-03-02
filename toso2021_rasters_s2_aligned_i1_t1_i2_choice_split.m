@@ -756,7 +756,7 @@ for nn = 1 : n_neurons2plot
         for jj = 1 : n_t
 
             % plot stimulus offset
-            alpha_level = patch_alpha(t2offset_idcs(aa));
+            alpha_level = patch_alpha(t2offset_idcs(jj));
             offset_flags = time2plot < t_set(jj) & ...
                 [time2plot(2:end),nan] >= t_set(jj);
             scatter(sps(4),time2plot(offset_flags),choice_mu(offset_flags),36,...
