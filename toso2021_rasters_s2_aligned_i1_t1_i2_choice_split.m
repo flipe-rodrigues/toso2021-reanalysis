@@ -35,11 +35,6 @@ else
     spike_markersize = 2.5;
 end
 
-%% fade settings
-fadeifnoisy = true;
-alphabounds_sem = [.05,.3];
-alphabounds_mu = [.15,.85];
-
 %% construct Si-aligned, Ti- & Ii-split psths
 ti_padd = [-500,0];
 
@@ -118,11 +113,11 @@ for nn = 1 : n_neurons2plot
     t1_lines = gobjects(n_t,n_t);
     i1_lines = gobjects(n_i,n_t);
     i2_lines = gobjects(n_i,n_t);
-    choice_lines = gobjects(n_i,n_t);
+    choice_lines = gobjects(n_choices,n_t);
     t1_patches = gobjects(n_t,n_t);
     i1_patches = gobjects(n_i,n_t);
     i2_patches = gobjects(n_i,n_t);
-    choice_patches = gobjects(n_i,n_t);
+    choice_patches = gobjects(n_choices,n_t);
     
     % iterate through durations
     for tt = 1 : n_t
@@ -183,7 +178,7 @@ for nn = 1 : n_neurons2plot
             fliplr(t1_trials_throughtime(~nan_flags))];
         patch_alpha = (patch_alpha - min(t1_trials_throughtime)) / ...
             range(t1_trials_throughtime);
-        patch_alpha = patch_alpha * alphabounds_sem(2) + alphabounds_sem(1);
+        patch_alpha = patch_alpha * range(alphabounds_sem) + alphabounds_sem(1);
         if fadeifnoisy
             alpha_levels = unique(patch_alpha,'stable');
             n_alpha_levels = numel(alpha_levels);
@@ -209,7 +204,7 @@ for nn = 1 : n_neurons2plot
         patch_alpha = t1_trials_throughtime(~nan_flags);
         patch_alpha = (patch_alpha - min(t1_trials_throughtime)) / ...
             range(t1_trials_throughtime);
-        patch_alpha = patch_alpha * alphabounds_mu(2) + alphabounds_mu(1);
+        patch_alpha = patch_alpha * range(alphabounds_mu) + alphabounds_mu(1);
         if fadeifnoisy
             alpha_levels = unique(patch_alpha,'stable');
             n_alpha_levels = numel(alpha_levels);
@@ -355,7 +350,7 @@ for nn = 1 : n_neurons2plot
             fliplr(i1_trials_throughtime(~nan_flags))];
         patch_alpha = (patch_alpha - min(i1_trials_throughtime)) / ...
             range(i1_trials_throughtime);
-        patch_alpha = patch_alpha * alphabounds_sem(2) + alphabounds_sem(1);
+        patch_alpha = patch_alpha * range(alphabounds_sem) + alphabounds_sem(1);
         if fadeifnoisy
             alpha_levels = unique(patch_alpha,'stable');
             n_alpha_levels = numel(alpha_levels);
@@ -381,7 +376,7 @@ for nn = 1 : n_neurons2plot
         patch_alpha = i1_trials_throughtime(~nan_flags);
         patch_alpha = (patch_alpha - min(i1_trials_throughtime)) / ...
             range(i1_trials_throughtime);
-        patch_alpha = patch_alpha * alphabounds_mu(2) + alphabounds_mu(1);
+        patch_alpha = patch_alpha * range(alphabounds_mu) + alphabounds_mu(1);
         if fadeifnoisy
             alpha_levels = unique(patch_alpha,'stable');
             n_alpha_levels = numel(alpha_levels);
@@ -523,7 +518,7 @@ for nn = 1 : n_neurons2plot
             fliplr(i2_trials_throughtime(~nan_flags))];
         patch_alpha = (patch_alpha - min(i2_trials_throughtime)) / ...
             range(i2_trials_throughtime);
-        patch_alpha = patch_alpha * alphabounds_sem(2) + alphabounds_sem(1);
+        patch_alpha = patch_alpha * range(alphabounds_sem) + alphabounds_sem(1);
         if fadeifnoisy
             alpha_levels = unique(patch_alpha,'stable');
             n_alpha_levels = numel(alpha_levels);
@@ -549,7 +544,7 @@ for nn = 1 : n_neurons2plot
         patch_alpha = i2_trials_throughtime(~nan_flags);
         patch_alpha = (patch_alpha - min(i2_trials_throughtime)) / ...
             range(i2_trials_throughtime);
-        patch_alpha = patch_alpha * alphabounds_mu(2) + alphabounds_mu(1);
+        patch_alpha = patch_alpha * range(alphabounds_mu) + alphabounds_mu(1);
         if fadeifnoisy
             alpha_levels = unique(patch_alpha,'stable');
             n_alpha_levels = numel(alpha_levels);
@@ -635,7 +630,7 @@ for nn = 1 : n_neurons2plot
     % iterate through choices
     for ii = 1 : n_choices
         choice_flags = choice == choice_set(ii);
-%         choice_flags = choice_correct == choice_correct_set(ii);
+        %         choice_flags = choice_correct == choice_correct_set(ii);
         choice_spike_flags = ...
             valid_flags & ...
             neuron_flags & ...
@@ -681,7 +676,7 @@ for nn = 1 : n_neurons2plot
         %
         t2countthroughtime = ...
             sum(flagged_time <= t2(valid_flags & neuron_flags));
-        t2offset_idcs = find([diff(t2countthroughtime) ~= 0, true]); 
+        t2offset_idcs = find([diff(t2countthroughtime) ~= 0, true]);
         
         % flag current stimulus period
         nan_flags = isnan(choice_mu);
@@ -697,7 +692,7 @@ for nn = 1 : n_neurons2plot
             fliplr(choice_trials_throughtime(~nan_flags))];
         patch_alpha = (patch_alpha - min(choice_trials_throughtime)) / ...
             range(choice_trials_throughtime);
-        patch_alpha = patch_alpha * alphabounds_sem(2) + alphabounds_sem(1);
+        patch_alpha = patch_alpha * range(alphabounds_sem) + alphabounds_sem(1);
         if fadeifnoisy
             alpha_levels = unique(patch_alpha,'stable');
             n_alpha_levels = numel(alpha_levels);
@@ -724,7 +719,7 @@ for nn = 1 : n_neurons2plot
         patch_alpha = choice_trials_throughtime(~nan_flags);
         patch_alpha = (patch_alpha - min(choice_trials_throughtime)) / ...
             range(choice_trials_throughtime);
-        patch_alpha = patch_alpha * alphabounds_mu(2) + alphabounds_mu(1);
+        patch_alpha = patch_alpha * range(alphabounds_mu) + alphabounds_mu(1);
         if fadeifnoisy
             alpha_levels = unique(patch_alpha,'stable');
             n_alpha_levels = numel(alpha_levels);
@@ -754,7 +749,7 @@ for nn = 1 : n_neurons2plot
         
         % iterate through stimuli
         for jj = 1 : n_t
-
+            
             % plot stimulus offset
             alpha_level = patch_alpha(t2offset_idcs(jj));
             offset_flags = time2plot < t_set(jj) & ...
@@ -800,7 +795,7 @@ for nn = 1 : n_neurons2plot
         choice_n_trial_counter = choice_n_trial_counter + choice_n_trials;
         choice_boundaries(ii) = choice_n_trials;
     end
-
+    
     % ui restacking
     uistack([t1_lines(isgraphics(t1_lines)); ...
         t1_patches(isgraphics(t1_patches))],'bottom');

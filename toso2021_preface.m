@@ -108,7 +108,7 @@ i1_max_idx = find(i_set == max(i1));
 i2_max_idx = find(i_set == max(i2));
 n_t = numel(t_set);
 n_i = numel(i_set);
-choice = data.Action;
+choice = categorical(data.Action,[0,1],{'T_2<T_1','T_2>T_1'});
 choice_set = unique(choice);
 n_choices = numel(choice_set);
 pre_s1_delay = data.PreDelay + inferred_misalignment;
@@ -117,13 +117,6 @@ subjects = data.Subject;
 subject_set = unique(subjects(~isnan(subjects)));
 n_subjects = numel(subject_set);
 n_total_trials = numel(t1);
-
-%% choice & correctness intersection
-choice_correct = (choice * 2 - 1) .* (correct + 1);
-choice_correct = categorical(choice_correct,[-2,-1,1,2],...
-    {'T2<T1_{correct}','T2<T1_{incorrect}','T2>T1_{incorrect}','T2>T1_{correct}'});
-choice_correct_set = unique(choice_correct);
-n_choice_correct = numel(choice_correct_set);
 
 %% categorical T1
 t1_cat = zeros(n_total_trials,1);
@@ -178,7 +171,6 @@ t1_cat_clrs = [...
     mean(t1_clrs(1:t1_mode_idx-1,:));...
     mean(t1_clrs(t1_mode_idx+1:end,:))];
 t1_cat_clrs = cool(n_t1_cat);
-choice_correct_clrs = colorlerp(choice_clrs,n_choice_correct);
 
 %% task variant adaptations
 
@@ -243,9 +235,16 @@ d2_mode_idx = find(d_set == mode(d2));
 correct = choice == (s2 > s1);
 prev_correct = [nan;correct(1:end-1)];
 
+%% choice & correctness intersection
+choice_correct = (choice * 2 - 1) .* (correct + 1);
+choice_correct = categorical(choice_correct,[-2,-1,1,2],...
+    {'T2<T1_{correct}','T2<T1_{incorrect}','T2>T1_{incorrect}','T2>T1_{correct}'});
+choice_correct_set = unique(choice_correct);
+n_choice_correct = numel(choice_correct_set);
+choice_correct_clrs = colorlerp(choice_clrs,n_choice_correct);
+
 %% down-sample original spike counts
 psthbin_src = 1;
-downsampling_factor = 2;
 psthbin = psthbin_src * downsampling_factor;
 n_timebins_src = 6700;
 n_timebins = n_timebins_src / downsampling_factor;
@@ -324,6 +323,11 @@ n_ntd = numel(ntd_set);
 nid = round((i2 - i1) ./ (i2 + i1),2);
 nid_set = unique(nid(valid_flags));
 n_nid = numel(nid_set);
+
+%% fade settings
+fadeifnoisy = true;
+alphabounds_sem = [.05,.25];
+alphabounds_mu = [.15,1];
 
 %% figure options
 figopt.color = 'w';
