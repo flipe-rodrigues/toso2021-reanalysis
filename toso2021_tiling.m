@@ -6,14 +6,14 @@ end
 %% construct Ti-aligned, Ii-split psths
 roi2use = [0,t_set(end)];
 roi2plot = [-0,t_set(end)];
-roi2use_n_bins = range(roi2use) * psthbin;
-roi2plot_n_bins = range(roi2plot) * psthbin;
+roi2use_n_bins = range(roi2use) / psthbin;
+roi2plot_n_bins = range(roi2plot) / psthbin;
 roi2use_time = linspace(roi2use(1),roi2use(2),roi2use_n_bins);
 roi2plot_time = linspace(roi2plot(1),roi2plot(2),roi2plot_n_bins);
 roi2use_flags = ...
     roi2plot_time >= roi2use(1) & ...
     roi2plot_time <= roi2use(2);
-isi_n_bins = isi * psthbin;
+isi_n_bins = isi / psthbin;
 
 % preallocation
 s1_psths = nan(roi2plot_n_bins,n_neurons);
@@ -316,7 +316,7 @@ ylabel('Neuron #');
 % sort by angular position in PC space
 [theta,~] = cart2pol(s2_coeff(:,1),s2_coeff(:,2));
 [~,theta_idcs] = sortrows(theta);
-theta_idcs = circshift(theta_idcs,125);
+theta_idcs = flipud(circshift(theta_idcs,-125));
 
 % plot selectivity heat map
 imagesc(roi2plot,[1,n_neurons],s2_zpsths(:,theta_idcs)',clim);
@@ -347,6 +347,7 @@ if want2save
     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
 end
+return;
 
 %% S2-aligned PC projections
 n_pcs2plot = 5;
