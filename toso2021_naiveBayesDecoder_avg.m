@@ -9,23 +9,23 @@ end
 % training set conditions
 if strcmpi(contrast_str,'t1')
     conditions.train = intersectconditions(...
-        't1',t1(valid_flags),[],t_set([1,end]),...
+        't1',t1(valid_flags),[],[],...
         'i1',i1(valid_flags),[],[],...
-        't2',t2(valid_flags),t_set,[],...
+        't2',t2(valid_flags),[],[],...
         'i2',i2(valid_flags),[],[],...
         'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i1')
     conditions.train = intersectconditions(...
-        't1',t1(valid_flags),[],t_set([1,end]),...
+        't1',t1(valid_flags),[],[],...
         'i1',i1(valid_flags),i_set(i1_mode_idx),[],...
-        't2',t2(valid_flags),t_set,[],...
-        'i2',i2(valid_flags),[],[],...
+        't2',t2(valid_flags),[],[],...
+        'i2',i2(valid_flags),[],[],...t_set(t2_mode_idx+[-1,0,1]),...
         'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i2')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),[],[],...
-        'i1',i1(valid_flags),[],[],...
-        't2',t2(valid_flags),[],t_set(t2_mode_idx+[-1,0,1]),...
+        'i1',i1(valid_flags),i_set(i1_mode_idx),[],...
+        't2',t2(valid_flags),[],[],...t_set(t2_mode_idx+[-1,0,1]),...
         'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
         'choice',choice(valid_flags),[],[]);
 end
@@ -35,21 +35,21 @@ if strcmpi(contrast_str,'t1')
     conditions.test = intersectconditions(...
         't1',t1(valid_flags),t_set,[],...
         'i1',i1(valid_flags),[],[],...
-        't2',t2(valid_flags),t_set,[],...
+        't2',t2(valid_flags),[],[],...
         'i2',i2(valid_flags),[],[],...
         'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i1')
     conditions.test = intersectconditions(...
         't1',t1(valid_flags),[],[],...
         'i1',i1(valid_flags),i_set,[],...
-        't2',t2(valid_flags),t_set,[],...
+        't2',t2(valid_flags),[],[],...t_set([1,2,end-1,end]),...
         'i2',i2(valid_flags),[],[],...
         'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i2')
     conditions.test = intersectconditions(...
         't1',t1(valid_flags),[],[],...
         'i1',i1(valid_flags),[],[],...
-        't2',t2(valid_flags),[],t_set([1,end]),...
+        't2',t2(valid_flags),[],[],...t_set([1,2,end-1,end]),...
         'i2',i2(valid_flags),i_set,[],...
         'choice',choice(valid_flags),[],[]);
 end
@@ -66,7 +66,7 @@ conditions.test.values
 n_runs = 10;
 
 %% concatenation settings
-n_concatspercond = 2^8; % 2^8;
+n_concatspercond = 2^7;
 n_concats = n_concatspercond * n_conditions;
 
 %% time settings
@@ -187,7 +187,7 @@ for rr = 1 : n_runs
                     % split the conflicting trials into training & test subsets
                     xval_trials = flagged_trials(xval_trial_flags);
                     n_xval_trials = numel(xval_trials);
-                    n_train_trials = round(n_xval_trials * 1 / 2);
+                    n_train_trials = round(n_xval_trials * 2 / 3);
                     xval_train_idcs = randperm(n_xval_trials,n_train_trials);
                     xval_train_trials_bab{kk,ii} = xval_trials(xval_train_idcs);
                 end
@@ -215,19 +215,19 @@ for rr = 1 : n_runs
             r_mu = nanmean(r);
             nan_flags = isnan(r_mu);
 
-%             mdl_spline = fit(...
-%                 roi_time(~nan_flags)',r_mu(~nan_flags)','smoothingspline',...
-%                 'smoothingparam',1e-6);
-%             r_spline = max(realmin,mdl_spline(roi_time));
-%             r_spline(nan_flags) = nan;
+            mdl_spline = fit(...
+                roi_time(~nan_flags)',r_mu(~nan_flags)','smoothingspline',...
+                'smoothingparam',1e-6);
+            r_spline = max(1e-3,mdl_spline(roi_time));
+            r_spline(nan_flags) = nan;
             
-            t_mat = repmat(roi_time,n_concatspercond,1)';
-            r_mat = r';
-            r_vec = r_mat(~isnan(r_mat));
-            t_vec = t_mat(~isnan(r_mat));
-            mdl_poly = fit(t_vec,r_vec,'poly9');
-            r_poly = max(realmin,mdl_poly(roi_time));
-            r_poly(nan_flags) = nan;
+%             t_mat = repmat(roi_time,n_concatspercond,1)';
+%             r_mat = r';
+%             r_vec = r_mat(~isnan(r_mat));
+%             t_vec = t_mat(~isnan(r_mat));
+%             mdl_poly = fit(t_vec,r_vec,'poly9');
+%             r_poly = max(1e-3,mdl_poly(roi_time));
+%             r_poly(nan_flags) = nan;
             
 %             figure('position',[119.4000 53.8000 560 712.8000]);
 %             subplot(3,1,[1,2]);
@@ -236,8 +236,9 @@ for rr = 1 : n_runs
 %             plot(roi_time,r_mu);
 %             plot(roi_time,r_poly);
 %             plot(roi_time,r_spline);
+%             plot(roi_time,(r_poly+r_spline)/2);
             
-            R(:,nn,kk) = r_poly;
+            R(:,nn,kk) = r_spline;
         end
         
         % iterate through conditions
@@ -310,16 +311,16 @@ for rr = 1 : n_runs
             mdl_spline = fit(...
                 roi_time(~nan_flags)',r_mu(~nan_flags)','smoothingspline',...
                 'smoothingparam',1e-6);
-            r_spline = max(realmin,mdl_spline(roi_time));
+            r_spline = max(1e-3,mdl_spline(roi_time));
             r_spline(nan_flags) = nan;
             
-            t_mat = repmat(roi_time,n_concatspercond,1)';
-            r_mat = r';
-            r_vec = r_mat(~isnan(r_mat));
-            t_vec = t_mat(~isnan(r_mat));
-            mdl_poly = fit(t_vec,r_vec,'poly9');
-            r_poly = max(realmin,mdl_poly(roi_time));
-            r_poly(nan_flags) = nan;
+%             t_mat = repmat(roi_time,n_concatspercond,1)';
+%             r_mat = r';
+%             r_vec = r_mat(~isnan(r_mat));
+%             t_vec = t_mat(~isnan(r_mat));
+%             mdl_poly = fit(t_vec,r_vec,'poly9');
+%             r_poly = max(1e-3,mdl_poly(roi_time));
+%             r_poly(nan_flags) = nan;
             
 %             figure('position',[119.4000 53.8000 560 712.8000]);
 %             subplot(3,1,[1,2]);
@@ -329,7 +330,7 @@ for rr = 1 : n_runs
 %             plot(roi_time,r_poly);
 %             plot(roi_time,r_spline);
             
-            R(:,nn,kk+conditions.train.n) = r_poly;
+            R(:,nn,kk+conditions.train.n) = r_spline;
         end
     end
     
@@ -345,9 +346,42 @@ for rr = 1 : n_runs
     nbdopt.verbose = true;
     
     tic
-    [P_tR(:,:,:,rr),~,pthat] = naivebayestimedecoder(R,nbdopt);
+    [P_tR(:,:,:,rr),P_Rt,pthat,neurons] = naivebayestimedecoder(R,nbdopt);
     MAP(:,:,rr) = pthat.mode;
     toc
+end
+
+%% plot likelihoods
+figure;
+set(gca,...
+    axesopt.default,...,...
+    'xlim',roi,...
+    'xtick',sort([0;t_set]));
+xlabel('Time since T_2 (ms)');
+ylabel('Firing rate (Hz)');
+
+% iterate through units
+for nn = 263 : n_neurons
+    cla;
+    r_bounds = neurons(nn).x_bounds;
+    r_bw = neurons(nn).x_bw;
+    if range(r_bounds) == 0
+        continue;
+    end
+    ylim(r_bounds);
+    title(sprintf('neuron: %i, bw: %.2f',nn,r_bw));
+    p_Rt = squeeze(P_Rt(:,nn,:));
+    nan_flags = isnan(p_Rt);
+    if sum(abs(diff(any(nan_flags,2)))) > 1
+        fprintf('\tcheck neuron %i!\n',nn);
+    end
+    p_Rt(nan_flags) = max(p_Rt(:));
+    imagesc(xlim,r_bounds,p_Rt');
+    for ii = 1 : n_t
+        plot([1,1]*t_set(ii),ylim,'--w');
+    end
+    drawnow;
+    pause(.1);
 end
 
 %% choice of average function
@@ -477,11 +511,10 @@ fig = figure(...
     'color','w');
 
 % slice settings
-n_slices = 5;
-slices = linspace(0,t_set(end-2),n_slices);
-
-slices = [0,50,100,200,400];
-n_slices = numel(slices);
+n_slices = 7;
+slices = linspace(roi(1),t_set(end-2),n_slices);
+% slices = [0,50,100,200,400];
+% n_slices = numel(slices);
 
 % axes initialization
 sps = gobjects(n_slices,1);
