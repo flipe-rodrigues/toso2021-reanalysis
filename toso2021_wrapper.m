@@ -45,11 +45,11 @@ end
 want2save = true;
 
 %% preface
-downsampling_factor = 1;
+downsampling_factor = 2;
 toso2021_preface;
 
 %% contrast settings
-contrast_str = 'i2';
+contrast_str = 't1';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str,'_set']);
 n_contrasts = numel(contrast_set);
