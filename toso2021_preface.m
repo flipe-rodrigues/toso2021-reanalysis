@@ -258,7 +258,7 @@ if (psthbin_src ~= psthbin) && (size(data.FR,2) == n_timebins_src)
 end
 
 %% kernel settings
-kernel = gammakernel('peakx',50,'binwidth',psthbin);
+kernel = gammakernel('peakx',kernel_peak_time,'binwidth',psthbin);
 n_paddedtimebins = size(data.FR,2);
 n_timebins = n_paddedtimebins - kernel.nbins + 1;
 n_tbins = max(t_set) / psthbin;
