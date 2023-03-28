@@ -151,6 +151,7 @@ i2_units = 'mm.s^{-1}';
 prev_i1_units = 'mm.s^{-1}';
 prev_i2_units = 'mm.s^{-1}';
 choice_units = 'a.u.';
+correct_units = 'a.u.';
 t1_cat_units = '';
 
 %% color scheme
@@ -234,6 +235,8 @@ d2_mode_idx = find(d_set == mode(d2));
 
 % correctness
 correct = choice == (s2 > s1);
+correct_set = unique(correct(valid_flags));
+correct_clrs = reward_clrs;
 prev_correct = [nan;correct(1:end-1)];
 
 %% choice & correctness intersection
