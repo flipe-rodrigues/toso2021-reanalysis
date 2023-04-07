@@ -10,24 +10,30 @@ end
 if strcmpi(contrast_str,'t1')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),[],[],...
-        'i1',i1(valid_flags),[],[],...
+        'i1',i1(valid_flags),i_set(i1_mode_idx),[],...
         't2',t2(valid_flags),[],[],...
-        'i2',i2(valid_flags),[],[],...
+        'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
         'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i1')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),[],[],...
         'i1',i1(valid_flags),i_set(i1_mode_idx),[],...
-        't2',t2(valid_flags),[],[],...
-        'i2',i2(valid_flags),[],[],...
+        't2',t2(valid_flags),[],t_set([1:t2_mode_idx+1,end]),...
+        'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
         'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i2')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),[],[],...
-        'i1',i1(valid_flags),[],[],...
-        't2',t2(valid_flags),t_set(t2_mode_idx+2),[],...
+        'i1',i1(valid_flags),i_set(i1_mode_idx),[],...
+        't2',t2(valid_flags),[],t_set([1:t2_mode_idx+1,end]),...
         'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
         'choice',choice(valid_flags),[],[]);
+%     conditions.train = intersectconditions(...
+%         't1',t1(valid_flags),[],[],...
+%         'i1',i1(valid_flags),[],[],...
+%         't2',t2(valid_flags),[],[],...
+%         'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
+%         'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'choice')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),[],t_set([1,end]),...
@@ -48,24 +54,30 @@ end
 if strcmpi(contrast_str,'t1')
     conditions.test = intersectconditions(...
         't1',t1(valid_flags),t_set,[],...
-        'i1',i1(valid_flags),[],[],...
+        'i1',i1(valid_flags),i_set(i1_mode_idx),[],...
         't2',t2(valid_flags),[],[],...
-        'i2',i2(valid_flags),[],[],...
+        'i2',i2(valid_flags),i_set(i1_mode_idx),[],...
         'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i1')
     conditions.test = intersectconditions(...
         't1',t1(valid_flags),[],[],...
         'i1',i1(valid_flags),i_set,[],...
-        't2',t2(valid_flags),[],[],...
-        'i2',i2(valid_flags),[],[],...
+        't2',t2(valid_flags),t_set(t2_mode_idx+1),[],...
+        'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
         'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i2')
     conditions.test = intersectconditions(...
         't1',t1(valid_flags),[],[],...
-        'i1',i1(valid_flags),[],[],...
-        't2',t2(valid_flags),t_set(t2_mode_idx),[],...
+        'i1',i1(valid_flags),i_set(i1_mode_idx),[],...
+        't2',t2(valid_flags),t_set(t2_mode_idx+1),[],...
         'i2',i2(valid_flags),i_set,[],...
         'choice',choice(valid_flags),[],[]);
+% 	conditions.test = intersectconditions(...
+%         't1',t1(valid_flags),[],[],...
+%         'i1',i1(valid_flags),[],[],...
+%         't2',t2(valid_flags),[],[],...
+%         'i2',i2(valid_flags),i_set,[],...
+%         'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'choice')
     conditions.test = intersectconditions(...
         't1',t1(valid_flags),[],[],...
@@ -101,6 +113,9 @@ n_concats = n_concatspercond * n_conditions;
 roi = [-500,max(conditions.train.values.t2)];
 roi_n_bins = range(roi) / psthbin;
 roi_time = linspace(roi(1),roi(2),roi_n_bins);
+
+%% selection criteria
+n_trial_cutoff = 4;
 
 %% construct spike rate tensor (time X neurons X concatenations)
 
@@ -149,7 +164,7 @@ for rr = 1 : n_runs
                 condition_flags;
             flagged_trials = find(trial_flags);
             n_flagged_trials = numel(flagged_trials);
-            if n_flagged_trials == 0
+            if n_flagged_trials <= n_trial_cutoff
                 continue;
             end
             
@@ -225,7 +240,7 @@ for rr = 1 : n_runs
 
             r = aligned_spkrates(rand_idcs,:);
             r_mu = nanmean(r);
-            nan_flags = isnan(r_mu);
+%             nan_flags = isnan(r_mu);
 
 %             mdl_spline = fit(...
 %                 roi_time(~nan_flags)',r_mu(~nan_flags)','smoothingspline',...
@@ -233,13 +248,13 @@ for rr = 1 : n_runs
 %             r_spline = max(1e-3,mdl_spline(roi_time));
 %             r_spline(nan_flags) = nan;
             
-            t_mat = repmat(roi_time,n_concatspercond,1)';
-            r_mat = r';
-            r_vec = r_mat(~isnan(r_mat));
-            t_vec = t_mat(~isnan(r_mat));
-            mdl_poly = fit(t_vec,r_vec,'poly9');
-            r_poly = max(1e-3,mdl_poly(roi_time));
-            r_poly(nan_flags) = nan;
+%             t_mat = repmat(roi_time,n_concatspercond,1)';
+%             r_mat = r';
+%             r_vec = r_mat(~isnan(r_mat));
+%             t_vec = t_mat(~isnan(r_mat));
+%             mdl_poly = fit(t_vec,r_vec,'poly9');
+%             r_poly = max(1e-3,mdl_poly(roi_time));
+%             r_poly(nan_flags) = nan;
             
 %             figure('position',[119.4000 53.8000 560 712.8000]);
 %             subplot(3,1,[1,2]);
@@ -250,7 +265,7 @@ for rr = 1 : n_runs
 %             plot(roi_time,r_spline);
 %             plot(roi_time,(r_poly+r_spline)/2);
             
-            R(:,nn,kk) = r_mu;
+            R(:,nn,kk) = nanmean(aligned_spkrates);
         end
         
         % iterate through conditions
@@ -273,7 +288,7 @@ for rr = 1 : n_runs
                 condition_flags;
             flagged_trials = find(trial_flags);
             n_flagged_trials = numel(flagged_trials);
-            if n_flagged_trials == 0
+            if n_flagged_trials <= n_trial_cutoff
                 continue;
             end
             
@@ -311,7 +326,7 @@ for rr = 1 : n_runs
 
             r = aligned_spkrates(rand_idcs,:);
             r_mu = nanmean(r);
-            nan_flags = isnan(r_mu);
+%             nan_flags = isnan(r_mu);
             
 %             mdl_spline = fit(...
 %                 roi_time(~nan_flags)',r_mu(~nan_flags)','smoothingspline',...
@@ -319,13 +334,13 @@ for rr = 1 : n_runs
 %             r_spline = max(1e-3,mdl_spline(roi_time));
 %             r_spline(nan_flags) = nan;
             
-            t_mat = repmat(roi_time,n_concatspercond,1)';
-            r_mat = r';
-            r_vec = r_mat(~isnan(r_mat));
-            t_vec = t_mat(~isnan(r_mat));
-            mdl_poly = fit(t_vec,r_vec,'poly9');
-            r_poly = max(1e-3,mdl_poly(roi_time));
-            r_poly(nan_flags) = nan;
+%             t_mat = repmat(roi_time,n_concatspercond,1)';
+%             r_mat = r';
+%             r_vec = r_mat(~isnan(r_mat));
+%             t_vec = t_mat(~isnan(r_mat));
+%             mdl_poly = fit(t_vec,r_vec,'poly9');
+%             r_poly = max(1e-3,mdl_poly(roi_time));
+%             r_poly(nan_flags) = nan;
             
 %             figure('position',[119.4000 53.8000 560 712.8000]);
 %             subplot(3,1,[1,2]);
@@ -335,25 +350,32 @@ for rr = 1 : n_runs
 %             plot(roi_time,r_poly);
 %             plot(roi_time,r_spline);
             
-            R(:,nn,kk+conditions.train.n) = r_mu;
+            R(:,nn,kk+conditions.train.n) = nanmean(aligned_spkrates);
         end
     end
     
     %% compute scaling factors
     
     % temporal warping settings
-    warpopt.bounds = [.5,1.5]; % 1 + ([-25,50]+[-1,1]*75*.1) / 100;
+    warpopt.bounds = [.25,2]; % 1 + ([-25,50]+[-1,1]*75*.1) / 100;
     warpopt.evalbounds = [0,inf];
-    warpopt.upsfactor = ceil(3 * range(warpopt.bounds));
-    warpopt.lambda = .0;
+    warpopt.upsfactor = 1; % ceil(3 * range(warpopt.bounds));
+    warpopt.lambda = 2;
     warpopt.clrs = contrast_clrs;
     warpopt.verbose = true;
     warpopt.center = 0;
     warpopt.normalize = 0;
+    warpopt.pullapart = 0;
     warpopt.plot = 0;
-    warpopt.weights = roi_time .^ 0;
+    
+    % compute observation weights
+    time_mat = repmat(roi_time,n_total_trials,1);
+    weights = sum(time_mat <= t2);
+    weights = weights ./ max(weights);
+    warpopt.weights = weights .^ 1;
+    
     tic
-    [~,scale_factors] = fittemporalscalingfactor(...
+    [~,scale_factors] = fittemporalscalingfactor_temporalscaleonly(...
         R(:,:,1),R(:,:,2:end),roi_time,warpopt);
     toc
 end
@@ -364,7 +386,7 @@ end
 dilation_bounds = [-1,1] * 50;
 
 % figure initialization
-figure(figopt.default,...
+fig = figure(figopt,...
     'name',sprintf('response dilation (%s)',contrast_lbl));
 axes(axesopt.default,...
     'xlim',[1,n_contrasts] + [-1,1]*.65,...
@@ -393,8 +415,8 @@ barwidth = .75;
 % dilation selection settings
 lowerbound = min(ylim);
 upperbound = max(ylim);
-lowerbound = -inf;
-upperbound = +inf;
+% lowerbound = -inf;
+% upperbound = +inf;
 
 % average function selection
 avgfun = @(x,d) nanmedian(x,d);
@@ -403,20 +425,31 @@ errfun = @(x) diff(quantile(x,3));
 % errfun = @(x) [1,1] * nanstd(x) / sqrt(numel(x));
 
 % compute the reference average
-fov_flags = any(...
+fov_flags = all(...
     dilations >= lowerbound & ...
     dilations <= upperbound,2);
-n_fovunits = sum(fov_flags)
-fov_edges = linspace(...
-    dilation_bounds(1)*1.25,dilation_bounds(2)*1.25,n_fovunits);
 offset = avgfun(dilations(fov_flags,:),[1,2]);
+
+% 
+bound_flags = all(...
+    dilations ~= (warpopt.bounds(1) - 1) * 100 & ...
+    dilations ~= (warpopt.bounds(2) - 1) * 100,2);
+
+%
+dilation_flags = ...
+    ...fov_flags & ...
+    ...bound_flags & ...
+    true(n_neurons,1);
+n_flaggeddilations = sum(dilation_flags)
+dilation_edges = linspace(...
+    dilation_bounds(1)*1.25,dilation_bounds(2)*1.25,n_flaggeddilations);
 
 % iterate through conditions
 for kk = 1 : n_contrasts
 
     % mean & standard error across animals
-    cond_avg = avgfun(dilations(fov_flags,kk),1) - offset;
-    cond_err = errfun(dilations(fov_flags,kk));
+    cond_avg = avgfun(dilations(dilation_flags,kk),1) - offset;
+    cond_err = errfun(dilations(dilation_flags,kk));
     
     % plot summary of threshold dilation
     xpatch = kk + [-1,1,1,-1] * barwidth / 2;
@@ -445,14 +478,14 @@ end
 % iterate through conditions
 for kk = 1 : n_contrasts
     [dilation_pdf,~] = ksdensity(...
-        dilations(fov_flags,kk) - offset,fov_edges);
+        dilations(dilation_flags,kk) - offset,dilation_edges);
     dilation_pdf = .2 * ...
         (dilation_pdf - min(dilation_pdf)) ./ range(dilation_pdf);
-    noise = randn(n_fovunits,1) .* dilation_pdf';
+    noise = randn(n_flaggeddilations,1) .* dilation_pdf';
 
     % plot animal threshold dilation
     grapeplot(kk+noise,...
-        sort(dilations(fov_flags,kk)) - offset,...
+        sort(dilations(dilation_flags,kk)) - offset,...
         'marker','o',...
         'markersize',5,...
         'markeredgecolor',contrast_clrs(kk,:),...
@@ -463,3 +496,107 @@ end
 % ui restacking
 sp = p(1:2,:); 
 uistack(sp(:),'top');
+
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
+end
+
+%% compute response stretch
+
+% preallocation
+stretch = nan(n_neurons,1);
+
+% design matrix
+x = (contrast_set);% - contrast_set(contrast_mode_idx);
+X = [ones(n_contrasts,1),x];
+
+% iterate through units
+for uu = 1 : n_neurons
+
+    % linear regression
+    thetas = X \ (dilations(uu,:)' - offset);
+    stretch(uu) = thetas(end);
+end
+
+% one-sample t-test
+[~,pvalue,~,stats.ttest] = ttest(stretch);
+stats.ttest.pvalue = pvalue;
+stats.ttest.cohensd = nanmean(stretch) / nanstd(stretch);
+
+%% plot response stretch
+stretch_bounds = [-1,1] * 1.5;
+count_bounds = [0,60];
+
+% figure initialization
+fig = figure(figopt,...
+    'name',sprintf('response stretch (%s)',contrast_lbl));
+axes(...
+    axesopt.default,...
+    'plotboxaspectratio',[1,3,1],...
+    'xlim',count_bounds,...
+    'xtick',count_bounds,...
+    'xdir','reverse',...
+    'ylim',stretch_bounds+[-1,1]*.05*range(stretch_bounds),...
+    'ytick',linspace(stretch_bounds(1),stretch_bounds(2),5),...
+    'yaxislocation','right');
+xlabel('Count');
+ylabel(sprintf('Response stretch (%% / %s)',contrast_units),...
+    'rotation',-90,...
+    'verticalalignment','bottom');
+
+% zero line
+plot(xlim,[1,1]*0,...
+    'color','k',...
+    'linestyle',':');
+
+% distribution settings
+nbins = 41;
+bin_edges = linspace(min(yticks),max(yticks),nbins);
+bin_counts = histcounts(stretch,bin_edges);
+
+% plot stretch distribution
+histogram(...
+    'binedges',bin_edges,...
+    'bincounts',bin_counts,...
+    'orientation','horizontal',...
+    'edgecolor','k',...
+    'facecolor','k',...
+    'facealpha',.5,...
+    'linestyle','none');
+stairs([0,bin_counts],bin_edges,...
+    'color','k',...
+    'linewidth',1.5);
+
+% compute mean stretch
+fov_flags = ...
+    stretch >= min(ylim) & ...
+    stretch <= max(ylim);
+stretch_avg = nanmean(stretch);
+
+% assess population significance
+if pvalue <= .01
+    str = '**';
+elseif pvalue <= .05
+    str = '*';
+else
+    str = '^{n.s.}';
+end
+text(max(xlim)*.9,.0375*range(ylim),str,...
+    'color','k',...
+    'fontname',axesopt.default.fontname,....
+    'fontsize',axesopt.default.fontsize*1.25,...
+    'horizontalalignment','center');
+
+% test affordance
+p = plot([1,1]*max(xlim)*.9,[0,1]*stretch_avg,...
+    'color','k',...
+    'linewidth',1.5);
+uistack(p,'bottom');
+
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
+end

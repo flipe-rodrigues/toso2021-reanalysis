@@ -19,6 +19,7 @@ psths = nan(n_bins,n_neurons,n_contrasts);
 % clamping
 i1_clamp_flags = i1 == i_set(i1_mode_idx);
 i2_clamp_flags = i2 == i_set(i2_mode_idx);
+bw = nan(n_neurons,n_contrasts);
 
 % iterate through neurons
 for nn = 1 : n_neurons
@@ -42,6 +43,10 @@ for nn = 1 : n_neurons
         spike_rates = conv2(...
             1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
         n_trials = size(spike_counts,1);
+        
+        time_mat = repmat(padded_time,n_trials,1);
+        spike_times = time_mat(spike_counts >= 1);
+        [~,~,bw(nn,ii)] = ksdensity(sort(spike_times(:)));
         
         % T2-aligned spike rates
         alignment_onset = ...
@@ -237,4 +242,12 @@ legend([p1,p2],{'S_2 onset','S_2 offset'},...
 if want2save
     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
+end
+
+%%
+figure; hold on;
+for ii = 1 : n_contrasts
+    histogram(bw(:,ii),...
+        'facecolor',contrast_clrs(ii,:),...
+        'facealpha',.5);
 end

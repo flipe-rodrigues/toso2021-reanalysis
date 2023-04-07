@@ -46,7 +46,7 @@ want2save = true;
 
 %% preface
 downsampling_factor = 2;
-kernel_peak_time = 75;
+kernel_peak_time = 100;
 toso2021_preface;
 
 %% contrast settings

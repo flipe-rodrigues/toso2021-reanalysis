@@ -153,7 +153,7 @@ for nn = 1 : n_neurons2plot
         t1_spkrates(~t1_alignment_flags') = nan;
         t1_spkrates = reshape(...
             t1_spkrates(t1_chunk_flags'),[t1_n_tbins,t1_n_trials])';
-        
+
         % time selection
         time2plot = min(xlim(sps(1))) + psthbin : psthbin : max(xlim(sps(1)));
         time_flags = time2plot <= max(xlim(sps(1)));
