@@ -91,7 +91,7 @@ fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
 %% run settings
-n_runs = 30;
+n_runs = 1;
 
 %% concatenation settings
 n_concatspercond = 2^6;

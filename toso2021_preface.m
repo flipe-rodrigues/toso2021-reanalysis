@@ -247,6 +247,10 @@ choice_correct_set = unique(choice_correct);
 n_choice_correct = numel(choice_correct_set);
 choice_correct_clrs = colorlerp(choice_clrs,n_choice_correct);
 
+%% parse meta data (ephys)
+neuron_idcs = unique(data.NeuronNumb);
+n_neurons_total = numel(neuron_idcs);
+
 %% down-sample original spike counts
 psthbin_src = 1;
 psthbin = psthbin_src * downsampling_factor;
@@ -262,6 +266,7 @@ end
 
 %% kernel settings
 kernel = gammakernel('peakx',kernel_peak_time,'binwidth',psthbin);
+% kernel = boxkernel('boxwidth',kernel_peak_time,'binwidth',psthbin);
 n_paddedtimebins = size(data.FR,2);
 n_timebins = n_paddedtimebins - kernel.nbins + 1;
 n_tbins = max(t_set) / psthbin;
@@ -270,10 +275,6 @@ validtime_flags = ...
     padded_time >= padded_time(1) - kernel.paddx(1) & ...
     padded_time <= padded_time(end) - kernel.paddx(end) + psthbin;
 valid_time = padded_time(validtime_flags);
-
-%% parse meta data (ephys)
-neuron_idcs = unique(data.NeuronNumb);
-n_neurons_total = numel(neuron_idcs);
 
 %% flag unique trials
 pseudosession_transition_flags = [diff(data.Trial) ~= 1; true];

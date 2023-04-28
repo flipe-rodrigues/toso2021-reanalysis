@@ -98,8 +98,8 @@ if ~strcmpi(contrast_str,'t1')
 end
 
 %% normalization
-mus = nanmean(ref_psths(roi2use_flags,:,:),[1,3]);
-sigs = nanstd(ref_psths(roi2use_flags,:,:),0,[1,3]);
+mus = nanmean(ref_psths(roi2use_flags,:),1);
+sigs = nanstd(ref_psths(roi2use_flags,:),0,1);
 ref_zpsths = (ref_psths - mus) ./ sigs;
 % mus = nanmean(s2_psths(roi2use_flags,:,:),[1,3]);
 % sigs = nanstd(s2_psths(roi2use_flags,:,:),0,[1,3]);
@@ -125,7 +125,7 @@ for nn = 1 : n_neurons
 end
 
 % training settings
-pca_design = s2_concat_all;
+% pca_design = s2_concat_all;
 %   'all'   ->  vanilla PCA
 %   'extr'  ->  pseudo-demixed PCA
 %   'mode'  ->  robust PCA
