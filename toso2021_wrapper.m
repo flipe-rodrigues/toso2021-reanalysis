@@ -50,12 +50,69 @@ kernel_peak_time = 75;
 toso2021_preface;
 
 %%
-return;
 
+% timestamped task events
+task_event_times = cumsum([...
+    repmat(pre_init_padding,n_total_trials,1),...   % initiation
+    pre_s1_delay,...                                % T1 onset
+    t1,...                                          % T1 offset
+    repmat(isi,n_total_trials,1),...                % T2 onset
+    t2,...                                          % T2 offset
+    repmat(post_s2_delay,n_total_trials,1)],2);     % go cue
 
+%
+unique_task_event_combs = unique(task_event_times(valid_flags,:),'rows');
+[n_event_combs,n_event_types] = size(unique_task_event_combs);    
+
+% kernel definition
+K = normpdf(padded_time,padded_time',50);
+K = K ./ nansum(K);
+
+% preallocation
+data.SDF = nan(n_total_trials,n_paddedtimebins);
+
+% iterate through trials
+for ii = 1 : n_event_combs
+    progressreport(ii,n_event_combs,'event-informed SDF estimation');
+    
+%     figure('windowstyle','docked');
+    
+    event_bounds = [0,unique_task_event_combs(ii,:),n_paddedtimebins];
+    trial_flags = ...
+        valid_flags & ...
+        all(task_event_times == unique_task_event_combs(ii,:),2);
+
+    % iterate through events
+    for jj = 1 : n_event_types + 1
+        time_flags = ...
+            padded_time >= event_bounds(jj) & ...
+            padded_time < event_bounds(jj + 1);
+        
+        %
+        X = data.FR(trial_flags,time_flags);
+        k = K(time_flags,time_flags);
+        k = k ./ nansum(k);
+        Z = X * k;
+        
+%         subplot(2,1,1);
+%         hold on;
+%         imagesc([event_bounds(jj),event_bounds(jj+1)],[1,n_total_trials],X)
+%         axis tight;
+%         subplot(2,1,2);
+%         hold on;
+%         imagesc([event_bounds(jj),event_bounds(jj+1)],[1,n_total_trials],Z)
+%         axis tight;
+%         ax1=subplot(2,1,1);
+%         ax2=subplot(2,1,2);
+%         linkaxes([ax1,ax2]);
+        
+        %
+        data.SDF(trial_flags,time_flags) = Z;
+    end
+end
 
 %% contrast settings
-contrast_str = 'i2';
+contrast_str = 't1';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str,'_set']);
 n_contrasts = numel(contrast_set);
