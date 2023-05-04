@@ -343,7 +343,6 @@ for rr = 1 : n_runs
                 spkcounts_postGoCue = ...
                     reshape(spkcounts_postGoCue(chunk_flags'),[glm_win,n_trials])';
                 spkcounts.postGoCue(gg,trial_flags) = nansum(spkcounts_postGoCue,2);
-                
             end
             
             % around choice spike rates

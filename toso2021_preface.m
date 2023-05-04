@@ -266,7 +266,6 @@ end
 
 %% kernel settings
 kernel = gammakernel('peakx',kernel_peak_time,'binwidth',psthbin);
-% kernel = boxkernel('boxwidth',kernel_peak_time,'binwidth',psthbin);
 n_paddedtimebins = size(data.FR,2);
 n_timebins = n_paddedtimebins - kernel.nbins + 1;
 n_tbins = max(t_set) / psthbin;

@@ -46,7 +46,7 @@ want2save = true;
 
 %% preface
 downsampling_factor = 1;
-kernel_peak_time = 75;
+kernel_peak_time = 25;
 toso2021_preface;
 
 %%
@@ -65,7 +65,7 @@ unique_task_event_combs = unique(task_event_times(valid_flags,:),'rows');
 [n_event_combs,n_event_types] = size(unique_task_event_combs);    
 
 % kernel definition
-K = normpdf(padded_time,padded_time',50);
+K = normpdf(padded_time,padded_time',28);
 K = K ./ nansum(K);
 
 % preallocation
@@ -94,6 +94,14 @@ for ii = 1 : n_event_combs
         k = k ./ nansum(k);
         Z = X * k;
         
+%         figure;
+%         hold on;
+%         plot(padded_time(time_flags),k)
+%         [~,idx] = min(abs(padded_time(time_flags) - mean(padded_time(time_flags))));
+%         plot(padded_time(time_flags),k(1,:),'k','linewidth',1.5)
+%         plot(padded_time(time_flags),k(idx,:),'k','linewidth',1.5)
+%         a=1
+        
 %         subplot(2,1,1);
 %         hold on;
 %         imagesc([event_bounds(jj),event_bounds(jj+1)],[1,n_total_trials],X)
@@ -109,10 +117,20 @@ for ii = 1 : n_event_combs
         %
         data.SDF(trial_flags,time_flags) = Z;
     end
+    
+    %
+    X = data.FR(trial_flags,:);
+    gamma_kernel = gammakernel('peakx',50,'binwidth',psthbin);
+    g = circshift(gamma_kernel.pdf,gamma_kernel.nbins/2+1);
+    g = padarray(g,[0,n_paddedtimebins-gamma_kernel.nbins],0,'post');
+    G = cell2mat(arrayfun(@(i)circshift(g,i),(1:n_paddedtimebins)'-1,...
+        'uniformoutput',false));
+    Z = X * G / psthbin * 1e3;
+    data.SDF(trial_flags,:) = Z;
 end
 
 %% contrast settings
-contrast_str = 't1';
+contrast_str = 'i2';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str,'_set']);
 n_contrasts = numel(contrast_set);

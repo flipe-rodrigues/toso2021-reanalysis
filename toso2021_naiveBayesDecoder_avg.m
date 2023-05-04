@@ -24,7 +24,7 @@ elseif strcmpi(contrast_str,'i1')
 elseif strcmpi(contrast_str,'i2')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),[],[],...
-        'i1',i1(valid_flags),i_set(i1_mode_idx),[],...
+        'i1',i1(valid_flags),[],[],...
         't2',t2(valid_flags),[],[],...
         'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
         'choice',choice(valid_flags),[],[]);
@@ -91,7 +91,7 @@ fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
 %% run settings
-n_runs = 1;
+n_runs = 10;
 
 %% concatenation settings
 n_concatspercond = 2^6;
@@ -113,6 +113,9 @@ MAP = nan(roi_n_bins,conditions.test.n,n_runs);
 
 % data type selection
 spike_data_field = 'FR';
+
+%
+gauss_kernel = gausskernel('sig',50,'binwidth',psthbin);
 
 % iterate through runs
 for rr = 1 : n_runs
@@ -155,8 +158,9 @@ for rr = 1 : n_runs
             
             % fetch spike counts & compute spike rates
             spike_counts = data.(spike_data_field)(trial_flags,:);
-            spike_rates = ...
-                conv2(1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
+            spike_rates = data.SDF(trial_flags,:);
+%             spike_rates = ...
+%                 conv2(1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
             
             % S2-offset-aligned spike rates
             alignment = ...
@@ -165,12 +169,12 @@ for rr = 1 : n_runs
                 t1(trial_flags) + ...
                 isi;
             alignment_flags = ...
-                valid_time >= alignment + roi(1) & ...
-                valid_time < alignment + t2(trial_flags);
+                padded_time >= alignment + roi(1) & ...
+                padded_time < alignment + t2(trial_flags);
             chunk_flags = ...
-                valid_time >= alignment + roi(1) & ...
-                valid_time < alignment + roi(2);
-            aligned_spkrates = spike_rates;
+                padded_time >= alignment + roi(1) & ...
+                padded_time < alignment + roi(2);
+            aligned_spkrates = spike_rates';
             aligned_spkrates(~alignment_flags') = nan;
             aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
                 [roi_n_bins,n_flagged_trials])';
@@ -232,14 +236,16 @@ for rr = 1 : n_runs
 %                 'smoothingparam',1e-6);
 %             r_spline = max(1e-3,mdl_spline(roi_time));
 %             r_spline(nan_flags) = nan;
+%             
+%             t_mat = repmat(roi_time,n_concatspercond,1)';
+%             r_mat = r';
+%             r_vec = r_mat(~isnan(r_mat));
+%             t_vec = t_mat(~isnan(r_mat));
+%             mdl_poly = fit(t_vec,r_vec,'poly9');
+%             r_poly = max(realmin,mdl_poly(roi_time));
+%             r_poly(nan_flags) = nan;
             
-            t_mat = repmat(roi_time,n_concatspercond,1)';
-            r_mat = r';
-            r_vec = r_mat(~isnan(r_mat));
-            t_vec = t_mat(~isnan(r_mat));
-            mdl_poly = fit(t_vec,r_vec,'poly9');
-            r_poly = max(1e-3,mdl_poly(roi_time));
-            r_poly(nan_flags) = nan;
+            r_gauss = nanconv2(r_mu,1,gauss_kernel.pdf);
             
 %             figure('position',[119.4000 53.8000 560 712.8000]);
 %             subplot(3,1,[1,2]);
@@ -248,9 +254,10 @@ for rr = 1 : n_runs
 %             plot(roi_time,r_mu);
 %             plot(roi_time,r_poly);
 %             plot(roi_time,r_spline);
-%             plot(roi_time,(r_poly+r_spline)/2);
+%             plot(roi_time,nanmean(r_gauss_1,1),'k');
+%             plot(roi_time,nanmean(r_gauss_2,1),'--k');
             
-            R(:,nn,kk) = r_poly;
+            R(:,nn,kk) = r_gauss;
         end
         
         % iterate through conditions
@@ -279,8 +286,9 @@ for rr = 1 : n_runs
             
             % fetch spike counts & compute spike rates
             spike_counts = data.(spike_data_field)(trial_flags,:);
-            spike_rates = ...
-                conv2(1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
+            spike_rates = data.SDF(trial_flags,:);
+%             spike_rates = ...
+%                 conv2(1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
             
             % S2-offset-aligned spike rates
             alignment = ...
@@ -289,12 +297,12 @@ for rr = 1 : n_runs
                 t1(trial_flags) + ...
                 isi;
             alignment_flags = ...
-                valid_time >= alignment + roi(1) & ...
-                valid_time < alignment + t2(trial_flags);
+                padded_time >= alignment + roi(1) & ...
+                padded_time < alignment + t2(trial_flags);
             chunk_flags = ...
-                valid_time >= alignment + roi(1) & ...
-                valid_time < alignment + roi(2);
-            aligned_spkrates = spike_rates;
+                padded_time >= alignment + roi(1) & ...
+                padded_time < alignment + roi(2);
+            aligned_spkrates = spike_rates';
             aligned_spkrates(~alignment_flags') = nan;
             aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
                 [roi_n_bins,n_flagged_trials])';
@@ -319,13 +327,15 @@ for rr = 1 : n_runs
 %             r_spline = max(1e-3,mdl_spline(roi_time));
 %             r_spline(nan_flags) = nan;
             
-            t_mat = repmat(roi_time,n_concatspercond,1)';
-            r_mat = r';
-            r_vec = r_mat(~isnan(r_mat));
-            t_vec = t_mat(~isnan(r_mat));
-            mdl_poly = fit(t_vec,r_vec,'poly9');
-            r_poly = max(1e-3,mdl_poly(roi_time));
-            r_poly(nan_flags) = nan;
+%             t_mat = repmat(roi_time,n_concatspercond,1)';
+%             r_mat = r';
+%             r_vec = r_mat(~isnan(r_mat));
+%             t_vec = t_mat(~isnan(r_mat));
+%             mdl_poly = fit(t_vec,r_vec,'poly9');
+%             r_poly = max(realmin,mdl_poly(roi_time));
+%             r_poly(nan_flags) = nan;
+            
+            r_gauss = nanconv2(r_mu,1,gauss_kernel.pdf);
             
 %             figure('position',[119.4000 53.8000 560 712.8000]);
 %             subplot(3,1,[1,2]);
@@ -335,9 +345,20 @@ for rr = 1 : n_runs
 %             plot(roi_time,r_poly);
 %             plot(roi_time,r_spline);
             
-            R(:,nn,kk+conditions.train.n) = r_poly;
+            R(:,nn,kk+conditions.train.n) = r_gauss;
         end
     end
+    
+    %%
+%     figure;
+%     for nn2 = 1 : n_neurons
+%         plot(roi_time,R(:,nn2,1))
+%         title(sprintf('%i',nn2));
+%         pause(.01);
+%         if any(isnan(squeeze(R(:,nn2,1))))
+%             nn2
+%         end
+%     end
     
     %% naive bayes decoder
     nbdopt = struct();
@@ -366,7 +387,7 @@ xlabel('Time since T_2 (ms)');
 ylabel('Firing rate (Hz)');
 
 % iterate through units
-for nn = 263 : n_neurons
+for nn = 1 : n_neurons
     cla;
     r_bounds = neurons(nn).x_bounds;
     r_bw = neurons(nn).x_bw;
@@ -452,6 +473,7 @@ set(sps,...
 linkaxes(sps);
 
 clims = quantile(P_tR,[0,.999],'all')';
+
 % iterate through contrast conditions
 for ii = 1 : n_contrasts
     title(sps(ii),sprintf('%s = %.0f mm/s',...
@@ -486,15 +508,16 @@ plot(xlim,[1,1]*0,':k');
 % iterate through contrast conditions
 for ii = 1 : n_contrasts
     p_cond = squeeze(avgfun(P_tR(:,:,ii,:),4));
-    p_cond(p_cond < clims(1)) = clims(1);
-    p_cond(p_cond > clims(2)) = clims(2);
+%     p_cond(p_cond < clims(1)) = clims(1);
+%     p_cond(p_cond > clims(2)) = clims(2);
 %     p_cond(isnan(p_cond)) = max(p_cond(:));
-    p_patch = mat2patch(p_cond,roi,roi);
+    p_patch = mat2patch(p_cond,roi,roi,[0,100]);
     patch(p_patch,...
         'facevertexalphadata',p_patch.facevertexcdata,...
         'edgecolor','none',...
         'facecolor',contrast_clrs(ii,:),...
-        'facealpha','flat');
+        'facealpha','flat',...
+        'alphadatamapping','direct');
 end
 
 % plot identity line
