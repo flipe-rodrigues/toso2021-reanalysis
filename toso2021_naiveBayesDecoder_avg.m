@@ -115,7 +115,8 @@ MAP = nan(roi_n_bins,conditions.test.n,n_runs);
 spike_data_field = 'FR';
 
 %
-gauss_kernel = gausskernel('sig',50,'binwidth',psthbin);
+gauss_kernel = gausskernel('sig',61.2,'binwidth',psthbin);
+% gauss_kernel = gausskernel('sig',75,'binwidth',psthbin);
 
 % iterate through runs
 for rr = 1 : n_runs
@@ -253,9 +254,8 @@ for rr = 1 : n_runs
 %             subplot(3,1,3); hold on;
 %             plot(roi_time,r_mu);
 %             plot(roi_time,r_poly);
-%             plot(roi_time,r_spline);
-%             plot(roi_time,nanmean(r_gauss_1,1),'k');
-%             plot(roi_time,nanmean(r_gauss_2,1),'--k');
+% %             plot(roi_time,r_spline);
+%             plot(roi_time,r_gauss,'k');
             
             R(:,nn,kk) = r_gauss;
         end
@@ -494,40 +494,29 @@ axes(...
     'xlim',[-500,t_set(end-2)],...
     'xtick',unique([roi';-500;0;t_set]),...
     'ylim',[-500,t_set(end-2)],...
-    'ytick',unique([roi';-500;0;t_set]));
+    'ytick',unique([roi';-500;0;t_set]),...
+    'xticklabelrotation',0,...
+    'yticklabelrotation',0);
 xlabel('Time since S_2 onset (ms)');
 ylabel('Decoded time since S_2 onset (ms)');
 
-% color limits
-clims = quantile(avgfun(P_tR,4),[0,1],'all')';
+P_tR_avg = squeeze(avgfun(P_tR,4));
+
+P = mat2rgb(permute(P_tR_avg,[2,1,3]),contrast_clrs);
+imagesc(roi,roi,P);
 
 % zero lines
 plot([1,1]*0,ylim,':k');
 plot(xlim,[1,1]*0,':k');
 
-% iterate through contrast conditions
-for ii = 1 : n_contrasts
-    p_cond = squeeze(avgfun(P_tR(:,:,ii,:),4));
-%     p_cond(p_cond < clims(1)) = clims(1);
-%     p_cond(p_cond > clims(2)) = clims(2);
-%     p_cond(isnan(p_cond)) = max(p_cond(:));
-    p_patch = mat2patch(p_cond,roi,roi,[0,100]);
-    patch(p_patch,...
-        'facevertexalphadata',p_patch.facevertexcdata,...
-        'edgecolor','none',...
-        'facecolor',contrast_clrs(ii,:),...
-        'facealpha','flat',...
-        'alphadatamapping','direct');
-end
-
 % plot identity line
-plot(xlim,ylim,'--k');
+% plot(xlim,ylim,'--k');
 
 % save figure
-% if want2save
-%     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-%     print(fig,svg_file,'-dsvg','-painters');
-% end
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
+end
 
 %% plot slices through condition-split posterior averages
 

@@ -60,7 +60,7 @@ fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
 %% run settings
-n_runs = 30;
+n_runs = 1;
 
 %% choice of average function
 avgfun = @nanmedian;
@@ -285,7 +285,7 @@ for rr = 1 : n_runs
     nbdopt.train.n_trials = numel(nbdopt.train.trial_idcs);
     nbdopt.test.trial_idcs = find(concat_evalset == 'test');
     nbdopt.test.n_trials = numel(nbdopt.test.trial_idcs);
-    nbdopt.assumepoissonmdl = false;
+    nbdopt.assumepoissonmdl = true;
     nbdopt.verbose = true;
     
     tic
@@ -420,10 +420,10 @@ for ii = 1 : n_contrasts
         'alphadatamapping','direct');
     
     % save figure
-    if want2save
-        svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-        print(fig,svg_file,'-dsvg','-painters');
-    end
+%     if want2save
+%         svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+%         print(fig,svg_file,'-dsvg','-painters');
+%     end
 end
 
 % plot identity line

@@ -276,6 +276,11 @@ validtime_flags = ...
 valid_time = padded_time(validtime_flags);
 
 %% flag unique trials
+% this whole appraoch might be wrong if sessions / neurons are not 
+% contiguous in the data (would lead to overestimating the number of 
+% unique trials... going with unique rows might be
+% safer? unique I2, T1, I1, Choice, etc.
+
 pseudosession_transition_flags = [diff(data.Trial) ~= 1; true];
 n_pseudosession_transitions = sum(pseudosession_transition_flags);
 n_pseudosession_trialcounts = data.Trial(pseudosession_transition_flags);
@@ -298,15 +303,31 @@ for ii = 1 : n_pseudosession_transitions
     else
         if numel(pseudo_session_rows) ~= numel(prev_session_rows)
             unique_flags(pseudo_session_rows) = true;
-        elseif all(t1(pseudo_session_rows) == i2(prev_session_rows)) && ...
-                all(i1(pseudo_session_rows) == i2(prev_session_rows)) && ...
-                all(t2(pseudo_session_rows) == i2(prev_session_rows)) && ...
-                all(i2(pseudo_session_rows) == i2(prev_session_rows))
+        elseif any(t1(pseudo_session_rows) ~= t1(prev_session_rows)) && ...
+                any(i1(pseudo_session_rows) ~= i1(prev_session_rows)) && ...
+                any(t2(pseudo_session_rows) ~= t2(prev_session_rows)) && ...
+                any(i2(pseudo_session_rows) ~= i2(prev_session_rows))
             unique_flags(pseudo_session_rows) = true;
         end
     end
     prev_session_rows = pseudo_session_rows;
 end
+
+%% flag sessions
+[session_trial_counts,session_transition_idcs] = ...
+    findpeaks(data.Trial(unique_flags));
+n_total_sessions = numel(findpeaks(data.Trial(unique_flags)));
+
+session_transition_idcs = find([true; diff(unique_flags) == 1])';
+
+% preallocation
+session_idcs = nan(n_total_trials,1);
+
+% iterate through sessions
+% for ss = 1 : n_total_sessions
+%     idcs = (1 : session_trial_counts(ss)) + 
+%     session_idcs(idcs) = ss;
+% end
 
 %% trial pre-selection
 valid_flags = ...
