@@ -314,20 +314,23 @@ for ii = 1 : n_pseudosession_transitions
 end
 
 %% flag sessions
-[session_trial_counts,session_transition_idcs] = ...
-    findpeaks(data.Trial(unique_flags));
-n_total_sessions = numel(findpeaks(data.Trial(unique_flags)));
-
-session_transition_idcs = find([true; diff(unique_flags) == 1])';
 
 % preallocation
 session_idcs = nan(n_total_trials,1);
 
+% flag (unique) session transitions
+session_start_idcs = find(data.Trial == 1);
+unique_session_flags = ...
+    ismember(session_start_idcs,find(unique_flags));
+session_start_idcs = session_start_idcs(unique_session_flags);
+n_total_sessions = numel(session_start_idcs);
+session_bound_idcs = unique([session_start_idcs;n_total_trials]);
+
 % iterate through sessions
-% for ss = 1 : n_total_sessions
-%     idcs = (1 : session_trial_counts(ss)) + 
-%     session_idcs(idcs) = ss;
-% end
+for ss = 1 : n_total_sessions
+    idcs = session_bound_idcs(ss) : session_bound_idcs(ss+1);
+    session_idcs(idcs) = ss;
+end
 
 %% trial pre-selection
 valid_flags = ...
