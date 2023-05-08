@@ -12,7 +12,6 @@ n_boots = 0; % 1e3;
 %% GLM settings
 distro = 'normal';
 glm_wins = t_set(t1_mode_idx);
-% glm_wins = t_set(1:end);
 n_glm = numel(glm_wins);
 
 %% preallocation
@@ -94,11 +93,11 @@ for rr = 1 : n_runs
             session_flags = session_idcs == ss;
             
             %% neuron selection
-            session_neurons = neuron_idcs(...
+            session_neurons = data.NeuronNumb(...
                 valid_flags & ...
                 unique_flags & ...
                 session_flags & ...
-                neurons2keep_flags);
+                ismember(data.NeuronNumb,flagged_neurons));
             n_session_neurons = numel(session_neurons);
             
             %% construct response
@@ -106,7 +105,7 @@ for rr = 1 : n_runs
             % iterate through neurons
             for nn = 1 : n_session_neurons
                 progressreport(nn,n_session_neurons,'fetching spike counts');
-                neuron_flags = neuron_idcs == session_neurons(nn);
+                neuron_flags = data.NeuronNumb == session_neurons(nn);
                 
                 % flag trials for the current condition
                 trial_flags = ...

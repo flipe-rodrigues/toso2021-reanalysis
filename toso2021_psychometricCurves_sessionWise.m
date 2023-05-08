@@ -55,11 +55,7 @@ for ss = 1 : n_total_sessions
         psycurves(kk).fit = ...
             psignifit([psycurves(kk).x,psycurves(kk).y,psycurves(kk).n],psyopt.fit);
     end
-    
-    % fit big psychometric curve
-    % bigpsy.fit = ...
-    %     psignifit([bigpsy.x,bigpsy.y,bigpsy.n],psyopt.fit);
-    
+
     %% plot phychometric function
     
     % stimulus-specific axes properties
@@ -94,7 +90,7 @@ for ss = 1 : n_total_sessions
         axesopt.psycurve);
     title(sprintf('animal %i, session %i, %i neurons',...
         unique(subjects(session_flags&valid_flags&unique_flags)),ss,...
-        numel(unique(flagged_neurons(session_flags&valid_flags&unique_flags)))));
+        numel(unique(data.NeuronNumb(session_flags&valid_flags)))));
     xlabel('T_2 (ms)');
     ylabel(sprintf('P(%s > %s)',s2_lbl,s1_lbl));
     
