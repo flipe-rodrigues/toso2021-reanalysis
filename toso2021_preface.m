@@ -275,6 +275,15 @@ validtime_flags = ...
     padded_time <= padded_time(end) - kernel.paddx(end) + psthbin;
 valid_time = padded_time(validtime_flags);
 
+
+%% trial pre-selection
+valid_flags = ...
+    pre_s1_delay == 500 + inferred_misalignment & ...
+    ismember(i1,i_set) & ...
+    ismember(t1,t_set) & ...
+    ismember(i2,i_set) & ...
+    ismember(t2,t_set);
+
 %% flag unique trials
 % this whole appraoch might be wrong if sessions / neurons are not 
 % contiguous in the data (would lead to overestimating the number of 
@@ -320,9 +329,9 @@ session_idcs = nan(n_total_trials,1);
 
 % flag (unique) session transitions
 session_start_idcs = find(data.Trial == 1);
-unique_session_flags = ...
-    ismember(session_start_idcs,find(unique_flags));
-session_start_idcs = session_start_idcs(unique_session_flags);
+valid_session_flags = ...
+    ismember(session_start_idcs,find(valid_flags & unique_flags));
+session_start_idcs = session_start_idcs(valid_session_flags);
 n_total_sessions = numel(session_start_idcs);
 session_bound_idcs = unique([session_start_idcs;n_total_trials]);
 
@@ -331,14 +340,6 @@ for ss = 1 : n_total_sessions
     idcs = session_bound_idcs(ss) : session_bound_idcs(ss+1);
     session_idcs(idcs) = ss;
 end
-
-%% trial pre-selection
-valid_flags = ...
-    pre_s1_delay == 500 + inferred_misalignment & ...
-    ismember(i1,i_set) & ...
-    ismember(t1,t_set) & ...
-    ismember(i2,i_set) & ...
-    ismember(t2,t_set);
 
 %% normalized stimulus dimensions
 
