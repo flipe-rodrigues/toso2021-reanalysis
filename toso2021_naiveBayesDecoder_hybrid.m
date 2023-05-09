@@ -312,6 +312,7 @@ for rr = 1 : n_runs
     nbdopt = struct();
     nbdopt.n_xpoints = 100;
     nbdopt.time = roi_time;
+    nbdopt.t_kernel = mu_kernel;
     nbdopt.train.trial_idcs = find(concat_evalset == 'train');
     nbdopt.train.n_trials = numel(nbdopt.train.trial_idcs);
     nbdopt.test.trial_idcs = find(concat_evalset == 'test');
@@ -575,8 +576,8 @@ ylabel('Decoded time since S_2 onset (ms)');
 
 % iterate through contrast conditions
 for ii = 1 : n_contrasts
-    map_avg = squeeze(avgfun(MAP(:,ii,:),3));
-    map_err = squeeze(errfun(MAP(:,ii,:),3));
+    map_avg = squeeze(avgfun(map(:,ii,:),3));
+    map_err = squeeze(errfun(map(:,ii,:),3));
     errorpatch(roi_time,map_avg,map_err,contrast_clrs(ii,:),...
         'facealpha',.25);
     plot(roi_time,map_avg,...

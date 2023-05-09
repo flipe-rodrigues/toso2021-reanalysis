@@ -244,7 +244,7 @@ for kk = 1 : n_contrasts
         'capsize',0);
 end
 
-% save figure
+%% save figure
 if want2save
     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');

@@ -6,6 +6,9 @@ end
 %% run settings
 n_runs = 1;
 
+%% session selection criteria
+n_neurons_cutoff = 3;
+
 %% bootstrap settings
 n_boots = 0; % 1e3;
 

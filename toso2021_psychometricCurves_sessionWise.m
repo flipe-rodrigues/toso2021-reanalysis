@@ -3,7 +3,9 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
+% iterate through sessions
 for ss = 1 : n_total_sessions
+    progressreport(ss,n_total_sessions,'fitting psychometric curves');
     session_flags = session_idcs == ss;
     
     %% construct psychophysical triple

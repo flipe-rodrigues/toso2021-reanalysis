@@ -60,7 +60,7 @@ fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
 %% run settings
-n_runs = 1;
+n_runs = 3;
 
 %% choice of average function
 avgfun = @nanmedian;
@@ -76,8 +76,8 @@ roi_time = linspace(roi(1),roi(2),roi_n_bins);
 
 %% construct spike rate tensor (time X neurons X concatenations)
 
-% data clearance
-clear concat_tensor P_tR;
+% workspace clearance
+clear concat_tensor P_tR P_Rt;
 
 % preallocation
 P_tR_avgs = nan(roi_n_bins,roi_n_bins,n_contrasts,n_runs);
@@ -137,8 +137,6 @@ for rr = 1 : n_runs
             % fetch spike counts & compute spike rates
             spike_counts = data.(spike_data_field)(trial_flags,:);
             spike_rates = data.SDF(trial_flags,:);
-%             spike_rates = ...
-%                 conv2(1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
             
             % S2-offset-aligned spike rates
             alignment = ...
@@ -240,8 +238,6 @@ for rr = 1 : n_runs
             % fetch spike counts & compute spike rates
             spike_counts = data.(spike_data_field)(trial_flags,:);
             spike_rates = data.SDF(trial_flags,:);
-%             spike_rates = ...
-%                 conv2(1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
             
             % S2-offset-aligned spike rates
             alignment = ...
@@ -287,14 +283,17 @@ for rr = 1 : n_runs
     nbdopt.train.n_trials = numel(nbdopt.train.trial_idcs);
     nbdopt.test.trial_idcs = find(concat_evalset == 'test');
     nbdopt.test.n_trials = numel(nbdopt.test.trial_idcs);
-    nbdopt.assumepoissonmdl = true;
+    nbdopt.assumepoissonmdl = false;
     nbdopt.verbose = true;
     
     tic
-    [P_tR,P_Rt,pthat] = naivebayestimedecoder(concat_tensor,nbdopt);
+    [P_tR,~,pthat] = naivebayestimedecoder(concat_tensor,nbdopt);
     toc
     
     %% store current run
+    
+    % workspace clearance
+    clear concat_tensor;
     
     % iterate through contrast conditions
     for ii = 1 : n_contrasts
@@ -305,38 +304,9 @@ for rr = 1 : n_runs
     end
 end
 
-%% plot likelihoods
-figure;
-set(gca,...
-    axesopt.default,...,...
-    'xlim',roi,...
-    'xtick',sort([0;t_set]));
-xlabel('Time since T_2 (ms)');
-ylabel('Firing rate (Hz)');
-
-% iterate through units
-for nn = 1 : n_neurons
-    cla;
-    r_bounds = neurons(nn).x_bounds;
-    r_bw = neurons(nn).x_bw;
-    if range(r_bounds) == 0
-        continue;
-    end
-    ylim(r_bounds);
-    title(sprintf('neuron: %i, bw: %.2f',nn,r_bw));
-    p_Rt = squeeze(P_Rt(:,nn,:));
-    nan_flags = isnan(p_Rt);
-    if sum(abs(diff(any(nan_flags,2)))) > 1
-        fprintf('\tcheck neuron %i!\n',nn);
-    end
-    p_Rt(nan_flags) = max(p_Rt(:));
-    imagesc(xlim,r_bounds,p_Rt');
-    for ii = 1 : n_t
-        plot([1,1]*t_set(ii),ylim,'--w');
-    end
-    drawnow;
-    pause(.1);
-end
+%% choice of average function
+avgfun = @(x,d)nanmean(x,d);
+errfun = @(x,d)nanstd(x,0,d);
 
 %% plot extreme subtractions of posterior averages
 
@@ -349,20 +319,26 @@ fig = figure(...
 % axes initialization
 axes(...
     axesopt.default,...
-    'xlim',roi,...
-    'xtick',unique([roi';0;t_set]),...
-    'ylim',roi,...
-    'ytick',unique([roi';0;t_set]));
-xlabel('Real time since S_2 onset (ms)');
+    'xlim',[-500,t_set(end-2)],...
+    'xtick',unique([roi';-500;0;t_set]),...
+    'ylim',[-500,t_set(end-2)],...
+    'ytick',unique([roi';-500;0;t_set]),...
+    'colormap',colorlerp(...
+    [contrast_clrs(1,:);[1,1,1];contrast_clrs(end,:)],2^8));
+xlabel('Time since S_2 onset (ms)');
 ylabel('Decoded time since S_2 onset (ms)');
 
 % posterior subtraction
-p_contrast_min = nanmean(P_tR_avgs(:,:,1,:),4);
-% p_contrast_min = p_contrast_min ./ nansum(p_contrast_min,2);
-p_contrast_max = nanmean(P_tR_avgs(:,:,3,:),4);
-% p_contrast_max = p_contrast_max ./ nansum(p_contrast_max,2);
+p_contrast_min = avgfun(P_tR(:,:,1,:),4);
+p_contrast_max = avgfun(P_tR(:,:,end,:),4);
 p_diff = p_contrast_max - p_contrast_min;
-imagesc(roi,roi,p_diff',[-1,1] * n_t / n_tbins * 1);
+imagesc(roi,roi,p_diff',[-1,1] * n_t / n_tbins * 5);
+
+% zero lines
+plot([1,1]*0,ylim,':k');
+plot(xlim,[1,1]*0,':k');
+
+% identity line
 plot(xlim,ylim,'--w');
 
 % save figure
@@ -370,105 +346,6 @@ if want2save
     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
 end
-
-%% plot contrast-split posterior averages
-figure(...
-    'name','contrast-split posterior averages',...
-    'numbertitle','off',...
-    'windowstyle','docked');
-sps = gobjects(n_contrasts,1);
-for ii = 1 : n_contrasts
-    sps(ii) = subplot(1,n_contrasts,ii);
-end
-set(sps,...
-    axesopt.default,...
-    'xlim',roi,...
-    'xtick',unique([roi';0;t_set]),...
-    'ylim',roi,...
-    'ytick',unique([roi';0;t_set]));
-linkaxes(sps);
-
-% iterate through contrast conditions
-for ii = 1 : n_contrasts
-    title(sps(ii),sprintf('%s = %.0f mm/s',...
-        contrast_lbl,contrast_set(ii)),...
-        'fontsize',10);
-    p_cond = avgfun(P_tR_avgs(:,:,ii,:),4);
-%     p_cond = p_cond - avgfun(p_cond,1);
-%     p_cond = p_cond ./ nansum(p_cond,2);
-%     p_cond(isnan(p_cond)) = max(p_cond(:));
-    imagesc(sps(ii),roi,roi,p_cond');
-    plot(sps(ii),xlim,ylim,'--w');
-end
-
-%% plot superimposed contrast-split posterior averages
-% figure(...
-%     'color','w',...
-%     'name','superimposed posterior averages',...
-%     'numbertitle','off');
-% axes(...
-%     axesopt.default,...
-%     'xlim',[-500,t_set(end-2)],...
-%     'xtick',unique([roi';-500;0;t_set]),...
-%     'ylim',[-500,t_set(end-2)],...
-%     'ytick',unique([roi';-500;0;t_set]));
-% xlabel('Time since S_2 onset (ms)');
-% ylabel('Decoded time since S_2 onset (ms)');
-
-% zero lines
-% plot([1,1]*0,ylim,':k');
-% plot(xlim,[1,1]*0,':k');
-
-% color limits
-clims = [0,50];%quantile(avgfun(P_tR_avgs,4),[0,1],'all')';
-
-% iterate through contrast conditions
-for ii = 1 : n_contrasts
-    figure(...
-        'color','w',...
-        'name',sprintf('superimposed posterior averages (%i %s)',...
-        contrast_set(ii),contrast_units),...
-        'numbertitle','off');
-    axes(...
-        axesopt.default,...
-        'xlim',[-500,t_set(end-2)],...
-        'xtick',unique([roi';-500;0;t_set]),...
-        'ylim',[-500,t_set(end-2)],...
-        'ytick',unique([roi';-500;0;t_set]));
-    xlabel('Time since S_2 onset (ms)');
-    ylabel('Decoded time since S_2 onset (ms)');
-    
-    % zero lines
-    plot([1,1]*0,ylim,':k');
-    plot(xlim,[1,1]*0,':k');
-    
-    % average posteior
-    p_cond = squeeze(avgfun(P_tR_avgs(:,:,ii,:),4));
-    %     p_cond(p_cond < clims(1)) = clims(1);
-    %     p_cond(p_cond > clims(2)) = clims(2);
-    p_patch = mat2patch(p_cond,roi,roi,clims);
-    patch(p_patch,...
-        'facevertexalphadata',p_patch.facevertexcdata,...
-        'edgecolor','none',...
-        'facecolor',contrast_clrs(ii,:),...
-        'facealpha','flat',...
-        'alphadatamapping','direct');
-    
-    % save figure
-%     if want2save
-%         svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-%         print(fig,svg_file,'-dsvg','-painters');
-%     end
-end
-
-% plot identity line
-plot(xlim,ylim,'--k');
-
-% save figure
-% if want2save
-%     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-%     print(fig,svg_file,'-dsvg','-painters');
-% end
 
 %% plot slices through condition-split posterior averages
 
@@ -491,7 +368,7 @@ xlabel('Time since S_2 onset (ms)');
 ylabel('Decoded time since S_2 onset (ms)');
 
 % slice settings
-slices = [0,stimulus.set(1:end-1)];
+slices = unique([roi(1)/2;0;t_set(1:end-2)]);
 n_slices = numel(slices);
 
 % axes initialization
@@ -514,7 +391,7 @@ set(sps,axesopt.default,...
     'nextplot','add',...
     'ticklength',[1,1]*.025,...
     'nextplot','add',...
-    'plotboxaspectratio',[n_slices*1.75,1,1]);
+    'plotboxaspectratio',[n_slices*2,1,1]);
 set(sps(1:end-1),...
     'xtick',[],...
     'xcolor','none',...
@@ -524,18 +401,20 @@ set(sps(1:end-1),...
 xlabel(sps(end),'Decoded time (a.u.)');
 arrayfun(@(ax)ylabel(ax,'P(t|R)'),sps);
 
-% iterate through conditions
-[~,cond_idcs] = sort(abs(condition_set-1),'descend');
-for cc = cond_idcs
-    p_slice = P_tR(:,:,cc);
+% time seletion
+time_flags = roi_time <= t_set(end-2);
+
+% iterate through contrasts
+for ii = 1 : n_contrasts
+    p_cond = avgfun(P_tR(:,:,ii,:),4);
 
     % iterate through slices
-    for ii = 1 : n_slices
-        slice_idx = find(t >= slices(ii),1);
+    for jj = 1 : n_slices
+        slice_idx = find(roi_time >= slices(jj),1);
         
         % plot posterior slice
-        plot(sps(ii),t,p_slice(slice_idx,:),...
-            'color',contrast_clrs(cc,:),...
+        plot(sps(jj),roi_time(time_flags),p_cond(slice_idx,time_flags),...
+            'color',contrast_clrs(ii,:),...
             'linewidth',1.5);
     end
 end
@@ -588,7 +467,7 @@ plot([1,1]*0,ylim,':k');
 plot(xlim,[1,1]*0,':k');
 
 % plot identity line
-% plot(xlim,ylim,'--k');
+plot(xlim,ylim,'--k');
 
 % save figure
 if want2save
@@ -601,7 +480,7 @@ end
 % figure initialization
 fig = figure(...
     figopt,...
-    'name','posterior subtractions (extreme)',...
+    'name','posterior MAPs',...
     'numbertitle','off');
 
 % axes initialization
@@ -613,10 +492,6 @@ axes(...
     'ytick',unique([roi';-500;0;t_set]));
 xlabel('Time since S_2 onset (ms)');
 ylabel('Decoded time since S_2 onset (ms)');
-
-% choice of average function
-avgfun = @(x,d)nanmean(x,d);
-errfun = @(x,d)nanstd(x,0,d);
 
 % iterate through contrast conditions
 for ii = 1 : n_contrasts
@@ -641,42 +516,3 @@ if want2save
     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
 end
-
-%% plot superimposed contrast-split MAPs
-
-% figure initialization
-fig = figure(...
-    figopt,...
-    'name','posterior subtractions (extreme)',...
-    'numbertitle','off');
-
-% axes initialization
-axes(...
-    axesopt.default,...
-    'xlim',roi,...
-    'xtick',sort([0;t_set]),...
-    'ylim',roi,...
-    'ytick',sort([0;t_set]));
-xlabel('Real time since S_2 onset (ms)');
-ylabel('Decoded time since S_2 onset (ms)');
-
-% iterate through contrast conditions
-for ii = 1 : n_contrasts
-    map_cond = nanmean(map_avgs(:,ii,:),3);
-    
-%     p_cond = nanmean(P_tR_avgs(:,:,ii,:),4);
-%     [~,mode_idcs] = max(p_cond,[],2);
-%     map_cond = roi_time(mode_idcs);
-%     test_time_flags = ~all(isnan(p_cond),2);
-%     median_flags = [false(sum(test_time_flags),1),...
-%         diff(cumsum(p_cond,2) > .5,1,2) == 1];
-%     [~,median_idcs] = max(median_flags,[],2);
-%     map_cond = roi_time(median_idcs);
-    
-    plot(roi_time,map_cond,...
-        'color',contrast_clrs(ii,:),...
-        'linewidth',1.5);
-end
-
-% plot identity line
-plot(xlim,ylim,'--k');

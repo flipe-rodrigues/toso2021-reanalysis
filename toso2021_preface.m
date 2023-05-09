@@ -401,7 +401,8 @@ axesopt.inset.se.xaxislocation = 'bottom';
 axesopt.inset.se.yaxislocation = 'right';
 
 % north-west inset properties
-axesopt.inset.nw.position = [0.13,0.11,0.775,0.815];
+% axesopt.inset.nw.position = [0.13,0.11,0.775,0.815];
+axesopt.inset.nw.position = [.275,.65,0.775/3,0.815/3];
 axesopt.inset.nw.fontsize = axesopt.default.fontsize * 5/6;
 axesopt.inset.nw.xaxislocation = 'top';
 axesopt.inset.nw.yaxislocation = 'left';
