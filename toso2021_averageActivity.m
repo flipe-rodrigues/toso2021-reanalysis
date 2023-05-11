@@ -37,8 +37,6 @@ for nn = 1 : n_neurons
     % fetch spike counts & compute spike rates
     ref_spike_counts = data.FR(ref_spike_flags,:);
     ref_spike_rates = data.SDF(ref_spike_flags,:);
-%     ref_spike_rates = conv2(...
-%         1,kernel.pdf,ref_spike_counts,'valid') / psthbin * 1e3;
     ref_n_trials = size(ref_spike_counts,1);
     
     % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -80,8 +78,6 @@ for nn = 1 : n_neurons
         % fetch spike counts & compute spike rates
         spike_counts = data.FR(spike_flags,:);
         spike_rates = data.SDF(spike_flags,:);
-%         spike_rates = conv2(...
-%             1,kernel.pdf,spike_counts,'valid') / psthbin * 1e3;
         n_trials = size(spike_counts,1);
 
         % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

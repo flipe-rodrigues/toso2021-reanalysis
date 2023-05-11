@@ -246,6 +246,7 @@ choice_correct = categorical(choice_correct,[-2,-1,1,2],...
 choice_correct_set = unique(choice_correct);
 n_choice_correct = numel(choice_correct_set);
 choice_correct_clrs = colorlerp(choice_clrs,n_choice_correct);
+choice_correct_units = 'a.u.';
 
 %% parse meta data (ephys)
 neuron_idcs = unique(data.NeuronNumb);

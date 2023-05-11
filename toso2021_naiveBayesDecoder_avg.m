@@ -17,9 +17,9 @@ if strcmpi(contrast_str,'t1')
 elseif strcmpi(contrast_str,'i1')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),[],[],...
-        'i1',i1(valid_flags),i_set(i1_mode_idx),[],...
+        'i1',i1(valid_flags),[],[],...
         't2',t2(valid_flags),[],[],...
-        'i2',i2(valid_flags),[],[],...t_set(t2_mode_idx+[-1,0,1]),...
+        'i2',i2(valid_flags),[],[],...
         'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i2')
     conditions.train = intersectconditions(...
@@ -34,7 +34,7 @@ elseif strcmpi(contrast_str,'choice')
         'i1',i1(valid_flags),[],[],...
         't2',t2(valid_flags),[],[],...
         'i2',i2(valid_flags),[],[],...
-        'choice',choice(valid_flags),1,[]);
+        'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'correct')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),[],[],...
@@ -42,6 +42,14 @@ elseif strcmpi(contrast_str,'correct')
         't2',t2(valid_flags),[],[],...
         'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
         'correct',correct(valid_flags),1,[]);
+elseif strcmpi(contrast_str,'choice_correct')
+    conditions.train = intersectconditions(...
+        't1',t1(valid_flags),[],[],...
+        'i1',i1(valid_flags),[],[],...
+        't2',t2(valid_flags),[],[],...
+        'i2',i2(valid_flags),[],[],...
+        'choice',choice(valid_flags),[],[],...
+        'correct',correct(valid_flags),[],[]);
 end
 
 % test set conditions
@@ -80,6 +88,14 @@ elseif strcmpi(contrast_str,'correct')
         't2',t2(valid_flags),[],[],...
         'i2',i2(valid_flags),[],[],...
         'correct',correct(valid_flags),[0,1],[]);
+elseif strcmpi(contrast_str,'choice_correct')
+    conditions.test = intersectconditions(...
+        't1',t1(valid_flags),[],[],...
+        'i1',i1(valid_flags),[],[],...
+        't2',t2(valid_flags),[],[],...
+        'i2',i2(valid_flags),[],[],...,...
+        'choice',choice(valid_flags),[0,1],[],...
+        'correct',correct(valid_flags),[0,1],[]);
 end
 
 n_conditions = conditions.test.n + conditions.train.n;
@@ -91,7 +107,7 @@ fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
 %% run settings
-n_runs = 100;
+n_runs = 25;
 
 %% concatenation settings
 n_concatspercond = 2^7;
@@ -121,9 +137,9 @@ map = nan(roi_n_bins,conditions.test.n,n_runs);
 spike_data_field = 'FR';
 
 % temporal smoothing kernel
-gauss_kernel = gausskernel('sig',100,'binwidth',psthbin);
-% gauss_kernel = gausskernel('sig',61.2,'binwidth',psthbin);
+% gauss_kernel = gausskernel('sig',100,'binwidth',psthbin);
 % gauss_kernel = gausskernel('sig',75,'binwidth',psthbin);
+gauss_kernel = gausskernel('sig',61.2,'binwidth',psthbin);
 
 % iterate through runs
 for rr = 1 : n_runs
@@ -167,8 +183,6 @@ for rr = 1 : n_runs
             % fetch spike counts & compute spike rates
             spike_counts = data.(spike_data_field)(trial_flags,:);
             spike_rates = data.SDF(trial_flags,:);
-%             spike_rates = ...
-%                 conv2(1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
             
             % S2-offset-aligned spike rates
             alignment = ...
@@ -254,6 +268,7 @@ for rr = 1 : n_runs
 %             r_poly(nan_flags) = nan;
             
             r_gauss = nanconv2(r_mu,1,gauss_kernel.pdf);
+            r_gauss(nan_flags) = nan;
             
 %             figure('position',[119.4000 53.8000 560 712.8000]);
 %             subplot(3,1,[1,2]);
@@ -294,8 +309,6 @@ for rr = 1 : n_runs
             % fetch spike counts & compute spike rates
             spike_counts = data.(spike_data_field)(trial_flags,:);
             spike_rates = data.SDF(trial_flags,:);
-%             spike_rates = ...
-%                 conv2(1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
             
             % S2-offset-aligned spike rates
             alignment = ...
@@ -343,6 +356,7 @@ for rr = 1 : n_runs
 %             r_poly(nan_flags) = nan;
             
             r_gauss = nanconv2(r_mu,1,gauss_kernel.pdf);
+            r_gauss(nan_flags) = nan;
             
 %             figure('position',[119.4000 53.8000 560 712.8000]);
 %             subplot(3,1,[1,2]);
@@ -350,7 +364,8 @@ for rr = 1 : n_runs
 %             subplot(3,1,3); hold on;
 %             plot(roi_time,r_mu);
 %             plot(roi_time,r_poly);
-%             plot(roi_time,r_spline);
+% %             plot(roi_time,r_spline);
+%             plot(roi_time,r_gauss,'--k');
             
             R(:,nn,kk+conditions.train.n) = r_gauss;
         end
@@ -385,36 +400,38 @@ for rr = 1 : n_runs
 end
 
 %% plot likelihoods
-figure;
-set(gca,...
-    axesopt.default,...,...
-    'xlim',roi,...
-    'xtick',sort([0;t_set]));
-xlabel('Time since T_2 (ms)');
-ylabel('Firing rate (Hz)');
-
-% iterate through units
-for nn = 1 : n_neurons
-    cla;
-    r_bounds = neurons(nn).x_bounds;
-    r_bw = neurons(nn).x_bw;
-    if range(r_bounds) == 0
-        continue;
+if false
+    figure;
+    set(gca,...
+        axesopt.default,...,...
+        'xlim',roi,...
+        'xtick',sort([0;t_set]));
+    xlabel('Time since T_2 (ms)');
+    ylabel('Firing rate (Hz)');
+    
+    % iterate through units
+    for nn = 1 : n_neurons
+        cla;
+        r_bounds = neurons(nn).x_bounds;
+        r_bw = neurons(nn).x_bw;
+        if range(r_bounds) == 0
+            continue;
+        end
+        ylim(r_bounds);
+        title(sprintf('neuron: %i, bw: %.2f',nn,r_bw));
+        p_Rt = squeeze(P_Rt(:,nn,:));
+        nan_flags = isnan(p_Rt);
+        if sum(abs(diff(any(nan_flags,2)))) > 1
+            fprintf('\tcheck neuron %i!\n',nn);
+        end
+        p_Rt(nan_flags) = max(p_Rt(:));
+        imagesc(xlim,r_bounds,p_Rt');
+        for ii = 1 : n_t
+            plot([1,1]*t_set(ii),ylim,'--w');
+        end
+        drawnow;
+        pause(.1);
     end
-    ylim(r_bounds);
-    title(sprintf('neuron: %i, bw: %.2f',nn,r_bw));
-    p_Rt = squeeze(P_Rt(:,nn,:));
-    nan_flags = isnan(p_Rt);
-    if sum(abs(diff(any(nan_flags,2)))) > 1
-        fprintf('\tcheck neuron %i!\n',nn);
-    end
-    p_Rt(nan_flags) = max(p_Rt(:));
-    imagesc(xlim,r_bounds,p_Rt');
-    for ii = 1 : n_t
-        plot([1,1]*t_set(ii),ylim,'--w');
-    end
-    drawnow;
-    pause(.1);
 end
 
 %% choice of average function
@@ -426,7 +443,7 @@ errfun = @(x,d)nanstd(x,0,d);
 % figure initialization
 fig = figure(...
     figopt,...
-    'name','posterior subtractions (extreme)',...
+    'name',sprintf('extreme_posterior_subtraction_%s',contrast_str),...
     'numbertitle','off');
 
 % axes initialization
@@ -444,6 +461,8 @@ ylabel('Decoded time since S_2 onset (ms)');
 % posterior subtraction
 p_contrast_min = avgfun(P_tR(:,:,1,:),4);
 p_contrast_max = avgfun(P_tR(:,:,end,:),4);
+% p_contrast_min(isnan(p_contrast_min)) = 0;
+% p_contrast_max(isnan(p_contrast_max)) = 0;
 p_diff = p_contrast_max - p_contrast_min;
 imagesc(roi,roi,p_diff',[-1,1] * n_t / n_tbins * 5);
 
@@ -493,7 +512,7 @@ end
 
 %% plot superimposed contrast-split posterior averages
 fig = figure(...
-    'color','w',...
+    figopt,...
     'name',sprintf('superimposed_posterior_averages_%s',contrast_str),...
     'numbertitle','off');
 axes(...
@@ -509,6 +528,7 @@ ylabel('Decoded time since S_2 onset (ms)');
 
 % convert from tensor to rgb
 P_tR_avg = squeeze(avgfun(P_tR,4));
+P_tR_avg(isnan(P_tR_avg)) = 0;
 P = mat2rgb(permute(P_tR_avg,[2,1,3]),contrast_clrs);
 imagesc(roi,roi,P);
 
@@ -660,7 +680,7 @@ for ii = cond_idcs'
 
     % iterate through slices
     for jj = 1 : n_slices
-        slice_idx = find(roi_time >= slices(jj),1);
+        slice_idx = find(roi_time >= slice_times(jj),1);
         
         % plot posterior slice
         plot(roi_time(time_flags),p_cond(slice_idx,time_flags)+slice_offsets(jj),...
@@ -673,7 +693,7 @@ end
 for ii = 1 : n_slices
 
     % plot real time
-    slice_idx = find(t >= slices(ii),1);
+    slice_idx = find(t >= slice_times(ii),1);
     plot(min(xlim),slice_offsets(ii),...
         'marker','>',...
         'markersize',7.5,...
