@@ -12,7 +12,7 @@ time = struct();
 psths = struct();
 
 % smoothing settings
-gauss_kernel = gausskernel('mu',0,'sig',15,'binwidth',psthbin);
+gauss_kernel = gausskernel('sig',15,'binwidth',psthbin);
 gauss_padded_time = ...
     (1 : psthbin : n_paddedtimebins * psthbin) - psthbin;
 gauss_validtime_flags = ...
@@ -195,6 +195,7 @@ end
 modulation = log(i_set) ./ log(i_set(i2_mode_idx));
 scaling = modulation .^ 1 * 1;
 gain = modulation .^ 1 * 1;
+offset = modulation .^ 1 * 0;
 
 % iterate through neurons
 for nn = 1 : n_neurons_total
@@ -214,12 +215,12 @@ for nn = 1 : n_neurons_total
             psths.s1(:,nn,i1_mode_idx);
         
         % apply I2 modulation at S2 presentation
-        psths.s2on(:,nn,ii) = linspace(1,gain(ii),n_bins.s2on) .* ......
+        psths.s2on(:,nn,ii) = offset(ii) + gain(ii) * ...linspace(1,gain(ii),n_bins.s2on) .* ...
             interp1(time.s2on,psths.s2on(:,nn,i2_mode_idx),time.s2on*scaling(ii),...
             'linear','extrap');
 %         nan_flags = isnan(psths.s2on(:,nn,ii));
 %         psths.s2on(nan_flags,nn,ii) = psths.s2on(find(~nan_flags,1,'last'),nn,ii);
-        psths.s2off(:,nn,ii) = gain(ii) * ...
+        psths.s2off(:,nn,ii) = offset(ii) + gain(ii) * ...
             interp1(time.s2off,psths.s2off(:,nn,i2_mode_idx),time.s2off*scaling(ii));
 
         % no intensity modulation in the remaining epochs
