@@ -259,13 +259,13 @@ for rr = 1 : n_runs
 %             r_spline = max(1e-3,mdl_spline(roi_time));
 %             r_spline(nan_flags) = nan;
 %             
-%             t_mat = repmat(roi_time,n_concatspercond,1)';
-%             r_mat = r';
-%             r_vec = r_mat(~isnan(r_mat));
-%             t_vec = t_mat(~isnan(r_mat));
-%             mdl_poly = fit(t_vec,r_vec,'poly9');
-%             r_poly = max(realmin,mdl_poly(roi_time));
-%             r_poly(nan_flags) = nan;
+            t_mat = repmat(roi_time,n_concatspercond,1)';
+            r_mat = r';
+            r_vec = r_mat(~isnan(r_mat));
+            t_vec = t_mat(~isnan(r_mat));
+            mdl_poly = fit(t_vec,r_vec,'poly9');
+            r_poly = max(realmin,mdl_poly(roi_time));
+            r_poly(nan_flags) = nan;
             
             r_gauss = nanconv2(r_mu,1,gauss_kernel.pdf);
             r_gauss(nan_flags) = nan;
@@ -347,13 +347,13 @@ for rr = 1 : n_runs
 %             r_spline = max(1e-3,mdl_spline(roi_time));
 %             r_spline(nan_flags) = nan;
             
-%             t_mat = repmat(roi_time,n_concatspercond,1)';
-%             r_mat = r';
-%             r_vec = r_mat(~isnan(r_mat));
-%             t_vec = t_mat(~isnan(r_mat));
-%             mdl_poly = fit(t_vec,r_vec,'poly9');
-%             r_poly = max(realmin,mdl_poly(roi_time));
-%             r_poly(nan_flags) = nan;
+            t_mat = repmat(roi_time,n_concatspercond,1)';
+            r_mat = r';
+            r_vec = r_mat(~isnan(r_mat));
+            t_vec = t_mat(~isnan(r_mat));
+            mdl_poly = fit(t_vec,r_vec,'poly9');
+            r_poly = max(realmin,mdl_poly(roi_time));
+            r_poly(nan_flags) = nan;
             
             r_gauss = nanconv2(r_mu,1,gauss_kernel.pdf);
             r_gauss(nan_flags) = nan;
@@ -640,6 +640,43 @@ end
 
 % plot identity line
 % plot(xlim,ylim,'--k');
+
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
+end
+
+%% plot superimposed contrast-split posterior averages
+fig = figure(...
+    figopt,...
+    'name',sprintf('superimposed_posterior_maps_%s',contrast_str),...
+    'numbertitle','off');
+axes(...
+    axesopt.default,...
+    'xlim',[-500,t_set(end-2)],...+[-1,1]*.05*range([-500,t_set(end-2)]),...
+    'xtick',unique([roi';-500;0;t_set]),...
+    'ylim',[-500,t_set(end-2)],...+[-1,1]*.05*range([-500,t_set(end-2)]),...
+    'ytick',unique([roi';-500;0;t_set]),...
+    'xticklabelrotation',0,...
+    'yticklabelrotation',0);
+xlabel('Time since S_2 onset (ms)');
+ylabel('Decoded time since S_2 onset (ms)');
+
+% zero lines
+plot([1,1]*0,ylim,':k');
+plot(xlim,[1,1]*0,':k');
+
+% iterate through contrast conditions
+for ii = 1 : n_contrasts
+    map_avg = squeeze(avgfun(map(:,ii,:),3));
+    map_err = squeeze(errfun(map(:,ii,:),3));
+    errorpatch(roi_time,map_avg,map_err,contrast_clrs(ii,:),...
+        'facealpha',.25);
+    plot(roi_time,map_avg,...
+        'color',contrast_clrs(ii,:),...
+        'linewidth',1.5);
+end
 
 % save figure
 if want2save

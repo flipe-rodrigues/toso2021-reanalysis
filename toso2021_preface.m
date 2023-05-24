@@ -246,6 +246,7 @@ choice_correct = categorical(choice_correct,[-2,-1,1,2],...
 choice_correct_set = unique(choice_correct);
 n_choice_correct = numel(choice_correct_set);
 choice_correct_clrs = colorlerp(choice_clrs,n_choice_correct);
+choice_correct_clrs = choice_correct_clrs([1,3,2,4],:);
 choice_correct_units = 'a.u.';
 
 %% parse meta data (ephys)
@@ -275,7 +276,6 @@ validtime_flags = ...
     padded_time >= padded_time(1) - kernel.paddx(1) & ...
     padded_time <= padded_time(end) - kernel.paddx(end) + psthbin;
 valid_time = padded_time(validtime_flags);
-
 
 %% trial pre-selection
 valid_flags = ...
@@ -321,36 +321,6 @@ for ii = 1 : n_pseudosession_transitions
         end
     end
     prev_session_rows = pseudo_session_rows;
-end
-
-%% flag sessions
-
-% flag (unique) session transitions
-session_start_idcs = find(data.Trial == 1);
-valid_session_flags = ...
-    ismember(session_start_idcs,find(valid_flags & unique_flags));
-session_start_idcs = session_start_idcs(valid_session_flags);
-n_total_sessions = numel(session_start_idcs);
-session_bound_idcs = unique([session_start_idcs;n_total_trials]);
-
-% preallocation
-session_idcs = nan(n_total_trials,1);
-session_trial_count = nan(n_total_sessions,1);
-session_neuron_count = nan(n_total_sessions,1);
-
-% iterate through sessions
-for ss = 1 : n_total_sessions
-    idcs = session_bound_idcs(ss) : session_bound_idcs(ss+1) - 1;
-    session_idcs(idcs) = ss;
-    session_trial_count(ss) = sum(...
-        valid_flags & ...
-        unique_flags & ...
-        ismember(1:n_total_trials,idcs)');
-    session_neurons = unique(data.NeuronNumb(...
-        valid_flags & ...
-        ismember(1:n_total_trials,idcs)' & ...
-        ismember(data.NeuronNumb,flagged_neurons)));
-    session_neuron_count(ss) = numel(session_neurons);
 end
 
 %% normalized stimulus dimensions
