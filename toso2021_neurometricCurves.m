@@ -27,6 +27,13 @@ elseif strcmpi(contrast_str,'i2')
         't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
         'choice',choice(valid_flags),choice_set,[]);
+    
+    conditions.train = intersectconditions(...
+        't1',t1(valid_flags),[],[],...
+        'i1',i1(valid_flags),[],[],...
+        't2',t2(valid_flags),t_set,[],...
+        'i2',i2(valid_flags),[],[],...
+        'choice',choice(valid_flags),choice_set,[]);
 end
 
 % test set conditions
@@ -60,10 +67,10 @@ fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
 %% run settings
-n_runs = 10;
+n_runs = 3;
 
 %% concatenation settings
-n_concatspercond = 2^8; % 2^8
+n_concatspercond = 2^7; % 2^8
 n_concats = n_concatspercond * (conditions.train.n + conditions.test.n);
 
 %% neurometric curve settings
