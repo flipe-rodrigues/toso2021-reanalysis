@@ -14,6 +14,8 @@ addpath(genpath(root_path));
 cd(root_path);
 data_path = fullfile(root_path,'data');
 file_name = sprintf('%c%s_rats_ok.mat',upper(task_str(1)),task_str(2:end));
+% file_name = fullfile(task_str,'AT4.mat');
+% AT3's action is mirrored from AT4's & SS10 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 data_file = fullfile(data_path,file_name);
 load(data_file);
 data = DataB.Info;
@@ -152,6 +154,7 @@ toso2021_psychometricCurves;
 
 % ephys
 toso2021_neuronSelection;
+toso2021_parseSessionData;
 return;
 toso2021_averageActivity
 toso2021_PCA_t2Aligned;

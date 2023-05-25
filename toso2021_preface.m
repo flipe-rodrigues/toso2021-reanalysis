@@ -108,16 +108,24 @@ i1_max_idx = find(i_set == max(i1));
 i2_max_idx = find(i_set == max(i2));
 n_t = numel(t_set);
 n_i = numel(i_set);
-% choice = categorical(data.Action,[0,1],{'T_2<T_1','T_2>T_1'});
+% if contains(file_name,'AT3')
+%     choice = data.Action == 0;
+% else
+%     choice = data.Action == 1;
+% end
 choice = data.Action;
 choice_set = unique(choice);
 n_choices = numel(choice_set);
 pre_s1_delay = data.PreDelay + inferred_misalignment;
 trial_idcs = data.Trial;
-subjects = data.Subject;
+n_total_trials = numel(trial_idcs);
+if isfield(data,'Subject')
+    subjects = data.Subject;
+else
+    subjects = ones(n_total_trials,1);
+end
 subject_set = unique(subjects(~isnan(subjects)));
 n_subjects = numel(subject_set);
-n_total_trials = numel(t1);
 
 %% categorical T1
 t1_cat = zeros(n_total_trials,1);
