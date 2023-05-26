@@ -105,6 +105,8 @@ for ss = 1 : n_total_sessions
     
     weighted_stimuli = s2(trial_flags) * w2 + s1(trial_flags) * w1;
     y = weighted_stimuli > 200;
+    
+%     y = s2(trial_flags) > s1(trial_flags);
 
     % iterate through trials
     for tt = 1 : session_trial_count(ss)

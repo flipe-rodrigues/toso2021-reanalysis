@@ -22,11 +22,11 @@ elseif strcmpi(contrast_str,'i1')
         'choice',choice(valid_flags),choice_set,[]);
 elseif strcmpi(contrast_str,'i2')
     conditions.train = intersectconditions(...
-        't1',t1(valid_flags),[],t_set([1,end]),...
+        't1',t1(valid_flags),t_set,[],...
         'i1',i1(valid_flags),[],[],...
         't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
-        'choice',choice(valid_flags),choice_set,[]);
+        'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'choice')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),[],[],...
@@ -95,7 +95,7 @@ for rr = 1 : n_runs
     %% construct spike counts tensor (neurons X concatenations)
     
     % preallocation
-    concat_spkrates = nan(n_neurons,n_concats);
+    concat_spkcounts = nan(n_neurons,n_concats);
     concat_s1 = nan(n_concats,1);
     concat_stimuli = nan(n_concats,1);
     concat_contrasts = nan(n_concats,1);
@@ -136,9 +136,7 @@ for rr = 1 : n_runs
             end
 
             % fetch spike counts & compute spike rates
-            spike_counts = data.FR(trial_flags,:);
-            spike_rates = ...
-                conv2(1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
+            spike_counts = data.SDF(trial_flags,:)';
             
             % S2-offset-aligned spike rates
             alignment = ...
@@ -148,12 +146,12 @@ for rr = 1 : n_runs
                 isi + ...
                 t2(trial_flags);
             alignment_flags = ...
-                valid_time >= alignment - spk_integration_win & ...
-                valid_time < alignment;
+                padded_time >= alignment - spk_integration_win & ...
+                padded_time < alignment;
             chunk_flags = alignment_flags;
-            aligned_spkrates = spike_rates;
-            aligned_spkrates(~alignment_flags') = nan;
-            aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
+            aligned_spkcounts = spike_counts;
+            aligned_spkcounts(~alignment_flags') = nan;
+            aligned_spkcounts = reshape(aligned_spkcounts(chunk_flags'),...
                 [n_integration_bins,n_flagged_trials])';
             
             % detect any test conditions that overlap with the current training condition
@@ -209,8 +207,8 @@ for rr = 1 : n_runs
             rand_idcs = randsample(train_idcs,n_concatspercond,true);
             concat_idcs = (1 : n_concatspercond) + ...
                 n_concatspercond * (kk - 1);
-            concat_spkrates(nn,concat_idcs) = ...
-                nanmean(aligned_spkrates(rand_idcs,:),2);
+            concat_spkcounts(nn,concat_idcs) = ...
+                nanmean(aligned_spkcounts(rand_idcs,:),2);
             concat_s1(concat_idcs) = s1(flagged_trials(rand_idcs));
             concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
             concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
@@ -243,9 +241,7 @@ for rr = 1 : n_runs
             end
             
             % fetch spike counts & compute spike rates
-            spike_counts = data.FR(trial_flags,:);
-            spike_rates = ...
-                conv2(1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
+            spike_counts = data.SDF(trial_flags,:)';
             
             % S2-offset-aligned spike rates
             alignment = ...
@@ -255,12 +251,12 @@ for rr = 1 : n_runs
                 isi + ...
                 t2(trial_flags);
             alignment_flags = ...
-                valid_time >= alignment - spk_integration_win & ...
-                valid_time < alignment;
+                padded_time >= alignment - spk_integration_win & ...
+                padded_time < alignment;
             chunk_flags = alignment_flags;
-            aligned_spkrates = spike_rates;
-            aligned_spkrates(~alignment_flags') = nan;
-            aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
+            aligned_spkcounts = spike_counts;
+            aligned_spkcounts(~alignment_flags') = nan;
+            aligned_spkcounts = reshape(aligned_spkcounts(chunk_flags'),...
                 [n_integration_bins,n_flagged_trials])';
             
             % handle cross-validation
@@ -279,8 +275,8 @@ for rr = 1 : n_runs
             rand_idcs = randsample(test_idcs,n_concatspercond,true);
             concat_idcs = (1 : n_concatspercond) + ...
                 n_concatspercond * (kk + conditions.train.n - 1);
-            concat_spkrates(nn,concat_idcs) = ...
-                nanmean(aligned_spkrates(rand_idcs,:),2);
+            concat_spkcounts(nn,concat_idcs) = ...
+                nanmean(aligned_spkcounts(rand_idcs,:),2);
             concat_s1(concat_idcs) = s1(flagged_trials(rand_idcs));
             concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
             concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
@@ -297,16 +293,19 @@ for rr = 1 : n_runs
     train_flags = concat_evalset == 'train';
     
     % linear discriminant analysis
-    X = concat_spkrates(:,train_flags)';
-    threshold = median(s1(valid_flags));
+    X = concat_spkcounts(:,train_flags)';
     
-%     y = concat_stimuli(train_flags) > threshold;
+    threshold = median(s1(valid_flags));
+    y = concat_stimuli(train_flags) > threshold;
+    
+    y = concat_stimuli(train_flags) > concat_s1(train_flags);
+    
 %     ambiguous_flags = concat_stimuli(train_flags) == threshold;
 %     y(ambiguous_flags) = rand(sum(ambiguous_flags),1) > .5;
     
-	y = concat_choices(train_flags);
+% 	y = concat_choices(train_flags);
     
-% %     y = concat_stimuli(train_flags) * w2 + concat_s1(train_flags) * w1 > 220;
+% %     y = concat_stimuli(train_flags) * w2 + concat_s1(train_flags) * w1 > 200;
 % %     y = concat_stimuli(train_flags) > + concat_s1(train_flags);
 % weighted combination
 % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -326,7 +325,7 @@ for rr = 1 : n_runs
     
     % neural "judgments"
     neuro_choices(test_flags) = ...
-        lda_mdl.predict(concat_spkrates(~invalid_flags,test_flags)');
+        lda_mdl.predict(concat_spkcounts(~invalid_flags,test_flags)');
     
     %% construct neurophysical triple
     
@@ -351,7 +350,7 @@ for rr = 1 : n_runs
 end
 
 %% visualize population state at T2 offset
-X = concat_spkrates(~invalid_flags,:)';
+X = concat_spkcounts(~invalid_flags,:)';
 % X = [concat_spkrates(~invalid_flags,concat_s2 > concat_s1),...
 %     concat_spkrates(~invalid_flags,concat_s2 < concat_s1)]';
 
