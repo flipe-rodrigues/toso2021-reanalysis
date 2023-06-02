@@ -8,32 +8,32 @@ end
 % training set conditions
 if strcmpi(contrast_str,'t1')
     conditions.train = intersectconditions(...
-        't1',t1(valid_flags),[],t_set([1,end]),...
+        't1',t1(valid_flags),t_set,[],...
         'i1',i1(valid_flags),[],[],...
         't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),[],[],...
-        'choice',choice(valid_flags),choice_set,[]);
+        'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i1')
     conditions.train = intersectconditions(...
-        't1',t1(valid_flags),[],t_set([1,end]),...
+        't1',t1(valid_flags),[],[],...
         'i1',i1(valid_flags),i_set(i1_mode_idx),[],...
         't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),[],[],...
         'choice',choice(valid_flags),choice_set,[]);
 elseif strcmpi(contrast_str,'i2')
     conditions.train = intersectconditions(...
-        't1',t1(valid_flags),t_set,[],...
+        't1',t1(valid_flags),[],[],...
         'i1',i1(valid_flags),[],[],...
         't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
-        'choice',choice(valid_flags),[],[]);
+        'choice',choice(valid_flags),choice_set,[]);
 elseif strcmpi(contrast_str,'choice')
     conditions.train = intersectconditions(...
-        't1',t1(valid_flags),[],[],...
+        't1',t1(valid_flags),t_set,[],...
         'i1',i1(valid_flags),[],[],...
-        't2',t2(valid_flags),t_set(t2_mode_idx+[-1:1]),[],...
+        't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),[],[],...
-        'choice',choice(valid_flags),choice_set,[]);
+        'choice',choice(valid_flags),[],[]);
 end
 
 % test set conditions
@@ -76,9 +76,53 @@ conditions.test.values
 %% run settings
 n_runs = 10;
 
+%% condition weights
+% this should be moved to the intersect conditions function !!!!!!!!!!!!!!!
+
+% iterate through training conditions
+for kk = 1 : conditions.train.n
+    
+    % flag trials for the current condition
+    feature_flags = false(n_total_trials,conditions.train.features.n);
+    for ff = 1 : conditions.train.features.n
+        feature_lbl = conditions.train.features.labels{ff};
+        feature = eval(feature_lbl);
+        feature_flags(:,ff) = ismember(...
+            feature,conditions.train.values.(feature_lbl)(kk,:));
+    end
+    condition_flags = all(feature_flags,2);
+    conditions.train.weights(kk,1) = sum(condition_flags);
+end
+
+% normalization
+conditions.train.weights = ...
+    conditions.train.weights/ max(conditions.train.weights);
+
+% iterate through conditions
+for kk = 1 : conditions.test.n
+    
+    % flag trials for the current condition
+    feature_flags = false(n_total_trials,conditions.train.features.n);
+    for ff = 1 : conditions.train.features.n
+        feature_lbl = conditions.test.features.labels{ff};
+        feature = eval(feature_lbl);
+        feature_flags(:,ff) = ismember(...
+            feature,conditions.test.values.(feature_lbl)(kk,:));
+    end
+    condition_flags = all(feature_flags,2);
+    conditions.test.weights(kk,1) = sum(condition_flags);
+end
+
+% normalization
+conditions.test.weights = ...
+    conditions.test.weights/ max(conditions.test.weights);
+
 %% concatenation settings
-n_concatspercond = 2^8; % 2^8
-n_concats = n_concatspercond * (conditions.train.n + conditions.test.n);
+n_concats_max = 2^9;
+n_concats_train = round(conditions.train.weights * n_concats_max);
+n_concats_test = round(conditions.test.weights * n_concats_max);
+% n_concats_total = n_concats_max * (conditions.train.n + conditions.test.n);
+n_concats_total = sum([n_concats_train; n_concats_test]);
 
 %% neurometric curve settings
 spk_integration_win = min(t_set);
@@ -95,12 +139,12 @@ for rr = 1 : n_runs
     %% construct spike counts tensor (neurons X concatenations)
     
     % preallocation
-    concat_spkcounts = nan(n_neurons,n_concats);
-    concat_s1 = nan(n_concats,1);
-    concat_stimuli = nan(n_concats,1);
-    concat_contrasts = nan(n_concats,1);
-    concat_choices = nan(n_concats,1);
-    concat_evalset = categorical(nan(n_concats,1),[0,1],{'train','test'});
+    concat_spkcounts = nan(n_neurons,n_concats_total);
+    concat_s1 = nan(n_concats_total,1);
+    concat_stimuli = nan(n_concats_total,1);
+    concat_contrasts = nan(n_concats_total,1);
+    concat_choices = nan(n_concats_total,1);
+    concat_evalset = categorical(nan(n_concats_total,1),[0,1],{'train','test'});
     
     % iterate through units
     for nn = 1 : n_neurons
@@ -204,9 +248,9 @@ for rr = 1 : n_runs
             end
             
             % store tensor & concatenation data
-            rand_idcs = randsample(train_idcs,n_concatspercond,true);
-            concat_idcs = (1 : n_concatspercond) + ...
-                n_concatspercond * (kk - 1);
+            rand_idcs = randsample(train_idcs,n_concats_train(kk),true);
+            concat_idcs = (1 : n_concats_train(kk)) + ...
+                sum(n_concats_train(1:kk-1));
             concat_spkcounts(nn,concat_idcs) = ...
                 nanmean(aligned_spkcounts(rand_idcs,:),2);
             concat_s1(concat_idcs) = s1(flagged_trials(rand_idcs));
@@ -220,8 +264,8 @@ for rr = 1 : n_runs
         for kk = 1 : conditions.test.n
             
             % flag trials for the current condition
-            feature_flags = false(n_total_trials,conditions.train.features.n);
-            for ff = 1 : conditions.train.features.n
+            feature_flags = false(n_total_trials,conditions.test.features.n);
+            for ff = 1 : conditions.test.features.n
                 feature_lbl = conditions.test.features.labels{ff};
                 feature = eval(feature_lbl);
                 feature_flags(:,ff) = ismember(...
@@ -272,9 +316,10 @@ for rr = 1 : n_runs
             end
             
             % store tensor & concatenation data
-            rand_idcs = randsample(test_idcs,n_concatspercond,true);
-            concat_idcs = (1 : n_concatspercond) + ...
-                n_concatspercond * (kk + conditions.train.n - 1);
+            rand_idcs = randsample(test_idcs,n_concats_test(kk),true);
+            concat_idcs = (1 : n_concats_test(kk)) + ...
+                sum(n_concats_test(1:kk-1)) + ...
+                sum(n_concats_train);
             concat_spkcounts(nn,concat_idcs) = ...
                 nanmean(aligned_spkcounts(rand_idcs,:),2);
             concat_s1(concat_idcs) = s1(flagged_trials(rand_idcs));
@@ -303,7 +348,7 @@ for rr = 1 : n_runs
 %     ambiguous_flags = concat_stimuli(train_flags) == threshold;
 %     y(ambiguous_flags) = rand(sum(ambiguous_flags),1) > .5;
     
-% 	y = concat_choices(train_flags);
+	y = concat_choices(train_flags);
     
 % %     y = concat_stimuli(train_flags) * w2 + concat_s1(train_flags) * w1 > 200;
 % %     y = concat_stimuli(train_flags) > + concat_s1(train_flags);
@@ -321,7 +366,7 @@ for rr = 1 : n_runs
     test_flags = concat_evalset == 'test';
     
     % preallocation
-    neuro_choices = nan(n_concats,1);
+    neuro_choices = nan(n_concats_total,1);
     
     % neural "judgments"
     neuro_choices(test_flags) = ...

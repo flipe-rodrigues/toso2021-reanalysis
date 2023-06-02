@@ -6,7 +6,7 @@ end
 %% design matrix
 
 % number of trials to look back
-k = 4;
+k = 1;
 
 %
 x_i1 = [nan; i1(1:end-1)];
@@ -67,7 +67,7 @@ X_i2_p2 = [nan;prev_i2(1:end-1)] == i_set';
 X_t1_p2 = [nan;prev_t1(1:end-1)] == t_set';
 X_t2_p2 = [nan;prev_t2(1:end-1)] == t_set';
 
-trial_kernel = expkernel('mus',5,'binwidth',1);
+trial_kernel = expkernel('mu',5,'binwidth',1);
 i_hist = conv(-prev_i1+prev_i2,trial_kernel.pdf,'same');
 t_hist = conv(-prev_t1+prev_t2,trial_kernel.pdf,'same');
 
