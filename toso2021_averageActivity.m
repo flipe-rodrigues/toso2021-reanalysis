@@ -12,16 +12,17 @@ n_bins = range(padded_roi) / psthbin;
 time = linspace(padded_roi(1),padded_roi(2),n_bins);
 
 % preallocation
+zscore_weights = nan(n_bins,n_neurons);
 ref_psths = nan(n_bins,n_neurons);
 psths = nan(n_bins,n_neurons,n_contrasts);
-R = nan(n_neurons,n_contrasts);
+% R = nan(n_neurons,n_contrasts);
 
 %% construct s2-aligned psths
 
 % clamping
 i1_clamp_flags = i1 == i_set(i1_mode_idx);
 i2_clamp_flags = i2 == i_set(i2_mode_idx);
-bw = nan(n_neurons,n_contrasts);
+% bw = nan(n_neurons,n_contrasts);
 
 % iterate through neurons
 for nn = 1 : n_neurons
@@ -60,6 +61,9 @@ for nn = 1 : n_neurons
     ref_spkrates = reshape(...
         ref_spkrates(ref_chunk_flags'),[n_bins,ref_n_trials])';
     
+    % compute observations weights
+    zscore_weights(:,nn) = sum(~isnan(ref_spkrates));
+    
     % compute mean spike density function
     ref_psths(:,nn) = nanmean(ref_spkrates,1);
  
@@ -86,7 +90,7 @@ for nn = 1 : n_neurons
         
         time_mat = repmat(padded_time,n_trials,1);
         spike_times = time_mat(spike_counts >= 1);
-        [~,~,bw(nn,ii)] = ksdensity(sort(spike_times(:)));
+%         [~,~,bw(nn,ii)] = ksdensity(sort(spike_times(:)));
         
         % T2-aligned spike rates
         alignment_onset = ...
@@ -107,17 +111,33 @@ for nn = 1 : n_neurons
 
         % compute mean spike density function
         psths(:,nn,ii) = nanmean(spkrates,1);
-        R(nn,ii) = nanmean(spkrates(:,time>=-334&time<=0),[1,2]);
+%         R(nn,ii) = nanmean(spkrates(:,time>=-334&time<=0),[1,2]);
     end
 end
 
 %% normalization
-
-% z-scoring
 mus = nanmean(ref_psths,1);
 sigs = nanstd(ref_psths,0,1);
 % mus = nanmean(psths,[1,3]);
 % sigs = nanstd(psths,0,[1,3]);
+
+% normalize observation weights
+% zscore_weights = zscore_weights ./ sum(zscore_weights);
+% 
+% % preallocation
+% mus = nan(1,n_neurons);
+% sigs = nan(1,n_neurons);
+% 
+% % iterate through neurons
+% for nn = 1 : n_neurons
+%     nan_flags = isnan(ref_psths(:,nn));
+%     x = ref_psths(~nan_flags,nn);
+%     p = zscore_weights(~nan_flags,nn);
+%     mus(nn) = x' * p;
+%     sigs(nn) = sqrt(sum(p .* (x - mus(nn)) .^ 2));
+% end
+
+% z-scoring
 zpsths = (psths - mus) ./ sigs;
 
 %%

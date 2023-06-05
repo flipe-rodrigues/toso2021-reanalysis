@@ -48,6 +48,7 @@ for kk = 1 : n_contrasts
         trial_flags = ...
             valid_flags & ...
             unique_flags & ...
+            ...i1 == i_set(i1_mode_idx) & ...
             contrast_flags & ...
             stimulus_flags;
         psycurves(kk).x(ii,1) = normstim_set(ii);
@@ -76,7 +77,7 @@ end
 % psychometric fit settings
 psyopt.fit = struct();
 psyopt.fit.expType = 'YesNo';
-psyopt.fit.sigmoidName = 'gauss';
+psyopt.fit.sigmoidName = 'logistic';
 psyopt.fit.estimateType = 'MAP';
 psyopt.fit.confP = [.95,.9,.68];
 psyopt.fit.borders = [0,1; 0,1; 0,.25; 0,.25; 0,0];

@@ -521,11 +521,6 @@ for rr = 1 : n_runs
                 xlabel('Task epoch');
                 ylabel('Decoder performance (%)');
                 
-                % significance settings
-                alphas = [.05,.01];
-                n_alphas = numel(alphas);
-                pval_corr = 3;
-                
                 % reference lines
                 plot(xlim,[1,1]*0,'-k',...
                     'linewidth',1.5);
@@ -555,11 +550,7 @@ for rr = 1 : n_runs
                     'fontsize',12,...
                     'horizontalalignment','center',...
                     'verticalalignment','bottom');
-                
-                % graphical object preallocation
-                h = gobjects((n_coefficients-2)*n_epochs*2*n_alphas,1);
-                h_idx = 1;
-                
+
                 % iterate through epochs
                 for ee = 1 : n_epochs
                     epoch = epochs{ee};

@@ -16,6 +16,7 @@ roi2use_flags = ...
     roi2plot_time <= roi2use(2);
 
 % preallocation
+zscore_weights = nan(roi2plot_n_bins,n_neurons);
 ref_psths = nan(roi2plot_n_bins,n_neurons);
 s2_psths = nan(roi2plot_n_bins,n_neurons,n_contrasts);
 
@@ -53,6 +54,9 @@ for nn = 1 : n_neurons
     ref_spkrates(~ref_alignment_flags') = nan;
     ref_spkrates = reshape(...
         ref_spkrates(ref_chunk_flags'),[roi2plot_n_bins,ref_n_trials])';
+        
+    % compute observations weights
+    zscore_weights(:,nn) = sum(~isnan(ref_spkrates));
     
     % compute mean spike density function
     ref_psths(:,nn) = nanmean(ref_spkrates,1);
@@ -102,9 +106,27 @@ end
 %% normalization
 mus = nanmean(ref_psths(roi2use_flags,:),1);
 sigs = nanstd(ref_psths(roi2use_flags,:),0,1);
-ref_zpsths = (ref_psths - mus) ./ sigs;
 % mus = nanmean(s2_psths(roi2use_flags,:,:),[1,3]);
 % sigs = nanstd(s2_psths(roi2use_flags,:,:),0,[1,3]);
+
+% normalize observation weights
+% zscore_weights = zscore_weights ./ sum(zscore_weights);
+% 
+% % preallocation
+% mus = nan(1,n_neurons);
+% sigs = nan(1,n_neurons);
+% 
+% % iterate through neurons
+% for nn = 1 : n_neurons
+%     nan_flags = isnan(ref_psths(:,nn));
+%     x = ref_psths(~nan_flags,nn);
+%     p = zscore_weights(~nan_flags,nn);
+%     mus(nn) = x' * p;
+%     sigs(nn) = sqrt(sum(p .* (x - mus(nn)) .^ 2));
+% end
+
+% z-scoring
+ref_zpsths = (ref_psths - mus) ./ sigs;
 s2_zpsths = (s2_psths - mus) ./ sigs;
 
 %% PCA
