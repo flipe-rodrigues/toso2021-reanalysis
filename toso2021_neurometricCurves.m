@@ -15,18 +15,18 @@ if strcmpi(contrast_str,'t1')
         'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i1')
     conditions.train = intersectconditions(...
-        't1',t1(valid_flags),t_set,[],...
+        't1',t1(valid_flags),[],[],...
         'i1',i1(valid_flags),i_set(i1_mode_idx),[],...
         't2',t2(valid_flags),t_set,[],...
-        'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
-        'choice',choice(valid_flags),[],[]);
+        'i2',i2(valid_flags),[],[],...
+        'choice',choice(valid_flags),choice_set,[]);
 elseif strcmpi(contrast_str,'i2')
     conditions.train = intersectconditions(...
-        't1',t1(valid_flags),t_set,[],...
-        'i1',i1(valid_flags),i_set(i1_mode_idx),[],...
+        't1',t1(valid_flags),[],[],...
+        'i1',i1(valid_flags),[],[],...
         't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
-        'choice',choice(valid_flags),choice_set(end),[]);
+        'choice',choice(valid_flags),choice_set,[]);
 elseif strcmpi(contrast_str,'choice')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),t_set,[],...
@@ -74,7 +74,7 @@ fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
 %% run settings
-n_runs = 30;
+n_runs = 10;
 
 %% condition weights
 % this should be moved to the intersect conditions function !!!!!!!!!!!!!!!
@@ -117,6 +117,10 @@ end
 conditions.test.weights = ...
     conditions.test.weights/ max(conditions.test.weights);
 
+%%
+% conditions.train.weights = ones(conditions.train.n,1) / 2;
+% conditions.test.weights = ones(conditions.test.n,1) / 2;
+
 %% concatenation settings
 n_concats_max = 2^10;
 n_concats_train = round(conditions.train.weights * n_concats_max);
@@ -131,6 +135,9 @@ n_integration_bins = spk_integration_win / psthbin;
 % preallocation
 neurocurves = struct();
 
+% selection criteria
+n_trials_cutoff = 0;
+
 % iterate through runs
 for rr = 1 : n_runs
     train_counter = 0;
@@ -141,10 +148,11 @@ for rr = 1 : n_runs
     % preallocation
     concat_spkcounts = nan(n_neurons,n_concats_total);
     concat_s1 = nan(n_concats_total,1);
-    concat_stimuli = nan(n_concats_total,1);
+    concat_s2 = nan(n_concats_total,1);
     concat_contrasts = nan(n_concats_total,1);
     concat_choices = nan(n_concats_total,1);
-    concat_evalset = categorical(nan(n_concats_total,1),[0,1],{'train','test'});
+    concat_evalset = ...
+        categorical(nan(n_concats_total,1),[0,1],{'train','test'});
     
     % iterate through units
     for nn = 1 : n_neurons
@@ -167,7 +175,7 @@ for rr = 1 : n_runs
                     feature,conditions.train.values.(feature_lbl)(kk,:));
             end
             condition_flags = all(feature_flags,2);
-
+            
             % trial selection
             trial_flags = ...
                 valid_flags & ...
@@ -175,10 +183,10 @@ for rr = 1 : n_runs
                 condition_flags;
             flagged_trials = find(trial_flags);
             n_flagged_trials = numel(flagged_trials);
-            if n_flagged_trials == 0
+            if n_flagged_trials <= n_trials_cutoff
                 continue;
             end
-
+            
             % fetch spike counts & compute spike rates
             spike_counts = data.SDF(trial_flags,:)';
             
@@ -254,7 +262,7 @@ for rr = 1 : n_runs
             concat_spkcounts(nn,concat_idcs) = ...
                 nanmean(aligned_spkcounts(rand_idcs,:),2);
             concat_s1(concat_idcs) = s1(flagged_trials(rand_idcs));
-            concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
+            concat_s2(concat_idcs) = stimuli(flagged_trials(rand_idcs));
             concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
             concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
             concat_evalset(concat_idcs) = 'train';
@@ -272,7 +280,7 @@ for rr = 1 : n_runs
                     feature,conditions.test.values.(feature_lbl)(kk,:));
             end
             condition_flags = all(feature_flags,2);
-
+            
             % trial selection
             trial_flags = ...
                 valid_flags & ...
@@ -280,7 +288,7 @@ for rr = 1 : n_runs
                 condition_flags;
             flagged_trials = find(trial_flags);
             n_flagged_trials = numel(flagged_trials);
-            if n_flagged_trials == 0
+            if n_flagged_trials <= n_trials_cutoff
                 continue;
             end
             
@@ -323,7 +331,7 @@ for rr = 1 : n_runs
             concat_spkcounts(nn,concat_idcs) = ...
                 nanmean(aligned_spkcounts(rand_idcs,:),2);
             concat_s1(concat_idcs) = s1(flagged_trials(rand_idcs));
-            concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
+            concat_s2(concat_idcs) = stimuli(flagged_trials(rand_idcs));
             concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
             concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
             concat_evalset(concat_idcs) = 'test';
@@ -340,25 +348,26 @@ for rr = 1 : n_runs
     % linear discriminant analysis
     X = concat_spkcounts(:,train_flags)';
     
-%     threshold = median(s1(valid_flags));
-%     y = concat_stimuli(train_flags) > threshold;
+    %     threshold = median(s1(valid_flags));
+    %     y = concat_stimuli(train_flags) > threshold;
     
-    y = concat_stimuli(train_flags) > concat_s1(train_flags);
+    %     y = concat_s2(train_flags) > concat_s1(train_flags);
     
-%     ambiguous_flags = concat_stimuli(train_flags) == threshold;
-%     y(ambiguous_flags) = rand(sum(ambiguous_flags),1) > .5;
+    %     ambiguous_flags = concat_stimuli(train_flags) == threshold;
+    %     y(ambiguous_flags) = rand(sum(ambiguous_flags),1) > .5;
     
-% 	y = concat_choices(train_flags);
+    y = concat_choices(train_flags);
     
-% %     y = concat_stimuli(train_flags) * w2 + concat_s1(train_flags) * w1 > 200;
-% %     y = concat_stimuli(train_flags) > + concat_s1(train_flags);
-% weighted combination
-% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    % %     y = concat_stimuli(train_flags) * w2 + concat_s1(train_flags) * w1 > 200;
+    % %     y = concat_stimuli(train_flags) > + concat_s1(train_flags);
+    % weighted combination
+    % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     within_class_var = cell2mat(...
         arrayfun(@(x)nanvar(X(y==x,:)),unique(y),...
         'uniformoutput',false));
-    invalid_flags = any(within_class_var == 0 | isnan(within_class_var));
-%     X = zscore(X);
+    invalid_flags = ...
+        any(within_class_var == 0 | isnan(within_class_var));
+    %     X = zscore(X);
     lda_mdl = fitcdiscr(X(:,~invalid_flags),y,...
         'discrimtype','linear');
     
@@ -377,10 +386,10 @@ for rr = 1 : n_runs
     % iterate through contrasts
     for kk = 1 : n_contrasts
         contrast_flags = concat_contrasts == contrast_set(kk);
-
+        
         % iterate through stimuli
         for ii = 1 : n_stimuli
-            stimulus_flags = concat_stimuli == stim_set(ii);
+            stimulus_flags = concat_s2 == stim_set(ii);
             concat_flags = ...
                 test_flags & ...
                 contrast_flags & ...
@@ -401,7 +410,7 @@ X = concat_spkcounts(~invalid_flags,:)';
 
 % % preallocation
 % X = nan(sum(~invalid_flags),n_concats*n_s_pairs);
-% 
+%
 % % iterate through stimulus pairs
 % for ii = 1 : n_s_pairs
 %     s1_flags = concat_s1 == s_pairset(ii,1);
@@ -444,7 +453,7 @@ ylabel(sprintf('%s\n%.1f%% variance','PC 2',explained(2)),...
 %         train_flags & ...
 %         s1_flags & ...
 %         s2_flags;
-%   
+%
 %     % plot state space projections
 %     plot3(score(concat_flags,1),...
 %         score(concat_flags,2),...
@@ -456,7 +465,7 @@ ylabel(sprintf('%s\n%.1f%% variance','PC 2',explained(2)),...
 %         'markerfacecolor','none',...
 %         'markeredgecolor','k');
 % end
-% 
+%
 % % iterate through stimulus pairs
 % for ii = 1 : n_s_pairs
 %     s1_flags = concat_s1 == s_pairset(ii,1);
@@ -465,7 +474,7 @@ ylabel(sprintf('%s\n%.1f%% variance','PC 2',explained(2)),...
 %         train_flags & ...
 %         s1_flags & ...
 %         s2_flags;
-%   
+%
 %     % plot state space projections
 %     plot3(score(concat_flags,1),...
 %         score(concat_flags,2),...
@@ -480,7 +489,7 @@ ylabel(sprintf('%s\n%.1f%% variance','PC 2',explained(2)),...
 
 % iterate through stimuli
 for ii = 1 : n_stimuli
-    stimulus_flags = concat_stimuli == stim_set(ii);
+    stimulus_flags = concat_s2 == stim_set(ii);
     concat_flags = ...
         train_flags & ...
         stimulus_flags;
@@ -498,7 +507,7 @@ end
 
 % iterate through stimuli
 for ii = 1 : n_stimuli
-    stimulus_flags = concat_stimuli == stim_set(ii);
+    stimulus_flags = concat_s2 == stim_set(ii);
     concat_flags = ...
         train_flags & ...
         stimulus_flags;
@@ -564,7 +573,7 @@ s2greaterthans1_counts = zeros(1,n_bins);
 
 % iterate through stimuli
 for ii = 1 : n_stimuli
-    stimulus_flags = concat_stimuli == stim_set(ii);
+    stimulus_flags = concat_s2 == stim_set(ii);
     
     % plot projections onto linear discriminant
     bincounts = histcounts(score(stimulus_flags),binedges);
@@ -620,7 +629,7 @@ neurocurve_pools = struct();
 % psychometric fit settings
 psyopt.fit = struct();
 psyopt.fit.expType = 'YesNo';
-psyopt.fit.sigmoidName = 'gauss';
+psyopt.fit.sigmoidName = 'rgumbel'; % 'logistic';
 psyopt.fit.estimateType = 'MAP';
 psyopt.fit.confP = [.95,.9,.68];
 psyopt.fit.borders = [0,1; 0,1; 0,.25; 0,.25; 0,0];
@@ -631,7 +640,7 @@ psyopt.fit.stepN = [100,100,40,40,20];
 avgfun = @(x,d) nanmedian(x,d);
 errfun = @(x,d) abs(quantile(x,[.25,.75],d) - nanmedian(x,d));
 avgfun = @(x,d) nansum(x,d);
-errfun = @(x,d) std(x,0,d) / 1 .* [1,1];
+errfun = @(x,d) std(x,0,d) / sqrt(n_runs) .* [1,1];
 
 % iterate through contrasts
 for kk = 1 : n_contrasts
@@ -642,7 +651,7 @@ for kk = 1 : n_contrasts
     neurocurve_pools(kk).n = avgfun(neurocurves(kk).n,2);
     neurocurve_pools(kk).err = ....
         errfun(neurocurves(kk).y ./ neurocurves(kk).n,2);
-
+    
     % neurophysical triple
     neuro_triple = [...
         neurocurve_pools(kk).x,...
@@ -689,9 +698,9 @@ plot(xlim,[1,1]*.5,':k');
 
 % iterate through contrasts
 for kk = 1 : n_contrasts
-%     if sum(neurocurve_pools(kk).n ~= 0) < 2
-%         continue;
-%     end
+    %     if sum(neurocurve_pools(kk).n ~= 0) < 2
+    %         continue;
+    %     end
     
     % plot psychometric curve
     psyopt.plot.datafaceclr = contrast_clrs(kk,:);

@@ -77,7 +77,7 @@ end
 % psychometric fit settings
 psyopt.fit = struct();
 psyopt.fit.expType = 'YesNo';
-psyopt.fit.sigmoidName = 'logistic';
+psyopt.fit.sigmoidName = 'rgumbel'; % 'logistic';
 psyopt.fit.estimateType = 'MAP';
 psyopt.fit.confP = [.95,.9,.68];
 psyopt.fit.borders = [0,1; 0,1; 0,.25; 0,.25; 0,0];
