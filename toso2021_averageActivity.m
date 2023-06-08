@@ -20,8 +20,11 @@ psths = nan(n_bins,n_neurons,n_contrasts);
 %% construct s2-aligned psths
 
 % clamping
-i1_clamp_flags = i1 == i_set(i1_mode_idx);
-i2_clamp_flags = i2 == i_set(i2_mode_idx);
+if strcmpi(contrast_str,'i1')
+    clamp_flags = i2 == i_set(i2_mode_idx);
+elseif strcmpi(contrast_str,'i2')
+    clamp_flags = i1 == i_set(i1_mode_idx);
+end
 % bw = nan(n_neurons,n_contrasts);
 
 % iterate through neurons
@@ -73,7 +76,7 @@ for nn = 1 : n_neurons
         spike_flags = ...
             valid_flags & ...
             neuron_flags & ...
-            ...i1_clamp_flags & ...
+            ...clamp_flags & ...
             contrast_flags;
         if sum(spike_flags) == 0
             continue;

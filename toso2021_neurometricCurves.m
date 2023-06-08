@@ -15,18 +15,18 @@ if strcmpi(contrast_str,'t1')
         'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i1')
     conditions.train = intersectconditions(...
-        't1',t1(valid_flags),[],[],...
+        't1',t1(valid_flags),t_set,[],...
         'i1',i1(valid_flags),i_set(i1_mode_idx),[],...
         't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),[],[],...
-        'choice',choice(valid_flags),choice_set,[]);
+        'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i2')
     conditions.train = intersectconditions(...
-        't1',t1(valid_flags),[],[],...
+        't1',t1(valid_flags),t_set,[],...
         'i1',i1(valid_flags),[],[],...
         't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
-        'choice',choice(valid_flags),choice_set,[]);
+        'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'choice')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),t_set,[],...
@@ -74,7 +74,7 @@ fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
 %% run settings
-n_runs = 10;
+n_runs = 100;
 
 %% condition weights
 % this should be moved to the intersect conditions function !!!!!!!!!!!!!!!
@@ -122,7 +122,7 @@ conditions.test.weights = ...
 % conditions.test.weights = ones(conditions.test.n,1) / 2;
 
 %% concatenation settings
-n_concats_max = 2^10;
+n_concats_max = 2^9;
 n_concats_train = round(conditions.train.weights * n_concats_max);
 n_concats_test = round(conditions.test.weights * n_concats_max);
 % n_concats_total = n_concats_max * (conditions.train.n + conditions.test.n);
@@ -351,12 +351,12 @@ for rr = 1 : n_runs
     %     threshold = median(s1(valid_flags));
     %     y = concat_stimuli(train_flags) > threshold;
     
-    %     y = concat_s2(train_flags) > concat_s1(train_flags);
+    y = concat_s2(train_flags) > concat_s1(train_flags);
     
     %     ambiguous_flags = concat_stimuli(train_flags) == threshold;
     %     y(ambiguous_flags) = rand(sum(ambiguous_flags),1) > .5;
     
-    y = concat_choices(train_flags);
+%     y = concat_choices(train_flags);
     
     % %     y = concat_stimuli(train_flags) * w2 + concat_s1(train_flags) * w1 > 200;
     % %     y = concat_stimuli(train_flags) > + concat_s1(train_flags);
@@ -640,7 +640,7 @@ psyopt.fit.stepN = [100,100,40,40,20];
 avgfun = @(x,d) nanmedian(x,d);
 errfun = @(x,d) abs(quantile(x,[.25,.75],d) - nanmedian(x,d));
 avgfun = @(x,d) nansum(x,d);
-errfun = @(x,d) std(x,0,d) / sqrt(n_runs) .* [1,1];
+errfun = @(x,d) std(x,0,d) / 1 .* [1,1];
 
 % iterate through contrasts
 for kk = 1 : n_contrasts
