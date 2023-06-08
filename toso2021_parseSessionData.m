@@ -14,6 +14,7 @@ session_subject = nan(n_total_sessions,1);
 
 % iterate through sessions
 for ss = 1 : n_total_sessions
+    progressreport(ss,n_total_sessions,'parsing session data');
     idcs = session_bound_idcs(ss) : session_bound_idcs(ss+1) - 1;
     session_idcs(idcs) = ss;
     session_trial_count(ss) = sum(...

@@ -34,8 +34,6 @@ for nn = 1 : n_neurons
     % fetch spike counts & compute spike rates
     ref_spike_counts = data.FR(ref_spike_flags,:);
     ref_spike_rates = data.SDF(ref_spike_flags,:);
-%     ref_spike_rates = conv2(...
-%         1,kernel.pdf,ref_spike_counts,'valid')' / psthbin * 1e3;
     ref_n_trials = size(ref_spike_counts,1);
     
     % T2-aligned spike rates
@@ -72,8 +70,6 @@ for nn = 1 : n_neurons
         % fetch spike counts & compute spike rates
         s2_spike_counts = data.FR(s2_spike_flags,:);
         s2_spike_rates = data.SDF(s2_spike_flags,:);
-%         s2_spike_rates = conv2(...
-%             1,kernel.pdf,s2_spike_counts,'valid')' / psthbin * 1e3;
         s2_n_trials = size(s2_spike_counts,1);
         
         % T2-aligned spike rates
@@ -174,7 +170,6 @@ weights = weights / max(weights);
 % PCA
 [coeff,~,~,~,exp_pca] = pca(pca_design,...
     'weights',weights);
-coeff(:,1) = -coeff(:,1);
 ref_score = ref_zpsths * coeff;
 % coeff_choice = coeff;
 % coeff = coeff_choice;
@@ -192,8 +187,8 @@ ref_score = ref_zpsths * coeff;
 s2_score = nan(roi2plot_n_bins,n_neurons,n_contrasts);
 
 % sign changes
-sign_flips = [1,1,1];
-coeff(:,1:3) = coeff(:,1:3) .* sign_flips;
+% sign_flips = [1,1,1];
+% coeff(:,1:3) = coeff(:,1:3) .* sign_flips;
 
 % iterate through contrasts
 for ii = 1 : n_contrasts
@@ -711,8 +706,8 @@ for ii = 1 : n_contrasts
                 squeeze(S(2,offset_flags,:)),...
                 ...squeeze(S(3,offset_flags,:)),...
                 'linewidth',linewidth*2/3,...
-                'linestyle','--',...
-                'color',contrast_clrs(contrast_mode_idx,:));
+                'linestyle',':',...
+                'color',[contrast_clrs(contrast_mode_idx,:),alpha_levels(tt)]);
             uistack(h,'bottom');
         end
     end

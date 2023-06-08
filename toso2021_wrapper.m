@@ -53,83 +53,94 @@ toso2021_preface;
 
 %%
 
-% timestamped task events
-task_event_times = cumsum([...
-    repmat(pre_init_padding,n_total_trials,1),...   % initiation
-    pre_s1_delay,...                                % T1 onset
-    t1,...                                          % T1 offset
-    repmat(isi,n_total_trials,1),...                % T2 onset
-    t2,...                                          % T2 offset
-    repmat(post_s2_delay,n_total_trials,1)],2);     % go cue
+% % timestamped task events
+% task_event_times = cumsum([...
+%     repmat(pre_init_padding,n_total_trials,1),...   % initiation
+%     pre_s1_delay,...                                % T1 onset
+%     t1,...                                          % T1 offset
+%     repmat(isi,n_total_trials,1),...                % T2 onset
+%     t2,...                                          % T2 offset
+%     repmat(post_s2_delay,n_total_trials,1)],2);     % go cue
+% 
+% %
+% unique_task_event_combs = unique(task_event_times(valid_flags,:),'rows');
+% [n_event_combs,n_event_types] = size(unique_task_event_combs);    
+% 
+% % kernel definition
+% K = normpdf(padded_time,padded_time',28);
+% K = K ./ nansum(K);
+% 
+% % preallocation
+% data.SDF = nan(n_total_trials,n_paddedtimebins);
+% 
+% % iterate through trials
+% for ii = 1 : n_event_combs
+%     progressreport(ii,n_event_combs,'event-informed SDF estimation');
+%     
+% %     figure('windowstyle','docked');
+%     
+%     event_bounds = [0,unique_task_event_combs(ii,:),n_paddedtimebins];
+%     trial_flags = ...
+%         valid_flags & ...
+%         all(task_event_times == unique_task_event_combs(ii,:),2);
+% 
+%     % iterate through events
+%     for jj = 1 : n_event_types + 1
+%         time_flags = ...
+%             padded_time >= event_bounds(jj) & ...
+%             padded_time < event_bounds(jj + 1);
+%         
+%         %
+%         X = data.FR(trial_flags,time_flags);
+%         k = K(time_flags,time_flags);
+%         k = k ./ nansum(k);
+%         Z = X * k;
+%         
+% %         figure;
+% %         hold on;
+% %         plot(padded_time(time_flags),k)
+% %         [~,idx] = min(abs(padded_time(time_flags) - mean(padded_time(time_flags))));
+% %         plot(padded_time(time_flags),k(1,:),'k','linewidth',1.5)
+% %         plot(padded_time(time_flags),k(idx,:),'k','linewidth',1.5)
+% %         a=1
+%         
+% %         subplot(2,1,1);
+% %         hold on;
+% %         imagesc([event_bounds(jj),event_bounds(jj+1)],[1,n_total_trials],X)
+% %         axis tight;
+% %         subplot(2,1,2);
+% %         hold on;
+% %         imagesc([event_bounds(jj),event_bounds(jj+1)],[1,n_total_trials],Z)
+% %         axis tight;
+% %         ax1=subplot(2,1,1);
+% %         ax2=subplot(2,1,2);
+% %         linkaxes([ax1,ax2]);
+%         
+%         %
+%         data.SDF(trial_flags,time_flags) = Z;
+%     end
+%     
+%     %
+%     X = data.FR(trial_flags,:);
+%     gamma_kernel = gammakernel('peakx',50,'binwidth',psthbin);
+%     g = circshift(gamma_kernel.pdf,gamma_kernel.nbins/2+1);
+%     g = padarray(g,[0,n_paddedtimebins-gamma_kernel.nbins],0,'post');
+%     G = cell2mat(arrayfun(@(i)circshift(g,i),(1:n_paddedtimebins)'-1,...
+%         'uniformoutput',false));
+%     Z = X * G / psthbin * 1e3;
+%     data.SDF(trial_flags,:) = Z;
+% end
 
-%
-unique_task_event_combs = unique(task_event_times(valid_flags,:),'rows');
-[n_event_combs,n_event_types] = size(unique_task_event_combs);    
-
-% kernel definition
-K = normpdf(padded_time,padded_time',28);
-K = K ./ nansum(K);
-
-% preallocation
-data.SDF = nan(n_total_trials,n_paddedtimebins);
-
-% iterate through trials
-for ii = 1 : n_event_combs
-    progressreport(ii,n_event_combs,'event-informed SDF estimation');
-    
-%     figure('windowstyle','docked');
-    
-    event_bounds = [0,unique_task_event_combs(ii,:),n_paddedtimebins];
-    trial_flags = ...
-        valid_flags & ...
-        all(task_event_times == unique_task_event_combs(ii,:),2);
-
-    % iterate through events
-    for jj = 1 : n_event_types + 1
-        time_flags = ...
-            padded_time >= event_bounds(jj) & ...
-            padded_time < event_bounds(jj + 1);
-        
-        %
-        X = data.FR(trial_flags,time_flags);
-        k = K(time_flags,time_flags);
-        k = k ./ nansum(k);
-        Z = X * k;
-        
-%         figure;
-%         hold on;
-%         plot(padded_time(time_flags),k)
-%         [~,idx] = min(abs(padded_time(time_flags) - mean(padded_time(time_flags))));
-%         plot(padded_time(time_flags),k(1,:),'k','linewidth',1.5)
-%         plot(padded_time(time_flags),k(idx,:),'k','linewidth',1.5)
-%         a=1
-        
-%         subplot(2,1,1);
-%         hold on;
-%         imagesc([event_bounds(jj),event_bounds(jj+1)],[1,n_total_trials],X)
-%         axis tight;
-%         subplot(2,1,2);
-%         hold on;
-%         imagesc([event_bounds(jj),event_bounds(jj+1)],[1,n_total_trials],Z)
-%         axis tight;
-%         ax1=subplot(2,1,1);
-%         ax2=subplot(2,1,2);
-%         linkaxes([ax1,ax2]);
-        
-        %
-        data.SDF(trial_flags,time_flags) = Z;
-    end
-    
-    %
-    X = data.FR(trial_flags,:);
-    gamma_kernel = gammakernel('peakx',50,'binwidth',psthbin);
-    g = circshift(gamma_kernel.pdf,gamma_kernel.nbins/2+1);
-    g = padarray(g,[0,n_paddedtimebins-gamma_kernel.nbins],0,'post');
-    G = cell2mat(arrayfun(@(i)circshift(g,i),(1:n_paddedtimebins)'-1,...
-        'uniformoutput',false));
-    Z = X * G / psthbin * 1e3;
-    data.SDF(trial_flags,:) = Z;
-end
+% compute spike density functions
+X = data.FR;
+gamma_kernel = gammakernel('peakx',50,'binwidth',psthbin);
+g = circshift(gamma_kernel.pdf,gamma_kernel.nbins/2+1);
+g = padarray(g,[0,n_paddedtimebins-gamma_kernel.nbins],0,'post');
+G = cell2mat(arrayfun(@(i)circshift(g,i),(1:n_paddedtimebins)'-1,...
+    'uniformoutput',false));
+Z = X * G / psthbin * 1e3;
+data.SDF = Z;
+clear X G Z;
 
 %% contrast settings
 contrast_str = 'i2';

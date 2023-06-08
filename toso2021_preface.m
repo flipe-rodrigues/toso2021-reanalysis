@@ -79,8 +79,8 @@ isi = 2e3;
 post_s2_delay = 500;
 
 %% neuron selection criteria
-trial_count_cutoff = 2;
-mean_fr_cutoff = 1/3;
+trial_count_cutoff = 1;
+mean_fr_cutoff = 1;
 stability_cutoff = .15;
 
 %% parse meta data (bhv)
