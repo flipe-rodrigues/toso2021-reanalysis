@@ -7,10 +7,11 @@ end
 pre_padd = 500;
 roi2use = [-pre_padd,t_set(end)];
 roi2plot = [-pre_padd,t_set(end)];
+roi2plot_padded = roi2plot + [-1,1] * .05 * range(roi2plot); 
 roi2use_n_bins = range(roi2use) / psthbin;
-roi2plot_n_bins = range(roi2plot) / psthbin;
+roi2plot_n_bins = range(roi2plot_padded) / psthbin;
 roi2use_time = linspace(roi2use(1),roi2use(2),roi2use_n_bins);
-roi2plot_time = linspace(roi2plot(1),roi2plot(2),roi2plot_n_bins);
+roi2plot_time = linspace(roi2plot_padded(1),roi2plot_padded(2),roi2plot_n_bins);
 roi2use_flags = ...
     roi2plot_time >= roi2use(1) & ...
     roi2plot_time <= roi2use(2);
@@ -32,9 +33,8 @@ for nn = 1 : n_neurons
     end
     
     % fetch spike counts & compute spike rates
-    ref_spike_counts = data.FR(ref_spike_flags,:);
     ref_spike_rates = data.SDF(ref_spike_flags,:);
-    ref_n_trials = size(ref_spike_counts,1);
+    ref_n_trials = size(ref_spike_rates,1);
     
     % T2-aligned spike rates
     ref_alignment = ...
@@ -43,11 +43,11 @@ for nn = 1 : n_neurons
         t1(ref_spike_flags) + ...
         isi;
     ref_alignment_flags = ...
-        padded_time >= ref_alignment + roi2plot(1) & ...
+        padded_time >= ref_alignment + roi2plot_padded(1) & ...
         padded_time < ref_alignment + t2(ref_spike_flags);
     ref_chunk_flags = ...
-        padded_time >= ref_alignment + roi2plot(1) & ...
-        padded_time < ref_alignment + roi2plot(2);
+        padded_time >= ref_alignment + roi2plot_padded(1) & ...
+        padded_time < ref_alignment + roi2plot_padded(2);
     ref_spkrates = ref_spike_rates';
     ref_spkrates(~ref_alignment_flags') = nan;
     ref_spkrates = reshape(...
@@ -68,9 +68,8 @@ for nn = 1 : n_neurons
             contrast_flags;
         
         % fetch spike counts & compute spike rates
-        s2_spike_counts = data.FR(s2_spike_flags,:);
         s2_spike_rates = data.SDF(s2_spike_flags,:);
-        s2_n_trials = size(s2_spike_counts,1);
+        s2_n_trials = size(s2_spike_rates,1);
         
         % T2-aligned spike rates
         s2_alignment = ...
@@ -79,11 +78,11 @@ for nn = 1 : n_neurons
             t1(s2_spike_flags) + ...
             isi;
         s2_alignment_flags = ...
-            padded_time >= s2_alignment + roi2plot(1) & ...
+            padded_time >= s2_alignment + roi2plot_padded(1) & ...
             padded_time < s2_alignment + t2(s2_spike_flags);
         s2_chunk_flags = ...
-            padded_time >= s2_alignment + roi2plot(1) & ...
-            padded_time < s2_alignment + roi2plot(2);
+            padded_time >= s2_alignment + roi2plot_padded(1) & ...
+            padded_time < s2_alignment + roi2plot_padded(2);
         s2_spkrates = s2_spike_rates';
         s2_spkrates(~s2_alignment_flags') = nan;
         s2_spkrates = reshape(...
@@ -154,8 +153,8 @@ pca_design = ref_zpsths(roi2use_flags,:,:);
 % compute observation weights
 time_mat = repmat(roi2use(1) + psthbin : psthbin : roi2use(2),...
     sum(valid_flags),1);
-weights = sum(time_mat <= t2(valid_flags));
-weights = weights / max(weights);
+pca_weights = sum(time_mat <= t2(valid_flags));
+pca_weights = pca_weights / max(pca_weights);
 % weights = ones(size(pca_design,1),1);
 % for ii = 1 : n_contrasts
 %     contrast_flags = contrasts == contrast_set(ii);
@@ -169,7 +168,7 @@ weights = weights / max(weights);
 
 % PCA
 [coeff,~,~,~,exp_pca] = pca(pca_design,...
-    'weights',weights);
+    'weights',pca_weights);
 ref_score = ref_zpsths * coeff;
 % coeff_choice = coeff;
 % coeff = coeff_choice;
@@ -425,7 +424,8 @@ for pc = 1 : n_pcs2plot
     sp_idx = pc * 2 - 1 - (pc > n_pcs2plot / 2) * (n_pcs2plot - 1);
     sps(pc) = subplot(n_pcs2plot/2,2,sp_idx);
     xlabel(sps(pc),'Time since S_2 onset (ms)');
-    ylabel(sps(pc),sprintf('PC %i\n%.1f%% variance',pc,exp_pca(pc)));
+%     ylabel(sps(pc),sprintf('PC %i\n%.1f%% variance',pc,exp_pca(pc)));
+    ylabel(sps(pc),sprintf('PC %i',pc));
 end
 xxtick = unique([roi2plot';0;t_set]);
 xxticklabel = num2cell(xxtick);
@@ -436,7 +436,7 @@ set(sps,...
     'xtick',xxtick,...
     'xticklabel',xxticklabel,...
     'ylimspec','tight',...
-    'plotboxaspectratio',[2,1,1]);
+    'plotboxaspectratio',[3,1,1]);
 
 % link axes
 linkaxes(sps,'x');
@@ -450,13 +450,22 @@ for pc = 1 : n_pcs2plot
     % iterate through contrasts
     for ii = 1 : n_contrasts
         contrast_flags = contrasts == contrast_set(ii);
+        trial_flags = ...
+            valid_flags & ...
+            contrast_flags;
+        
+        % compute surviving trial counts (through time)
+        time_mat = repmat(...
+            padded_roi(1) + psthbin : psthbin : padded_roi(2),n_total_trials,1);
+        surviving_trial_counts = sum(time_mat(trial_flags,:) <= t2(trial_flags));
         
         % patch projection
         mu_xpatch = roi2plot_time;
         mu_ypatch = s2_score(:,pc,ii)';
         mu_ypatch(end) = nan;
-        mu_apatch = weights;
-        mu_apatch = mu_apatch * range(alphabounds_mu) + alphabounds_mu(1);
+        mu_apatch = surviving_trial_counts(~nan_flags);
+        mu_apatch = mu_apatch ./ max(mu_apatch) .* ...
+            range(alphabounds_mu) + alphabounds_mu(1);
         if fadeifnoisy
             alpha_levels = unique(mu_apatch,'stable');
             n_alpha_levels = numel(alpha_levels);
@@ -517,7 +526,7 @@ for pc = 1 : n_pcs2plot
     set(sps(pc),...
         'ytick',unique([0,ylim(sps(pc))]),...
         'yticklabel',{'','0',''},...
-        'ylim',ylim(sps(pc))+[-1,1]*.1*range(ylim(sps(pc))));
+        'ylim',ylim(sps(pc))+[-1,1]*.15*range(ylim(sps(pc))));
     
     % ui stacking
     uistack(p(:),'bottom');
@@ -615,13 +624,22 @@ delete(h_ref);
 % iterate through contrasts
 for ii = 1 : n_contrasts
     contrast_flags = contrasts == contrast_set(ii);
+    trial_flags = ...
+        valid_flags & ...
+        contrast_flags;
+    
+    % compute surviving trial counts (through time)
+    time_mat = repmat(...
+        padded_roi(1) + psthbin : psthbin : padded_roi(2),n_total_trials,1);
+    surviving_trial_counts = sum(time_mat(trial_flags,:) <= t2(trial_flags));
     
     % patch trajectory
     mu_xpatch = S(1,:,ii);
     mu_ypatch = S(2,:,ii);
     mu_ypatch(end) = nan;
-    mu_apatch = weights;
-    mu_apatch = mu_apatch * range(alphabounds_mu) + alphabounds_mu(1);
+    mu_apatch = surviving_trial_counts(~nan_flags);
+    mu_apatch = mu_apatch ./ max(mu_apatch) .* ...
+        range(alphabounds_mu) + alphabounds_mu(1);
     if fadeifnoisy
         alpha_levels = unique(mu_apatch,'stable');
         n_alpha_levels = numel(alpha_levels);

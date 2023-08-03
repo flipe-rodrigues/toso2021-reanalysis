@@ -73,14 +73,14 @@ for ii = 1 : n_all_pairs
         'xscale','linear',...
         'yscale','linear');
     if contains(v1_lbl,'t')
-        v1_units = t_units;
+        v1_units = s_units;
     elseif contains(v1_lbl,'i')
-        v1_units = i_units;
+        v1_units = d_units;
     end
     if contains(v2_lbl,'t')
-        v2_units = t_units;
+        v2_units = s_units;
     elseif contains(v2_lbl,'i')
-        v2_units = i_units;
+        v2_units = d_units;
     end
     xlabel(sprintf('%s (%s)',upper(v1_lbl),v1_units));
     ylabel(sprintf('%s (%s)',upper(v2_lbl),v2_units));

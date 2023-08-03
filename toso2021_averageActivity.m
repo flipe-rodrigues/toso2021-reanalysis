@@ -235,16 +235,18 @@ plot(xlim,[1,1]*0,...
     'color','k',...
     'linestyle',':');
 
-% compute observation weights
-time_mat = repmat(...
-    padded_roi(1) + psthbin : psthbin : padded_roi(2),n_total_trials,1);
-weights = sum(time_mat <= t2);
-weights = (weights - min(weights)) ./ range(weights);
-t2offset_idcs = find([diff(weights) ~= 0, true]);
-
 % iterate through contrasts
 for ii = 1 : n_contrasts
     contrast_flags = contrasts == contrast_set(ii);
+    trial_flags = ...
+        valid_flags & ...
+        contrast_flags;
+    
+    % compute surviving trial counts (through time)
+    time_mat = repmat(...
+        padded_roi(1) + psthbin : psthbin : padded_roi(2),n_total_trials,1);
+    surviving_trial_counts = sum(time_mat(trial_flags,:) <= t2(trial_flags));
+    t2offset_idcs = find([diff(surviving_trial_counts) ~= 0, true]);
     
     % compute modulation stats
     nan_flags = all(isnan(psths(:,:,ii)),2);
@@ -258,8 +260,10 @@ for ii = 1 : n_contrasts
     sem_xpatch = [time(~nan_flags),fliplr(time(~nan_flags))];
     sem_ypatch = [x_mu(~nan_flags)-x_sem(~nan_flags);...
         flipud(x_mu(~nan_flags)+x_sem(~nan_flags))]';
-    sem_apatch = [weights(~nan_flags),fliplr(weights(~nan_flags))];
-    sem_apatch = sem_apatch * range(alphabounds_sem) + alphabounds_sem(1);
+    sem_apatch = [surviving_trial_counts(~nan_flags),...
+        fliplr(surviving_trial_counts(~nan_flags))];
+    sem_apatch = sem_apatch ./ max(sem_apatch) .* ...
+        range(alphabounds_sem) + alphabounds_sem(1);    
     if fadeifnoisy
         alpha_levels = unique(sem_apatch,'stable');
         n_alpha_levels = numel(alpha_levels);
@@ -282,8 +286,9 @@ for ii = 1 : n_contrasts
     mu_xpatch = time(~nan_flags);
     mu_ypatch = x_mu(~nan_flags)';
     mu_ypatch(end) = nan;
-    mu_apatch = weights(~nan_flags);
-    mu_apatch = mu_apatch * range(alphabounds_mu) + alphabounds_mu(1);
+    mu_apatch = surviving_trial_counts(~nan_flags);
+    mu_apatch = mu_apatch ./ max(mu_apatch) .* ...
+        range(alphabounds_mu) + alphabounds_mu(1);
     if fadeifnoisy
         for tt = 1 : n_t
             try

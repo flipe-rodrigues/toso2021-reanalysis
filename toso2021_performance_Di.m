@@ -31,6 +31,26 @@ for ii = 1 : n_stimuli
     stim_nid(ii) = nid_set(nid_idx);
 end
 
+%% denominator settings
+denominator = round(d2 + d1);
+denominator_set = unique(denominator(valid_flags));
+denominator_count = numel(denominator_set);
+denominator_lbl = sprintf('%s + %s (%s)',d1_lbl,d2_lbl,d_units);
+
+% normalize denominator range
+norm_denominator = (denominator - min(denominator)) / range(denominator);
+denominator_normset = unique(norm_denominator(valid_flags));
+
+% denominator-specific axes properties
+axesopt.denominator.xlim = ...
+    ([denominator_normset(1),denominator_normset(end)] +  [-1,1] * .05);
+axesopt.denominator.xtick = denominator_normset;
+axesopt.denominator.xticklabel = num2cell(round(denominator_set,2));
+ticks2delete = ...
+    ~ismember(axesopt.denominator.xtick,...
+    [min(axesopt.denominator.xtick),max(axesopt.denominator.xtick)]);
+axesopt.denominator.xticklabel(ticks2delete) = {''};
+
 %% NID colors
 nid_clrs = flipud(gray(n_nid));
 
@@ -99,6 +119,8 @@ bigpsy.fit = psignifit([bigpsy.x,bigpsy.y,bigpsy.n],psyopt.fit);
 % preallocation
 stim_subj_perf = nan(n_stimuli,n_subjects);
 stim_perf = nan(n_stimuli,1);
+denominator_subj_perf = nan(denominator_count,n_subjects);
+denominator_perf = nan(denominator_count,1);
 nid_subj_perf = nan(n_nid,n_subjects);
 nid_perf = nan(n_nid,1);
 
@@ -146,6 +168,28 @@ for ii = 1 : n_stimuli
     % compute performance
     stim_perf(ii) = ...
         sum(choice(stim_flags)) / sum(stim_flags);
+end
+
+% iterate through stimuli
+for ii = 1 : denominator_count
+    denominator_flags = ...
+        valid_flags & ...
+        denominator == denominator_set(ii);
+    
+    % iterate through subjects
+    for jj = 1 : n_subjects
+        subject_flags = ...
+            denominator_flags & ...
+            subjects == subject_set(jj);
+        
+        % compute performance
+        denominator_subj_perf(ii,jj) = ...
+            nansum(choice(subject_flags)) / nansum(subject_flags);
+    end
+    
+    % compute performance
+    denominator_perf(ii) = ...
+        sum(choice(denominator_flags)) / sum(denominator_flags);
 end
 
 %% plot phychometric function
@@ -224,6 +268,52 @@ for kk = 1 : n_nid
         'linestyle','-',...
         'linewidth',1.5);
 end
+
+% inset with denominator performance
+axes(...
+    axesopt.default,...
+    axesopt.inset.se,...
+    axesopt.denominator,...
+    axesopt.psycurve,...
+    'yticklabel',{'0','','','0.75','1'});
+xlabel(denominator_lbl);
+ylabel(sprintf('P(%s > %s)',s2_lbl,s1_lbl),...
+    'rotation',-90,...
+    'verticalalignment','bottom');
+
+% reference lines
+plot(xlim,[1,1]*.5,':k');
+
+% iterate through subjects
+for ss = 1 : n_subjects
+    offset = (ss - (n_subjects + 1) / 2) * .0 * range(xlim);
+
+    % iterate through denominator levels
+    for kk = 1 : denominator_count
+        
+        % plot subject's performance
+        plot(denominator_normset(kk)+offset,...
+            denominator_subj_perf(kk,ss),...
+            'color',subject_clr,...
+            'marker','o',...
+            'markersize',psyopt.plot.markersize-4.5,...
+            'markeredgecolor',subject_clr,...
+            'markerfacecolor',subject_clr,...
+            'linestyle','-',...
+            'linewidth',1.5);
+    end
+end
+
+% plot pooled performance
+plot(denominator_normset,...
+    denominator_perf,...
+    'color','k',...
+    'marker','o',...
+    'markersize',psyopt.plot.markersize-2.5,...
+    'markeredgecolor','k',...
+    'markerfacecolor','k',...
+    'linestyle','-',...
+    'linewidth',1.5);
 
 % save figure
 if want2save

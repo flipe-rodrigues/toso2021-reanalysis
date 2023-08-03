@@ -22,7 +22,7 @@ elseif strcmpi(contrast_str,'i1')
         'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'i2')
     conditions.train = intersectconditions(...
-        't1',t1(valid_flags),[],[],...
+        't1',t1(valid_flags),t_set,[],...
         'i1',i1(valid_flags),[],[],...
         't2',t2(valid_flags),t_set,[],...
         'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
@@ -60,14 +60,53 @@ fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
 %% run settings
-n_runs = 3;
+n_runs = 15;
 
-%% choice of average function
-avgfun = @nanmedian;
+%% condition weights
+
+% iterate through training conditions
+for kk = 1 : conditions.train.n
+    
+    % flag trials for the current condition
+    feature_flags = false(n_total_trials,conditions.train.features.n);
+    for ff = 1 : conditions.train.features.n
+        feature_lbl = conditions.train.features.labels{ff};
+        feature = eval(feature_lbl);
+        feature_flags(:,ff) = ismember(...
+            feature,conditions.train.values.(feature_lbl)(kk,:));
+    end
+    condition_flags = all(feature_flags,2);
+    conditions.train.weights(kk,1) = sum(condition_flags);
+end
+
+% normalization
+conditions.train.weights = ...
+    conditions.train.weights/ max(conditions.train.weights);
+
+% iterate through conditions
+for kk = 1 : conditions.test.n
+    
+    % flag trials for the current condition
+    feature_flags = false(n_total_trials,conditions.train.features.n);
+    for ff = 1 : conditions.train.features.n
+        feature_lbl = conditions.test.features.labels{ff};
+        feature = eval(feature_lbl);
+        feature_flags(:,ff) = ismember(...
+            feature,conditions.test.values.(feature_lbl)(kk,:));
+    end
+    condition_flags = all(feature_flags,2);
+    conditions.test.weights(kk,1) = sum(condition_flags);
+end
+
+% normalization
+conditions.test.weights = ...
+    conditions.test.weights/ max(conditions.test.weights);
 
 %% concatenation settings
-n_concatspercond = 2^6;
-n_concats = n_concatspercond * (conditions.test.n + conditions.train.n);
+n_concats_max = 2^7;
+n_concats_train = round(conditions.train.weights * n_concats_max);
+n_concats_test = round(conditions.test.weights * n_concats_max);
+n_concats_total = sum([n_concats_train; n_concats_test]);
 
 %% time settings
 roi = [-500,t_set(end)];
@@ -77,29 +116,26 @@ roi_time = linspace(roi(1),roi(2),roi_n_bins);
 %% construct spike rate tensor (time X neurons X concatenations)
 
 % workspace clearance
-clear concat_tensor P_tR P_Rt;
+clear concat_tensor P_tR P_tR_avgs P_tR_avg;
 
 % preallocation
 P_tR_avgs = nan(roi_n_bins,roi_n_bins,n_contrasts,n_runs);
 map_avgs = nan(roi_n_bins,n_contrasts,n_runs);
 
-concat_stimuli = nan(n_concats,n_runs);
-concat_contrasts = nan(n_concats,n_runs);
-concat_choices = nan(n_concats,n_runs);
-concat_evalset = categorical(nan(n_concats,n_runs),[0,1],{'train','test'});
-
-% data type selection
-spike_data_field = 'FR';
+concat_stimuli = nan(n_concats_total,n_runs);
+concat_contrasts = nan(n_concats_total,n_runs);
+concat_choices = nan(n_concats_total,n_runs);
+concat_evalset = categorical(nan(n_concats_total,n_runs),[0,1],{'train','test'});
 
 % iterate through runs
 for rr = 1 : n_runs
     
     % preallocation
-    concat_tensor = nan(roi_n_bins,n_neurons,n_concats);
-    concat_stimuli = nan(n_concats,1);
-    concat_contrasts = nan(n_concats,1);
-    concat_choices = nan(n_concats,1);
-    concat_evalset = categorical(nan(n_concats,1),[0,1],{'train','test'});
+    concat_tensor = nan(roi_n_bins,n_neurons,n_concats_total);
+    concat_stimuli = nan(n_concats_total,1);
+    concat_contrasts = nan(n_concats_total,1);
+    concat_choices = nan(n_concats_total,1);
+    concat_evalset = categorical(nan(n_concats_total,1),[0,1],{'train','test'});
     
     % iterate through units
     for nn = 1 : n_neurons
@@ -135,7 +171,6 @@ for rr = 1 : n_runs
             end
             
             % fetch spike counts & compute spike rates
-            spike_counts = data.(spike_data_field)(trial_flags,:);
             spike_rates = data.SDF(trial_flags,:);
             
             % S2-offset-aligned spike rates
@@ -201,9 +236,9 @@ for rr = 1 : n_runs
             end
             
             % store tensor & concatenation data
-            rand_idcs = randsample(train_idcs,n_concatspercond,true);
-            concat_idcs = (1 : n_concatspercond) + ...
-                n_concatspercond * (kk - 1);
+            rand_idcs = randsample(train_idcs,n_concats_train(kk),true);
+            concat_idcs = (1 : n_concats_train(kk)) + ...
+                sum(n_concats_train(1:kk-1));
             concat_tensor(:,nn,concat_idcs) = aligned_spkrates(rand_idcs,:)';
             concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
             concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
@@ -215,8 +250,8 @@ for rr = 1 : n_runs
         for kk = 1 : conditions.test.n
             
             % flag trials for the current condition
-            feature_flags = false(n_total_trials,conditions.train.features.n);
-            for ff = 1 : conditions.train.features.n
+            feature_flags = false(n_total_trials,conditions.test.features.n);
+            for ff = 1 : conditions.test.features.n
                 feature_lbl = conditions.test.features.labels{ff};
                 feature = eval(feature_lbl);
                 feature_flags(:,ff) = ismember(...
@@ -236,7 +271,6 @@ for rr = 1 : n_runs
             end
             
             % fetch spike counts & compute spike rates
-            spike_counts = data.(spike_data_field)(trial_flags,:);
             spike_rates = data.SDF(trial_flags,:);
             
             % S2-offset-aligned spike rates
@@ -264,9 +298,10 @@ for rr = 1 : n_runs
             end
             
             % store tensor & concatenation data
-            rand_idcs = randsample(test_idcs,n_concatspercond,true);
-            concat_idcs = (1 : n_concatspercond) + ...
-                n_concatspercond * (kk + conditions.train.n - 1);
+            rand_idcs = randsample(test_idcs,n_concats_test(kk),true);
+            concat_idcs = (1 : n_concats_test(kk)) + ...
+                sum(n_concats_test(1:kk-1)) + ...
+                sum(n_concats_train);
             concat_tensor(:,nn,concat_idcs) = aligned_spkrates(rand_idcs,:)';
             concat_stimuli(concat_idcs) = stimuli(flagged_trials(rand_idcs));
             concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
@@ -299,8 +334,8 @@ for rr = 1 : n_runs
     for ii = 1 : n_contrasts
         contrast_flags = ...
             concat_contrasts(concat_evalset == 'test') == contrast_set(ii);
-        P_tR_avgs(:,:,ii,rr) = avgfun(P_tR(:,:,contrast_flags),3);
-        map_avgs(:,ii,rr) = avgfun(pthat.mode(:,contrast_flags),2);
+        P_tR_avgs(:,:,ii,rr) = nanmean(P_tR(:,:,contrast_flags),3);
+        map_avgs(:,ii,rr) = nanmean(pthat.mode(:,contrast_flags),2);
     end
 end
 
@@ -308,150 +343,17 @@ end
 avgfun = @(x,d)nanmean(x,d);
 errfun = @(x,d)nanstd(x,0,d);
 
-%% plot extreme subtractions of posterior averages
-
-% figure initialization
-fig = figure(...
-    figopt,...
-    'name','posterior subtractions (extreme)',...
-    'numbertitle','off');
-
-% axes initialization
-axes(...
-    axesopt.default,...
-    'xlim',[-500,t_set(end-2)],...
-    'xtick',unique([roi';-500;0;t_set]),...
-    'ylim',[-500,t_set(end-2)],...
-    'ytick',unique([roi';-500;0;t_set]),...
-    'colormap',colorlerp(...
-    [contrast_clrs(1,:);[1,1,1];contrast_clrs(end,:)],2^8));
-xlabel('Time since S_2 onset (ms)');
-ylabel('Decoded time since S_2 onset (ms)');
-
-% posterior subtraction
-p_contrast_min = avgfun(P_tR(:,:,1,:),4);
-p_contrast_max = avgfun(P_tR(:,:,end,:),4);
-p_diff = p_contrast_max - p_contrast_min;
-imagesc(roi,roi,p_diff',[-1,1] * n_t / n_tbins * 5);
-
-% zero lines
-plot([1,1]*0,ylim,':k');
-plot(xlim,[1,1]*0,':k');
-
-% identity line
-plot(xlim,ylim,'--w');
-
-% save figure
-if want2save
-    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-    print(fig,svg_file,'-dsvg','-painters');
-end
-
-%% plot slices through condition-split posterior averages
-
-% figure initialization
-fig = figure(...
-    'color','w',...
-    'name','superimposed posterior averages',...
-    'numbertitle','off');
-
-% axes initialization
-axes(...
-    axesopt.default,...
-    'xlim',[-500,t_set(end-2)],...
-    'xtick',unique([roi';-500;0;t_set]),...
-    'ylim',[-500,t_set(end-2)],...
-    'ytick',unique([roi';-500;0;t_set]),...
-    'xticklabelrotation',0,...
-    'yticklabelrotation',0);
-xlabel('Time since S_2 onset (ms)');
-ylabel('Decoded time since S_2 onset (ms)');
-
-% slice settings
-slices = unique([roi(1)/2;0;t_set(1:end-2)]);
-n_slices = numel(slices);
-
-% axes initialization
-sps = gobjects(n_slices,1);
-for ii = 1 : n_slices
-    sps(ii) = subplot(n_slices,1,ii);
-end
-set(sps,axesopt.default,...
-    'xlim',[-500,t_set(end-2)],...
-    'xtick',unique([roi';-500;0;t_set]),...
-    'ytick',0,...
-    'ylimspec','tight',...
-    'xdir','normal',...
-    'ydir','normal',...
-    'layer','top',...
-    'clipping','off',...
-    'fontsize',12,...
-    'linewidth',2,...
-    'tickdir','out',...
-    'nextplot','add',...
-    'ticklength',[1,1]*.025,...
-    'nextplot','add',...
-    'plotboxaspectratio',[n_slices*2,1,1]);
-set(sps(1:end-1),...
-    'xtick',[],...
-    'xcolor','none',...
-    'ycolor','none');
-
-% axes labels
-xlabel(sps(end),'Decoded time (a.u.)');
-arrayfun(@(ax)ylabel(ax,'P(t|R)'),sps);
-
-% time seletion
-time_flags = roi_time <= t_set(end-2);
-
-% iterate through contrasts
-for ii = 1 : n_contrasts
-    p_cond = avgfun(P_tR(:,:,ii,:),4);
-
-    % iterate through slices
-    for jj = 1 : n_slices
-        slice_idx = find(roi_time >= slices(jj),1);
-        
-        % plot posterior slice
-        plot(sps(jj),roi_time(time_flags),p_cond(slice_idx,time_flags),...
-            'color',contrast_clrs(ii,:),...
-            'linewidth',1.5);
-    end
-end
-
-% axes linkage
-linkaxes(sps);
-ylim([0,max(ylim)] + [0,-1] * .25 * max(ylim));
-
-% iterate through slices
-for ii = 1 : n_slices
-
-    % plot real time
-    slice_idx = find(t >= slices(ii),1);
-    plot(sps(ii),min(xlim),0,...
-        'marker','>',...
-        'markersize',10,...
-        'markerfacecolor','k',...
-        'markeredgecolor','none');
-end
-
-% save figure
-% if want2save
-%     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-%     print(fig,svg_file,'-dsvg','-painters');
-% end
-
 %% plot superimposed contrast-split posterior averages
 fig = figure(...
-    'color','w',...
-    'name','superimposed posterior averages',...
+    figopt,...
+    'name',sprintf('superimposed_posterior_averages_%s',contrast_str),...
     'numbertitle','off');
 axes(...
     axesopt.default,...
-    'xlim',[-500,t_set(end-2)],...
-    'xtick',unique([roi';-500;0;t_set]),...
-    'ylim',[-500,t_set(end-2)],...
-    'ytick',unique([roi';-500;0;t_set]),...
+    'xlim',roi2plot,...
+    'xtick',unique([roi';roi2plot';0;t_set]),...
+    'ylim',roi2plot,...
+    'ytick',unique([roi';roi2plot';0;t_set]),...
     'xticklabelrotation',0,...
     'yticklabelrotation',0);
 xlabel('Time since S_2 onset (ms)');
@@ -459,15 +361,84 @@ ylabel('Decoded time since S_2 onset (ms)');
 
 % convert from tensor to rgb
 P_tR_avg = squeeze(avgfun(P_tR_avgs,4));
-P = mat2rgb(permute(P_tR_avg,[2,1,3]),contrast_clrs);
+P = tensor2rgb(permute(P_tR_avg,[2,1,3]),contrast_clrs);
 imagesc(roi,roi,P);
 
 % zero lines
-plot([1,1]*0,ylim,':k');
 plot(xlim,[1,1]*0,':k');
 
-% plot identity line
-plot(xlim,ylim,'--k');
+% iterate through slices
+for ii = 1 : n_slices
+    
+    % plot slice handles
+    plot([1,1]*slice_times(ii),ylim,':k');
+    plot(slice_times(ii),max(ylim),...
+        'marker','v',...
+        'markersize',7.5,...
+        'markerfacecolor',slice_clrs(ii,:),...
+        'markeredgecolor','k',...
+        'linewidth',1.5);
+end
+
+% inset with pseudo colorbar
+axes(...
+    axesopt.default,...
+    'position',[0.075 0.6500 0.2583 0.2717],...
+    'yaxislocation','right',...
+    'xcolor','none',...
+    'xlim',[0,1],...
+    'ylim',[0,1],...
+    'ytick',0,...
+    'colormap',colorlerp(...
+    [contrast_clrs(1,:);[1,1,1];contrast_clrs(end,:)],2^8));
+ylabel('P(t|R)',...
+    'verticalalignment','middle',...
+    'rotation',-90);
+
+% colorbar settings
+clrbar_width = .05;
+
+% iterate through contrasts
+for ii = 1 : n_contrasts
+    
+    % patch pseudo-colorbar
+    xpatch = (1 - clrbar_width * n_contrasts) + ...
+        clrbar_width * ((ii - 1) + [0,1,1,0]);
+    ypatch = [0,0,1,1];
+    patch(xpatch,ypatch,contrast_clrs(ii,:),...
+        'edgecolor','none',...
+        'linewidth',1.5);
+end
+
+% inset with extreme posterior subtractions
+axes(...
+    axesopt.inset.se,...
+    axesopt.default,...
+	'xlim',roi2plot,...
+    'xtick',unique([roi';roi2plot';0;t_set]),...
+    'ylim',roi2plot,...
+    'ytick',unique([roi';roi2plot';0;t_set]),...
+    'box','on',...
+    'colormap',colorlerp(...
+    [contrast_clrs(1,:);[1,1,1];contrast_clrs(end,:)],2^8));
+title('P(t|R) - P(t|R)');
+ylabel('\DeltaP(t|R)',...
+    'rotation',-90,...
+    'verticalalignment','bottom');
+
+% posterior subtraction
+p_contrast_min = avgfun(P_tR(:,:,...
+    concat_contrasts(concat_evalset == 'test') == contrast_set(1),:),[3,4]);
+p_contrast_max = avgfun(P_tR(:,:,...
+    concat_contrasts(concat_evalset == 'test') == contrast_set(end),:),[3,4]);
+p_contrast_min = p_contrast_min - min(p_contrast_min,[],[1,2]);
+p_contrast_max = p_contrast_max - min(p_contrast_max,[],[1,2]);
+p_diff = p_contrast_max - p_contrast_min;
+imagesc(roi,roi,p_diff',[-1,1] * n_t / n_tbins * 5);
+
+% zero lines
+plot(xlim,[1,1]*0,':k');
+plot([1,1]*0,ylim,':k');
 
 % save figure
 if want2save

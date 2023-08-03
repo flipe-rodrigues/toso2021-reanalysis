@@ -48,7 +48,7 @@ want2save = true;
 
 %% preface
 downsampling_factor = 1;
-kernel_peak_time = 25;
+kernel_peak_time = 50;
 toso2021_preface;
 
 %%
@@ -133,7 +133,7 @@ toso2021_preface;
 
 % compute spike density functions
 X = data.FR;
-gamma_kernel = gammakernel('peakx',50,'binwidth',psthbin);
+gamma_kernel = gammakernel('peakx',kernel_peak_time,'binwidth',psthbin);
 g = circshift(gamma_kernel.pdf,gamma_kernel.nbins/2+1);
 g = padarray(g,[0,n_paddedtimebins-gamma_kernel.nbins],0,'post');
 G = cell2mat(arrayfun(@(i)circshift(g,i),(1:n_paddedtimebins)'-1,...

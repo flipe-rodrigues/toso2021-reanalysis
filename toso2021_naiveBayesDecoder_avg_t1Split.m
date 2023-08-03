@@ -11,7 +11,7 @@ for tt = 1 : n_t
         't1',t1(valid_flags),t_set(tt),[],...
         'i1',i1(valid_flags),[],[],...
         't2',t2(valid_flags),[],[],...
-        'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
+        'i2',i2(valid_flags),[],[],...
         'choice',choice(valid_flags),[],[]);
     
     % test set conditions
@@ -31,7 +31,7 @@ for tt = 1 : n_t
     conditions.test.values
     
     %% run settings
-    n_runs = 50;
+    n_runs = 30;
     
     %% concatenation settings
     n_concatspercond = 2^7; % 2^8;

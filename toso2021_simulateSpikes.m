@@ -12,7 +12,7 @@ time = struct();
 psths = struct();
 
 % smoothing settings
-gauss_kernel = gausskernel('sig',15,'binwidth',psthbin);
+gauss_kernel = gausskernel('sig',50,'binwidth',psthbin);
 gauss_padded_time = ...
     (1 : psthbin : n_paddedtimebins * psthbin) - psthbin;
 gauss_validtime_flags = ...
@@ -193,7 +193,7 @@ end
 
 % modulation settings
 modulation = log(i_set) ./ log(i_set(i2_mode_idx));
-scaling = modulation .^ 1 * 1;
+scaling = modulation .^ 0;
 gain = modulation .^ 1 * 1;
 offset = modulation .^ 1 * 0;
 

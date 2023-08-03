@@ -17,7 +17,7 @@ if strcmpi(contrast_str,'t1')
 elseif strcmpi(contrast_str,'i1')
     conditions.train = intersectconditions(...
         't1',t1(valid_flags),[],[],...
-        'i1',i1(valid_flags),[],[],...
+        'i1',i1(valid_flags),i_set(i1_mode_idx),[],...
         't2',t2(valid_flags),[],[],...
         'i2',i2(valid_flags),[],[],...
         'choice',choice(valid_flags),[],[]);
@@ -26,7 +26,7 @@ elseif strcmpi(contrast_str,'i2')
         't1',t1(valid_flags),[],[],...
         'i1',i1(valid_flags),[],[],...
         't2',t2(valid_flags),[],[],...
-        'i2',i2(valid_flags),[],[],...
+        'i2',i2(valid_flags),i_set(i2_mode_idx),[],...
         'choice',choice(valid_flags),[],[]);
 elseif strcmpi(contrast_str,'choice')
     conditions.train = intersectconditions(...
@@ -106,13 +106,18 @@ fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
 %% run settings
-n_runs = 30;
+n_runs = 50;
+
+%% concatenation settings
+n_concats_max = 2^7;
 
 %% time settings
 roi = [-500,t_set(end)];
 roi2plot = [-240,t_set(t2_mode_idx+1)];
 roi_n_bins = range(roi) / psthbin;
 roi_time = linspace(roi(1),roi(2),roi_n_bins);
+roi_xlim = [-240,t_set(t2_mode_idx+1)]; % [-350,t_set(t2_mode_idx+2)];
+roi_ylim = [-240,t_set(t2_mode_idx+1)];
 
 %% slice settings
 slice_times = unique([roi2plot(1)/2;0;t_set(1:end-2)]);
@@ -129,12 +134,7 @@ clear concat_tensor P_tR;
 P_tR = nan(roi_n_bins,roi_n_bins,conditions.test.n,n_runs);
 map = nan(roi_n_bins,conditions.test.n,n_runs);
 
-% data type selection
-spike_data_field = 'FR';
-
 % temporal smoothing kernel
-% gauss_kernel = gausskernel('sig',100,'binwidth',psthbin);
-% gauss_kernel = gausskernel('sig',75,'binwidth',psthbin);
 gauss_kernel = gausskernel('sig',50,'binwidth',psthbin);
 
 % iterate through runs
@@ -177,7 +177,6 @@ for rr = 1 : n_runs
             end
             
             % fetch spike counts & compute spike rates
-            spike_counts = data.(spike_data_field)(trial_flags,:);
             spike_rates = data.SDF(trial_flags,:);
             
             % S2-offset-aligned spike rates
@@ -193,6 +192,8 @@ for rr = 1 : n_runs
                 padded_time >= alignment + roi(1) & ...
                 padded_time < alignment + roi(2);
             aligned_spkrates = spike_rates';
+%             aligned_spkrates = ...
+%                 conv2(gauss_kernel.pdf,1,aligned_spkrates,'same');
             aligned_spkrates(~alignment_flags') = nan;
             aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
                 [roi_n_bins,n_flagged_trials])';
@@ -244,7 +245,6 @@ for rr = 1 : n_runs
             
             % store tensor & concatenation data
             rand_idcs = randsample(train_idcs,n_concats_max,true);
-
             r = aligned_spkrates(rand_idcs,:);
             r_mu = nanmean(r);
             nan_flags = isnan(r_mu);
@@ -255,15 +255,20 @@ for rr = 1 : n_runs
 %             r_spline = max(1e-3,mdl_spline(roi_time));
 %             r_spline(nan_flags) = nan;
 %             
-            t_mat = repmat(roi_time,n_concats_max,1)';
-            r_mat = r';
-            r_vec = r_mat(~isnan(r_mat));
-            t_vec = t_mat(~isnan(r_mat));
-            mdl_poly = fit(t_vec,r_vec,'poly9');
-            r_poly = max(realmin,mdl_poly(roi_time));
-            r_poly(nan_flags) = nan;
+%             t_mat = repmat(roi_time,n_concats_max,1)';
+%             r_mat = r';
+%             r_vec = r_mat(~isnan(r_mat));
+%             t_vec = t_mat(~isnan(r_mat));
+%             mdl_poly = fit(t_vec,r_vec,'poly9');
+%             r_poly = max(realmin,mdl_poly(roi_time));
+%             r_poly(nan_flags) = nan;
             
-            r_gauss = nanconv2(r_mu,1,gauss_kernel.pdf);
+%             r_gauss = nanconv2(r_mu,1,gauss_kernel.pdf);
+%             r_gauss(nan_flags) = nan;
+            
+            r_gauss = conv2(1,gauss_kernel.pdf,r_mu,'valid');
+            r_gauss = padarray(r_gauss,[0,floor(gauss_kernel.nbins/2)],nan,'pre');
+            r_gauss = padarray(r_gauss,[0,ceil(gauss_kernel.nbins/2)-1],nan,'post');
             r_gauss(nan_flags) = nan;
             
 %             figure('position',[119.4000 53.8000 560 712.8000]);
@@ -303,7 +308,6 @@ for rr = 1 : n_runs
             end
             
             % fetch spike counts & compute spike rates
-            spike_counts = data.(spike_data_field)(trial_flags,:);
             spike_rates = data.SDF(trial_flags,:);
             
             % S2-offset-aligned spike rates
@@ -319,6 +323,8 @@ for rr = 1 : n_runs
                 padded_time >= alignment + roi(1) & ...
                 padded_time < alignment + roi(2);
             aligned_spkrates = spike_rates';
+%             aligned_spkrates = ...
+%                 conv2(gauss_kernel.pdf,1,aligned_spkrates,'same');
             aligned_spkrates(~alignment_flags') = nan;
             aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
                 [roi_n_bins,n_flagged_trials])';
@@ -332,7 +338,6 @@ for rr = 1 : n_runs
             
             % store tensor & concatenation data
             rand_idcs = randsample(test_idcs,n_concats_max,true);
-
             r = aligned_spkrates(rand_idcs,:);
             r_mu = nanmean(r);
             nan_flags = isnan(r_mu);
@@ -343,15 +348,20 @@ for rr = 1 : n_runs
 %             r_spline = max(1e-3,mdl_spline(roi_time));
 %             r_spline(nan_flags) = nan;
             
-            t_mat = repmat(roi_time,n_concats_max,1)';
-            r_mat = r';
-            r_vec = r_mat(~isnan(r_mat));
-            t_vec = t_mat(~isnan(r_mat));
-            mdl_poly = fit(t_vec,r_vec,'poly9');
-            r_poly = max(realmin,mdl_poly(roi_time));
-            r_poly(nan_flags) = nan;
+%             t_mat = repmat(roi_time,n_concats_max,1)';
+%             r_mat = r';
+%             r_vec = r_mat(~isnan(r_mat));
+%             t_vec = t_mat(~isnan(r_mat));
+%             mdl_poly = fit(t_vec,r_vec,'poly9');
+%             r_poly = max(realmin,mdl_poly(roi_time));
+%             r_poly(nan_flags) = nan;
             
-            r_gauss = nanconv2(r_mu,1,gauss_kernel.pdf);
+%             r_gauss = nanconv2(r_mu,1,gauss_kernel.pdf);
+%             r_gauss(nan_flags) = nan;
+            
+            r_gauss = conv2(1,gauss_kernel.pdf,r_mu,'valid');
+            r_gauss = padarray(r_gauss,[0,floor(gauss_kernel.nbins/2)],nan,'pre');
+            r_gauss = padarray(r_gauss,[0,ceil(gauss_kernel.nbins/2)-1],nan,'post');
             r_gauss(nan_flags) = nan;
             
 %             figure('position',[119.4000 53.8000 560 712.8000]);
@@ -434,49 +444,6 @@ end
 avgfun = @(x,d)nanmean(x,d);
 errfun = @(x,d)nanstd(x,0,d);
 
-%% plot extreme subtractions of posterior averages
-
-% figure initialization
-fig = figure(...
-    figopt,...
-    'name',sprintf('extreme_posterior_subtraction_%s',contrast_str),...
-    'numbertitle','off');
-
-% axes initialization
-axes(...
-    axesopt.default,...
-    'xlim',roi2plot,...
-    'xtick',unique([roi';roi2plot';0;t_set]),...
-    'ylim',roi2plot,...
-    'ytick',unique([roi';roi2plot';0;t_set]),...
-    'colormap',colorlerp(...
-    [contrast_clrs(1,:);[1,1,1];contrast_clrs(end,:)],2^8));
-xlabel('Time since S_2 onset (ms)');
-ylabel('Decoded time since S_2 onset (ms)');
-
-% posterior subtraction
-p_contrast_min = avgfun(P_tR(:,:,1,:),4);
-p_contrast_max = avgfun(P_tR(:,:,end,:),4);
-% p_contrast_min(isnan(p_contrast_min)) = 0;
-% p_contrast_max(isnan(p_contrast_max)) = 0;
-p_contrast_min = p_contrast_min - min(p_contrast_min,[],[1,2]);
-p_contrast_max = p_contrast_max - min(p_contrast_max,[],[1,2]);
-p_diff = p_contrast_max - p_contrast_min;
-imagesc(roi,roi,p_diff',[-1,1] * n_t / n_tbins * 5);
-
-% zero lines
-plot([1,1]*0,ylim,':k');
-plot(xlim,[1,1]*0,':k');
-
-% identity line
-plot(xlim,ylim,'--w');
-
-% save figure
-if want2save
-    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-    print(fig,svg_file,'-dsvg','-painters');
-end
-
 %% plot contrast-split posterior averages
 figure(...
     'name','contrast-split posterior averages',...
@@ -490,10 +457,10 @@ for ii = 1 : n_contrasts
 end
 set(sps,...
     axesopt.default,...
-    'xlim',roi2plot,...
-    'xtick',unique([roi';roi2plot';0;t_set]),...
-    'ylim',roi2plot,...
-    'ytick',unique([roi';roi2plot';0;t_set]));
+    'xlim',roi_xlim,...
+    'xtick',unique([roi';roi_xlim';0;t_set]),...
+    'ylim',roi_ylim,...
+    'ytick',unique([roi';roi_ylim';0;t_set]));
 linkaxes(sps);
 
 clims = quantile(P_tR,[0,.999],'all')';
@@ -515,10 +482,10 @@ fig = figure(...
     'numbertitle','off');
 axes(...
     axesopt.default,...
-    'xlim',roi2plot,...+[-1,1]*.05*range(roi2plot),...
-    'xtick',unique([roi';roi2plot';0;t_set]),...
-    'ylim',roi2plot,...+[-1,1]*.05*range(roi2plot),...
-    'ytick',unique([roi';roi2plot';0;t_set]),...
+    'xlim',roi_xlim,...+[-1,1]*.05*range(roi2plot),...
+    'xtick',unique([roi';roi_xlim';0;t_set]),...
+    'ylim',roi_ylim,...+[-1,1]*.05*range(roi2plot),...
+    'ytick',unique([roi';roi_ylim';0;t_set]),...
     'xticklabelrotation',0,...
     'yticklabelrotation',0);
 xlabel('Time since S_2 onset (ms)');
@@ -526,15 +493,21 @@ ylabel('Decoded time since S_2 onset (ms)');
 
 % convert from tensor to rgb
 P_tR_avg = squeeze(avgfun(P_tR,4));
-P_tR_avg(isnan(P_tR_avg)) = 0;
-P = mat2rgb(permute(P_tR_avg,[2,1,3]),contrast_clrs);
+% P_tR_avg(roi_time < roi_time(1) | roi_time > roi2plot(2),:,:) = nan;
+% P_tR_avg(:,roi_time < roi_time(1) | roi_time > roi2plot(2),:) = nan;
+% P_tR_avg(isnan(P_tR_avg)) = 0;
+% P_tR_avg = log(P_tR_avg);
+
+% P_tR_avg = min(P_tR_avg,quantile(P_tR_avg,.9975,[1,2]));
+
+P = tensor2rgb(permute(P_tR_avg,[2,1,3]),contrast_clrs);
 imagesc(roi,roi,P);
 
 % zero lines
 plot(xlim,[1,1]*0,':k');
 
 % plot identity line
-% plot(xlim,ylim,'--k');
+plot([roi2plot(1),t_set(end)],[roi2plot(1),t_set(end)],':k');
 
 % iterate through slices
 for ii = 1 : n_slices
@@ -552,9 +525,8 @@ end
 % inset with pseudo colorbar
 axes(...
     axesopt.default,...
-    'position',[0.075 0.6500 0.2583 0.2717],...
+    'position',[0.625,0.65,0.2583,0.2717],...
     'yaxislocation','right',...
-    'color','none',...
     'xcolor','none',...
     'xlim',[0,1],...
     'ylim',[0,1],...
@@ -581,58 +553,67 @@ for ii = 1 : n_contrasts
 end
 
 % inset with extreme posterior subtractions
-axes(...
-    axesopt.inset.se,...
-    axesopt.default,...
-	'xlim',roi2plot,...+[-1,1]*.05*range(roi2plot),...
-    'xtick',unique([roi';roi2plot';0;t_set]),...
-    'ylim',roi2plot,...+[-1,1]*.05*range(roi2plot),...
-    'ytick',unique([roi';roi2plot';0;t_set]),...
-    'box','off',...
-    'colormap',colorlerp(...
-    [contrast_clrs(1,:);[1,1,1];contrast_clrs(end,:)],2^8));
-
-% posterior subtraction
-p_contrast_min = avgfun(P_tR(:,:,1,:),4);
-p_contrast_max = avgfun(P_tR(:,:,end,:),4);
-p_contrast_min = p_contrast_min - min(p_contrast_min,[],[1,2]);
-p_contrast_max = p_contrast_max - min(p_contrast_max,[],[1,2]);
-p_diff = p_contrast_max - p_contrast_min;
-imagesc(roi,roi,p_diff',[-1,1] * n_t / n_tbins * 5);
-
-% zero lines
-plot(xlim,[1,1]*0,':k');
-plot([1,1]*0,ylim,':k');
-
-% inset with contrast-split MAPs
 % axes(...
 %     axesopt.inset.se,...
 %     axesopt.default,...
-%     'box','off',...
-%     'color','w',...
-%     'xlim',[0,t_set(end-2)],...+[-1,1]*.05*range([0,t_set(end-2)]),...
-%     'xtick',unique([roi';roi2plot';0;t_set]),...
-%     'ylim',[0,t_set(end-2)],...+[-1,1]*.05*range([0,t_set(end-2)]),...
-%     'ytick',unique([roi';roi2plot';0;t_set]));
-% title('M.A.P.');
+% 	'xlim',roi_xlim,...roi2plot,...+[-1,1]*.05*range(roi2plot),...
+%     'xtick',unique([roi';roi_xlim';0;t_set]),...
+%     'ylim',roi_ylim,...+[-1,1]*.05*range(roi2plot),...
+%     'ytick',unique([roi';roi_ylim';0;t_set]),...
+%     'box','on',...
+%     'colormap',colorlerp(...
+%     [contrast_clrs(1,:);[1,1,1];contrast_clrs(end,:)],2^8));
+% % title('$p(t|\textbf{r})-p(t|\textbf{r})$',...
+% %     'interpreter','latex');
+% title('P(t|R) - P(t|R)');
+% ylabel('\DeltaP(t|R)',...
+%     'rotation',-90,...
+%     'verticalalignment','bottom');
 % 
-% % iterate through contrast conditions
-% for ii = 1 : n_contrasts
-%     map_avg = squeeze(avgfun(map(:,ii,:),3));
-%     map_err = squeeze(errfun(map(:,ii,:),3));
-%     errorpatch(roi_time,map_avg,map_err,contrast_clrs(ii,:),...
-%         'facealpha',.25);
-%     plot(roi_time,map_avg,...
-%         'color',contrast_clrs(ii,:),...
-%         'linewidth',1.5);
-% end
+% % posterior subtraction
+% p_contrast_min = avgfun(P_tR(:,:,1,:),4);
+% p_contrast_max = avgfun(P_tR(:,:,end,:),4);
+% p_contrast_min = p_contrast_min - min(p_contrast_min,[],[1,2]);
+% p_contrast_max = p_contrast_max - min(p_contrast_max,[],[1,2]);
+% p_diff = p_contrast_max - p_contrast_min;
+% imagesc(roi,roi,p_diff',[-1,1] * n_t / n_tbins * 5);
+% 
+% % plot identity line
+% plot([roi2plot(1),t_set(end)],[roi2plot(1),t_set(end)],':k');
+% 
+% % zero lines
+% plot(xlim,[1,1]*0,':k');
+% plot([1,1]*0,ylim,':k');
 
-% zero lines
+% inset with contrast-split MAPs
+axes(...
+    axesopt.inset.se,...
+    axesopt.default,...
+    'box','off',...
+    'color','w',...
+    'xlim',[0,roi_xlim(2)],...
+    'xtick',unique([roi';roi2plot';0;t_set]),...
+    'ylim',[0,roi_ylim(2)],...
+    'ytick',unique([roi';roi2plot';0;t_set]));
+% title('M.A.P.');
+
+% iterate through contrast conditions
+for ii = 1 : n_contrasts
+    map_avg = squeeze(avgfun(map(:,ii,:),3));
+    map_err = squeeze(errfun(map(:,ii,:),3));
+    errorpatch(roi_time,map_avg,map_err,contrast_clrs(ii,:),...
+        'facealpha',.25);
+    plot(roi_time,map_avg,...
+        'color',contrast_clrs(ii,:),...
+        'linewidth',1.5);
+end
+
+% % zero lines
 % plot([1,1]*0,ylim,':k');
 % plot(xlim,[1,1]*0,':k');
-
-% plot identity line
-% plot(xlim,ylim,'--k');
+% 
+% % plot identity line
+% plot([roi2plot(1),t_set(end)],[roi2plot(1),t_set(end)],':k');
 
 % save figure
 if want2save
@@ -640,21 +621,24 @@ if want2save
     print(fig,svg_file,'-dsvg','-painters');
 end
 
-%% plot superimposed contrast-split posterior averages
+%% plot superimposed contrast-split MAP averages
 fig = figure(...
     figopt,...
     'name',sprintf('superimposed_posterior_maps_%s',contrast_str),...
     'numbertitle','off');
 axes(...
     axesopt.default,...
-    'xlim',roi2plot,...+[-1,1]*.05*range(roi2plot),...
-    'xtick',unique([roi';roi2plot';0;t_set]),...
-    'ylim',roi2plot,...+[-1,1]*.05*range(roi2plot),...
-    'ytick',unique([roi';roi2plot';0;t_set]),...
+    'xlim',roi_xlim,...+[-1,1]*.05*range(roi2plot),...
+    'xtick',unique([roi';roi_xlim';0;t_set]),...
+    'ylim',roi_ylim,...+[-1,1]*.05*range(roi2plot),...
+    'ytick',unique([roi';roi_ylim';0;t_set]),...
     'xticklabelrotation',0,...
     'yticklabelrotation',0);
 xlabel('Time since S_2 onset (ms)');
 ylabel('Decoded time since S_2 onset (ms)');
+
+% plot identity line
+plot([roi2plot(1),t_set(end)],[roi2plot(1),t_set(end)],':k');
 
 % zero lines
 plot([1,1]*0,ylim,':k');
