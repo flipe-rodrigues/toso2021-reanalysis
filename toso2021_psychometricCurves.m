@@ -127,8 +127,7 @@ axes(...
     axesopt.default,...
     axesopt.stimulus,...
     axesopt.psycurve);
-xlabel(stim_lbl);
-xlabel('T_2 (ms)');
+xlabel(sprintf('%s (%s)',s2_lbl,s_units));
 ylabel(sprintf('P(%s > %s)',s2_lbl,s1_lbl));
 
 % graphical object preallocation
