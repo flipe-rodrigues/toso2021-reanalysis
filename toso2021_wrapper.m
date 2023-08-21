@@ -143,7 +143,7 @@ data.SDF = Z;
 clear X G Z;
 
 %% contrast settings
-contrast_str = 'i2';
+contrast_str = 'i1';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str,'_set']);
 n_contrasts = numel(contrast_set);
@@ -167,7 +167,7 @@ toso2021_psychometricCurves;
 toso2021_neuronSelection;
 toso2021_parseSessionData;
 return;
-toso2021_averageActivity
-toso2021_PCA_t2Aligned;
+toso2021_averageActivity_s2Aligned;
+toso2021_PCA_s2Aligned;
 toso2021_neurometricCurves;
 toso2021_naiveBayesDecoder;

@@ -4,7 +4,7 @@ if ~exist('data','var')
 end
 
 %% run settings
-n_runs = 10;
+n_runs = 1;
 
 %% bootstrap settings
 n_boots = 0; % 1e3;
@@ -12,7 +12,7 @@ n_boots = 0; % 1e3;
 %% GLM settings
 distro = 'normal';
 glm_wins = t_set(t1_mode_idx);
-glm_wins = t_set(1:end);
+% glm_wins = t_set(1:end);
 n_glm = numel(glm_wins);
 
 %% preallocation
@@ -393,7 +393,7 @@ for rr = 1 : n_runs
         end
         
         %% spike count GLMs
-
+        
         % design matrix
         design = [prev_choice,prev_correct,s1,s2,d1,d2,choice,correct,trial_idcs];
         n_regressors = size(design,2);
@@ -604,9 +604,9 @@ for rr = 1 : n_runs
         title(sprintf('Spike counts in %i ms ~ %s(\\phi(\\betaX))',...
             glm_win,capitalize(distro)));
         xlabel('Task event');
-%         ylabel({'P(significant regression coefficients)',...
-%             '\downarrow-modulated                   \uparrow-modulated'},...
-%             'verticalalignment','bottom');
+        %         ylabel({'P(significant regression coefficients)',...
+        %             '\downarrow-modulated                   \uparrow-modulated'},...
+        %             'verticalalignment','bottom');
         ylabel({'P(significant regression coefficients)',...
             'down-modulated                up-modulated'},...
             'verticalalignment','bottom');
@@ -1011,7 +1011,7 @@ for rr = 1 : n_runs
         % reference lines
         plot(xlim,[1,1]*0,'-k',...
             'linewidth',1.5);
- 
+        
         % pseudo-legend (stimulus epochs)
         s1epoch_idcs = ...
             [find(ismember(epochs,'postS1Onset')),...
@@ -1080,7 +1080,7 @@ for rr = 1 : n_runs
                     
                     % significance flags
                     significant_flags = pvals_corrected.(epoch)(:,coeff_idx) <= alphas(aa);
-         
+                    
                     % iterate through signs
                     signs = [-1,1];
                     for ss = 1 : 2
@@ -1217,7 +1217,7 @@ for rr = 1 : n_runs
             yyticklabel = num2cell(abs(round(yytick,2)));
             yyticklabel(~ismember(yytick,[0,[0,1]*yymax])) = {''};
             axes(axesopt.default,...
-                'plotboxaspectratio',[3.5,1,1],...
+                'plotboxaspectratio',[2,1,1],...
                 'color','none',...
                 'ticklength',axesopt.default.ticklength*.58,...
                 'xlim',[1,n_epochs]+[-1,1]*.75,...
@@ -1264,6 +1264,9 @@ for rr = 1 : n_runs
             %             plot(xlim,[1,1]*min(alphas),':k');
             %             plot(xlim,[1,1]*max(alphas),':k');
             
+            % preallocation
+            P = nan(n_epochs,n_alphas,n_coeffsperset);
+            
             % iterate through coefficients
             for bb = 1 : n_coeffsperset
                 coeff_lbl = coeffsets2plot{ss,bb};
@@ -1305,7 +1308,7 @@ for rr = 1 : n_runs
                 %             plot(xlim,[1,1]*max(alphas),':k');
                 
                 % preallocation
-                P = nan(n_epochs,n_alphas);
+                %                 P = nan(n_epochs,n_alphas);
                 
                 % iterate through alphas
                 for aa = 1 : n_alphas
@@ -1313,15 +1316,32 @@ for rr = 1 : n_runs
                     % iterate through epochs
                     for ee = 1 : n_epochs
                         epoch = epochs{ee};
-                        P(ee,aa) = sum(...
+                        P(ee,aa,bb) = sum(...
                             fractions.(glm_str).(epoch).(coeff_lbl)(rr,aa,:));
                     end
                     
                     % plot sign-agnostic proportion through epochs
-                    stairs(1:n_epochs,P(:,aa),...
+                    stairs(1:n_epochs,P(:,aa,bb),...
                         'color',stim_clrs(bb,:),...
                         'linewidth',1.5,...
                         'linestyle',repmat('-',1,1+(alphas(aa)==max(alphas))));
+                end
+            end
+            
+            % iterate through alphas
+            for aa = 1 : n_alphas
+                if alphas(aa) == min(alphas)
+                    clr = [0,0,0];
+                else
+                    clrs = colorlerp([[0,0,0];[1,1,1]],n_fadedcolors);
+                    clr = clrs(end-1,:);
+                end
+                
+                % iterate through epochs
+                for ee = 1 : n_epochs
+                    text(ee,max(ylim)*(1.025+aa*.05),...
+                        sprintf('%.2f',P(ee,aa,2)/P(ee,aa,1)),...
+                        'color',clr);
                 end
             end
             
@@ -1739,13 +1759,13 @@ if want2save
 end
 
 % %% false positive rate as a function of window size
-% 
+%
 % % figure initialization
 % fig = figure(figopt,...
 %     'position',[240,240,430,320],...
 %     'name',sprintf('GLM_falsePositiveRate_%s',distro),...
 %     'color',[1,1,1]*1);
-% 
+%
 % % axes initialization
 % xxtick = unique([-pre_s1_delay;0;t_set]);
 % xxticklabel = num2cell(xxtick);

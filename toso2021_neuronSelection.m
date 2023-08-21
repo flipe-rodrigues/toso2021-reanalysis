@@ -42,6 +42,8 @@ end
 
 % preallocation
 s2_mean_frs = nan(n_neurons_total,1);
+t1i1_trial_counts = zeros(n_neurons_total,n_t,n_i);
+t1i2_trial_counts = zeros(n_neurons_total,n_t,n_i);
 t2i1_trial_counts = zeros(n_neurons_total,n_t,n_i);
 t2i2_trial_counts = zeros(n_neurons_total,n_t,n_i);
 % stability_coeffs = nan(n_neurons_total,1);
@@ -66,7 +68,7 @@ for nn = neuron_idcs'
     spike_rates = data.SDF(spike_flags,:);
     n_trials = size(spike_counts,1);
     
-    % T2-aligned spike rates
+    % S2-aligned spike rates
     s2_alignment_onset = ...
         pre_init_padding + ...
         pre_s1_delay(spike_flags) + ...
@@ -87,6 +89,31 @@ for nn = neuron_idcs'
     s2_mean_frs(nn) = nanmean(s2_spkrates,[1,2]);
 
     % iterate through durations
+    for tt = 1 : n_t
+        t1_flags = t1 == t_set(tt);
+
+        % iterate through intensities
+        for ii = 1 : n_i
+            i1_flags = i1 == i_set(ii);
+            i2_flags = i2 == i_set(ii);
+            t1i1_spike_flags = ...
+                valid_flags & ...
+                neuron_flags & ...
+                t1_flags & ...
+                i1_flags;
+            t1i2_spike_flags = ...
+                valid_flags & ...
+                neuron_flags & ...
+                t1_flags & ...
+                i2_flags;
+
+            % store trial type counts
+            t1i1_trial_counts(nn,tt,ii) = sum(t1i1_spike_flags);
+            t1i2_trial_counts(nn,tt,ii) = sum(t1i2_spike_flags);
+        end
+    end
+    
+        % iterate through durations
     for tt = 1 : n_t
         t2_flags = t2 == t_set(tt);
 
@@ -195,8 +222,11 @@ t2i2_surviving_trial_counts = cumsum(t2i2_trial_counts,2,'reverse');
 mean_fr_flags = ...
     s2_mean_frs >= mean_fr_cutoff;
 trial_count_flags = ...
+    ...all(t1i1_trial_counts >= trial_count_cutoff,[2,3]) & ...
     all(t2i1_trial_counts >= trial_count_cutoff,[2,3]) & ...
     all(t2i2_trial_counts >= trial_count_cutoff,[2,3]);
+% trial_count_flags = ...
+%     all(t1i1_trial_counts >= trial_count_cutoff,[2,3]);
 surviving_trial_count_flags = ...
     all(t2i1_surviving_trial_counts(:,end,:) >= 2,[2,3]) & ...
     all(t2i2_surviving_trial_counts(:,end,:) >= 2,[2,3]);

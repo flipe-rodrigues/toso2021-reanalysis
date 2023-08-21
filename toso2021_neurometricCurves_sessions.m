@@ -97,16 +97,17 @@ for ss = 1 : n_total_sessions
 %     X = (X - nanmean(X,1)) ./ std(X,0,1);
     
     % response variable
-    y = choice(trial_flags);
-    threshold = median(s1(valid_flags));
-    ambiguous_flags = stimuli(trial_flags) == threshold;
-    y = stimuli(trial_flags) > threshold;
+%     y = choice(trial_flags);
+    
+%     threshold = median(s1(valid_flags));
+%     ambiguous_flags = stimuli(trial_flags) == threshold;
+%     y = stimuli(trial_flags) > threshold;
 %     y(ambiguous_flags) = rand(sum(ambiguous_flags),1) > .5;
     
-    weighted_stimuli = s2(trial_flags) * w2 + s1(trial_flags) * w1;
-    y = weighted_stimuli > 200;
-    
-%     y = s2(trial_flags) > s1(trial_flags);
+%     weighted_stimuli = s2(trial_flags) * w2 + s1(trial_flags) * w1;
+%     y = weighted_stimuli > 200;
+%     
+    y = s2(trial_flags) > s1(trial_flags);
 
     % iterate through trials
     for tt = 1 : session_trial_count(ss)
@@ -118,7 +119,7 @@ for ss = 1 : n_total_sessions
         train_flags = ...
             ...t1(trial_flags) == t_set(t1_mode_idx) & ...
             ...i1(trial_flags) == i_set(i1_mode_idx) & ...
-            ...contrasts(trial_flags) == contrast_set(contrast_mode_idx) & ...
+            contrasts(trial_flags) == contrast_set(contrast_mode_idx) & ...
             xval_flags;
         
         % response variable
