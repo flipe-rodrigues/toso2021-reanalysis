@@ -42,6 +42,10 @@ end
 fprintf('- after: (intensity | I1 count | I2 count)\n');
 summary(categorical([data.Intensity1,data.Intensity2]))
 
+%% convert intensity from standard deviation to mean speed units
+data.Intensity1 = round(data.Intensity1 .* sqrt(2 / pi));
+data.Intensity2 = round(data.Intensity2 .* sqrt(2 / pi));
+
 %% duration heterogeneity fixes
 fprintf('DURATION:\n');
 fprintf('- before: (duration | T1 count | T2 count)\n');
@@ -339,7 +343,7 @@ ntd_set = unique(ntd(valid_flags));
 n_ntd = numel(ntd_set);
 
 % intensity
-nid = round((i2 - i1) ./ (i2 + i1),2);
+nid = round((i2 - i1) ./ (i2 + i1),1);
 nid_set = unique(nid(valid_flags));
 n_nid = numel(nid_set);
 

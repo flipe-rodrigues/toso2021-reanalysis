@@ -5,7 +5,7 @@ end
 
 %% ROI settings
 pre_padd = 500;
-roi2use = [-pre_padd,t_set(end)];
+roi2use = [-0,t_set(end)];
 roi2plot = [-pre_padd,t_set(end)];
 roi2plot_padded = roi2plot + [-1,1] * .05 * range(roi2plot);
 roi2use_n_bins = range(roi2use) / psthbin;
@@ -49,6 +49,15 @@ for nn = 1 : n_neurons
     ref_alignment_flags = ...
         padded_time >= ref_alignment + roi2plot_padded(1) & ...
         padded_time < ref_alignment + t1(ref_spike_flags);
+    % S2-aligned spike rates
+%     ref_alignment = ...
+%         pre_init_padding + ...
+%         pre_s1_delay(ref_spike_flags) + ...
+%         t1(ref_spike_flags) + ...
+%         isi;
+%     ref_alignment_flags = ...
+%         padded_time >= ref_alignment + roi2plot_padded(1) & ...
+%         padded_time < ref_alignment + t2(ref_spike_flags);
     ref_chunk_flags = ...
         padded_time >= ref_alignment + roi2plot_padded(1) & ...
         padded_time < ref_alignment + roi2plot_padded(2);
@@ -140,6 +149,38 @@ for ii = 1 : n_contrasts
     % project onto PCs
     s1_score(:,:,ii) = s1_zpsths(:,:,ii) * coeff;
 end
+
+%% recompute explained variance
+
+% preallocation
+s1_concat = nan(roi2use_n_bins*n_contrasts,n_selected_neurons);
+var_weights = nan(roi2use_n_bins,n_contrasts);
+
+% concatenate psths across conditions
+for nn = 1 : n_selected_neurons
+    nn_zpsths_all = s1_zpsths(roi2use_flags,nn,:);
+    s1_concat(:,nn) = nn_zpsths_all(:);
+end
+
+% iterate through contrasts
+for ii = 1 : n_contrasts
+    contrast_flags = contrasts == contrast_set(ii);
+    trial_flags = ...
+        valid_flags & ...
+        contrast_flags;
+    
+    % compute variance weights
+    time_mat = repmat(roi2use(1) + psthbin : psthbin : roi2use(2),...
+        sum(trial_flags),1);
+    var_weights(:,ii) = sum(...
+        time_mat > roi2use(1) & ...
+        time_mat <= t1(trial_flags));
+end
+var_weights = var_weights(:) / max(var_weights,[],'all');
+
+% compute variance explained
+lat_pca = nanvar(s1_concat * coeff,var_weights)';
+exp_pca = lat_pca ./ sum(lat_pca) * 100;
 
 %% 3D trajectories in PC space
 fig = figure(figopt,...

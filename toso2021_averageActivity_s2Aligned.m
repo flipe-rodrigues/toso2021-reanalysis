@@ -6,15 +6,22 @@ end
 %% ROI settings
 
 % roi definition
-roi = [-500,t_set(end)];
-padded_roi = roi + [-1,1] * .05 * range(roi);
-n_bins = range(padded_roi) / psthbin;
-time = linspace(padded_roi(1),padded_roi(2),n_bins);
+pre_padd = 500;
+roi2use = [-pre_padd,t_set(end)];
+roi2plot = [-pre_padd,t_set(end)];
+roi2plot_padded = roi2plot + [-1,1] * .05 * range(roi2plot);
+roi2use_n_bins = range(roi2use) / psthbin;
+roi2plot_n_bins = range(roi2plot_padded) / psthbin;
+roi2use_time = linspace(roi2use(1),roi2use(2),roi2use_n_bins);
+roi2plot_time = linspace(roi2plot_padded(1),roi2plot_padded(2),roi2plot_n_bins);
+roi2use_flags = ...
+    roi2plot_time >= roi2use(1) & ...
+    roi2plot_time <= roi2use(2);
 
 % preallocation
-zscore_weights = nan(n_bins,n_neurons);
-ref_psths = nan(n_bins,n_neurons);
-psths = nan(n_bins,n_neurons,n_contrasts);
+zscore_weights = nan(roi2plot_n_bins,n_neurons);
+ref_psths = nan(roi2plot_n_bins,n_neurons);
+psths = nan(roi2plot_n_bins,n_neurons,n_contrasts);
 % R = nan(n_neurons,n_contrasts);
 
 %% subject selection
@@ -28,6 +35,7 @@ if strcmpi(contrast_str,'i1')
 elseif strcmpi(contrast_str,'i2')
     clamp_flags = i1 == i_set(i1_mode_idx);
 end
+clamp_flags = choice == choice_set(end);
 % bw = nan(n_neurons,n_contrasts);
 
 % iterate through neurons
@@ -58,15 +66,15 @@ for nn = 1 : n_neurons
         t1(ref_spike_flags) + ...
         isi;
     ref_alignment_flags = ...
-        padded_time >= ref_alignment + padded_roi(1) & ...
+        padded_time >= ref_alignment + roi2plot_padded(1) & ...
         padded_time < ref_alignment + t2(ref_spike_flags);
     ref_chunk_flags = ...
-        padded_time >= ref_alignment + padded_roi(1) & ...
-        padded_time < ref_alignment + padded_roi(2);
+        padded_time >= ref_alignment + roi2plot_padded(1) & ...
+        padded_time < ref_alignment + roi2plot_padded(2);
     ref_spkrates = ref_spike_rates';
     ref_spkrates(~ref_alignment_flags') = nan;
     ref_spkrates = reshape(...
-        ref_spkrates(ref_chunk_flags'),[n_bins,ref_n_trials])';
+        ref_spkrates(ref_chunk_flags'),[roi2plot_n_bins,ref_n_trials])';
     
     % compute observations weights
     zscore_weights(:,nn) = sum(~isnan(ref_spkrates));
@@ -107,15 +115,15 @@ for nn = 1 : n_neurons
             t1(spike_flags) + ...
             isi;
         alignment_flags = ...
-            padded_time >= alignment_onset + padded_roi(1) & ...
+            padded_time >= alignment_onset + roi2plot_padded(1) & ...
             padded_time < alignment_onset + t2(spike_flags);
         chunk_flags = ...
-            padded_time >= alignment_onset + padded_roi(1) & ...
-            padded_time < alignment_onset + padded_roi(2);
+            padded_time >= alignment_onset + roi2plot_padded(1) & ...
+            padded_time < alignment_onset + roi2plot_padded(2);
         spkrates = spike_rates';
         spkrates(~alignment_flags') = nan;
         spkrates = reshape(...
-            spkrates(chunk_flags'),[n_bins,n_trials])';
+            spkrates(chunk_flags'),[roi2plot_n_bins,n_trials])';
 
         % compute mean spike density function
         psths(:,nn,ii) = nanmean(spkrates,1);
@@ -124,8 +132,8 @@ for nn = 1 : n_neurons
 end
 
 %% normalization
-mus = nanmean(ref_psths,1);
-sigs = nanstd(ref_psths,0,1);
+mus = nanmean(ref_psths(roi2use_flags,:),1);
+sigs = nanstd(ref_psths(roi2use_flags,:),0,1);
 % mus = nanmean(psths,[1,3]);
 % sigs = nanstd(psths,0,[1,3]);
 
@@ -213,13 +221,13 @@ fig = figure(figopt,...
     'name',['average_activity_s2_',contrast_str]);
 
 % axes initialization
-xxtick = unique([0;roi';t_set]);
+xxtick = unique([0;roi2plot';t_set]);
 xxticklabel = num2cell(xxtick);
 xxticklabel(xxtick > 0 & xxtick < t_set(end)) = {''};
 axes(axesopt.default,...
     ...'plotboxaspectratio',[2.25,1,1],...
     'clipping','off',...
-    'xlim',roi + [-1,1] * .05 * range(roi),...
+    'xlim',roi2plot + [-1,1] * .05 * range(roi2plot),...
     'xtick',xxtick,...
     'xticklabel',xxticklabel,...
     'ylim',[-.75,.5]+[-1,1]*.05*1.25,...
@@ -249,20 +257,20 @@ for ii = 1 : n_contrasts
     
     % compute surviving trial counts (through time)
     time_mat = repmat(...
-        padded_roi(1) + psthbin : psthbin : padded_roi(2),n_total_trials,1);
+        roi2plot_padded(1) + psthbin : psthbin : roi2plot_padded(2),n_total_trials,1);
     surviving_trial_counts = sum(time_mat(trial_flags,:) <= t2(trial_flags));
     t2offset_idcs = find([diff(surviving_trial_counts) ~= 0, true]);
     
     % compute modulation stats
     nan_flags = all(isnan(psths(:,:,ii)),2);
-    onset_flags = time <= 0 & [time(2:end),nan] > 0;
+    onset_flags = roi2plot_time <= 0 & [roi2plot_time(2:end),nan] > 0;
     X = zpsths(~nan_flags,:,ii);
     x_mu = nanmean(X,2);
     x_sig = nanstd(X,0,2);
     x_sem = x_sig / sqrt(n_neurons);
     
     % patch s.e.m.
-    sem_xpatch = [time(~nan_flags),fliplr(time(~nan_flags))];
+    sem_xpatch = [roi2plot_time(~nan_flags),fliplr(roi2plot_time(~nan_flags))];
     sem_ypatch = [x_mu(~nan_flags)-x_sem(~nan_flags);...
         flipud(x_mu(~nan_flags)+x_sem(~nan_flags))]';
     sem_apatch = [surviving_trial_counts(~nan_flags),...
@@ -288,7 +296,7 @@ for ii = 1 : n_contrasts
     end
     
     % patch average activity
-    mu_xpatch = time(~nan_flags);
+    mu_xpatch = roi2plot_time(~nan_flags);
     mu_ypatch = x_mu(~nan_flags)';
     mu_ypatch(end) = nan;
     mu_apatch = surviving_trial_counts(~nan_flags);
@@ -316,7 +324,7 @@ for ii = 1 : n_contrasts
     end
     
     % plot alignment onset
-    p(ii) = plot(time(onset_flags),x_mu(onset_flags),...
+    p(ii) = plot(roi2plot_time(onset_flags),x_mu(onset_flags),...
         'linewidth',1.5,...
         'marker','o',...
         'markersize',7.5,...
@@ -337,7 +345,7 @@ for ii = 1 : n_contrasts
         % plot stimulus offset
         try
             alpha_level = mu_apatch(t2offset_idcs(tt));
-            scatter(time(t2offset_idcs(tt)),x_mu(t2offset_idcs(tt)),50,...
+            scatter(roi2plot_time(t2offset_idcs(tt)),x_mu(t2offset_idcs(tt)),50,...
                 'linewidth',1.5,...
                 'marker','o',...
                 'markerfacealpha',alpha_level.^fadeifnoisy,...

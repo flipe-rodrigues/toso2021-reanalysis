@@ -26,6 +26,14 @@ zscore_weights = nan(roi2plot_n_bins,n_neurons);
 ref_psths = nan(roi2plot_n_bins,n_neurons);
 s2_psths = nan(roi2plot_n_bins,n_neurons,n_contrasts);
 
+% clamping
+if strcmpi(contrast_str,'i1')
+    clamp_flags = i2 == i_set(i2_mode_idx);
+elseif strcmpi(contrast_str,'i2')
+    clamp_flags = i1 == i_set(i1_mode_idx);
+end
+clamp_flags = choice == choice_set(end);
+
 % iterate through neurons
 for nn = 1 : n_neurons
     progressreport(nn,n_neurons,'parsing neural data');
@@ -42,6 +50,13 @@ for nn = 1 : n_neurons
     ref_spike_rates = data.SDF(ref_spike_flags,:);
     ref_n_trials = size(ref_spike_rates,1);
     
+%     % S1-aligned spike rates
+%     ref_alignment = ...
+%         pre_init_padding + ...
+%         pre_s1_delay(ref_spike_flags);
+%     ref_alignment_flags = ...
+%         padded_time >= ref_alignment + roi2plot_padded(1) & ...
+%         padded_time < ref_alignment + t1(ref_spike_flags);
     % S2-aligned spike rates
     ref_alignment = ...
         pre_init_padding + ...
@@ -72,6 +87,7 @@ for nn = 1 : n_neurons
             valid_flags & ...
             subject_flags & ...
             neuron_flags & ...
+            ...clamp_flags & ...
             contrast_flags;
         
         % fetch spike counts & compute spike rates
@@ -208,6 +224,38 @@ for ii = 1 : n_contrasts
     % project onto PCs
     s2_score(:,:,ii) = s2_zpsths(:,:,ii) * coeff;
 end
+
+%% recompute explained variance
+
+% preallocation
+s2_concat = nan(roi2use_n_bins*n_contrasts,n_selected_neurons);
+var_weights = nan(roi2use_n_bins,n_contrasts);
+
+% concatenate psths across conditions
+for nn = 1 : n_selected_neurons
+    nn_zpsths_all = s2_zpsths(roi2use_flags,nn,:);
+    s2_concat(:,nn) = nn_zpsths_all(:);
+end
+
+% iterate through contrasts
+for ii = 1 : n_contrasts
+    contrast_flags = contrasts == contrast_set(ii);
+    trial_flags = ...
+        valid_flags & ...
+        contrast_flags;
+    
+    % compute variance weights
+    time_mat = repmat(roi2use(1) + psthbin : psthbin : roi2use(2),...
+        sum(trial_flags),1);
+    var_weights(:,ii) = sum(...
+        time_mat > roi2use(1) & ...
+        time_mat <= t2(trial_flags));
+end
+var_weights = var_weights(:) / max(var_weights,[],'all');
+
+% compute variance explained
+lat_pca = nanvar(s2_concat * coeff,var_weights)';
+exp_pca = lat_pca ./ sum(lat_pca) * 100;
 
 %% 3D trajectories in PC space
 fig = figure(figopt,...
@@ -469,14 +517,14 @@ for pc = 1 : n_pcs2plot
         
         % compute surviving trial counts (through time)
         time_mat = repmat(...
-            padded_roi(1) + psthbin : psthbin : padded_roi(2),n_total_trials,1);
+            roi2plot_padded(1) + psthbin : psthbin : roi2plot_padded(2),n_total_trials,1);
         surviving_trial_counts = sum(time_mat(trial_flags,:) <= t2(trial_flags));
         
         % patch projection
         mu_xpatch = roi2plot_time;
         mu_ypatch = s2_score(:,pc,ii)';
         mu_ypatch(end) = nan;
-        mu_apatch = surviving_trial_counts(~nan_flags);
+        mu_apatch = surviving_trial_counts;
         mu_apatch = mu_apatch ./ max(mu_apatch) .* ...
             range(alphabounds_mu) + alphabounds_mu(1);
         if fadeifnoisy
@@ -648,14 +696,14 @@ for ii = 1 : n_contrasts
     
     % compute surviving trial counts (through time)
     time_mat = repmat(...
-        padded_roi(1) + psthbin : psthbin : padded_roi(2),n_total_trials,1);
+        roi2plot_padded(1) + psthbin : psthbin : roi2plot_padded(2),n_total_trials,1);
     surviving_trial_counts = sum(time_mat(trial_flags,:) <= t2(trial_flags));
     
     % patch trajectory
     mu_xpatch = S(1,:,ii);
     mu_ypatch = S(2,:,ii);
     mu_ypatch(end) = nan;
-    mu_apatch = surviving_trial_counts(~nan_flags);
+    mu_apatch = surviving_trial_counts; % (~nan_flags);
     mu_apatch = mu_apatch ./ max(mu_apatch) .* ...
         range(alphabounds_mu) + alphabounds_mu(1);
     if fadeifnoisy
