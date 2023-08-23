@@ -3,7 +3,7 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
-%% construct Ti-aligned, Ii-split psths
+%% construct S1-, ISI- & S2-aligned psths
 pre_padd = 500;
 roi2use = [-0,t_set(end)];
 roi2plot = [-pre_padd,t_set(end)];
@@ -37,7 +37,6 @@ for nn = 1 : n_neurons
     s1_spike_flags = ...
         valid_flags & ...
         neuron_flags & ...
-        ...i1_flags & ...
         t1_flags;
     isi_spike_flags = ...
         valid_flags & ...
@@ -45,39 +44,30 @@ for nn = 1 : n_neurons
     s2_spike_flags = ...
         valid_flags & ...
         neuron_flags & ...
-        ...i2_flags & ...
         t2_flags;
-    if sum(s1_spike_flags) == 0 || ...
-            sum(isi_spike_flags) == 0 || ...
-            sum(s2_spike_flags) == 0
-        continue;
-    end
 
     % fetch S1-aligned spike counts & compute spike rates
-    s1_spike_counts = data.FR(s1_spike_flags,:);
     s1_spike_rates = data.SDF(s1_spike_flags,:);
-    s1_n_trials = size(s1_spike_counts,1);
+    s1_n_trials = size(s1_spike_rates,1);
     
     % fetch ISI-aligned spike counts & compute spike rates
-    isi_spike_counts = data.FR(isi_spike_flags,:);
     isi_spike_rates = data.SDF(isi_spike_flags,:);
-    isi_n_trials = size(isi_spike_counts,1);
+    isi_n_trials = size(isi_spike_rates,1);
     
     % fetch S2-aligned spike counts & compute spike rates
-    s2_spike_counts = data.FR(s2_spike_flags,:);
     s2_spike_rates = data.SDF(s2_spike_flags,:);
-    s2_n_trials = size(s2_spike_counts,1);
+    s2_n_trials = size(s2_spike_rates,1);
     
     % S1-aligned spike rates
     s1_alignment_offset = ...
         pre_init_padding + ...
         pre_s1_delay(s1_spike_flags);
     s1_alignment_flags = ...
-        valid_time >= s1_alignment_offset + roi2plot_padded(1) & ...
-        valid_time < s1_alignment_offset + t1(s1_spike_flags);
+        padded_time >= s1_alignment_offset + roi2plot_padded(1) & ...
+        padded_time < s1_alignment_offset + t1(s1_spike_flags);
     s1_chunk_flags = ...
-        valid_time >= s1_alignment_offset + roi2plot_padded(1) & ...
-        valid_time < s1_alignment_offset + roi2plot_padded(2);
+        padded_time >= s1_alignment_offset + roi2plot_padded(1) & ...
+        padded_time < s1_alignment_offset + roi2plot_padded(2);
     s1_spkrates = s1_spike_rates';
     s1_spkrates(~s1_alignment_flags') = nan;
     s1_spkrates = reshape(...
@@ -90,8 +80,8 @@ for nn = 1 : n_neurons
         pre_s1_delay(isi_spike_flags) + ...
         t1(isi_spike_flags);
     isi_alignment_flags = ...
-        valid_time >= isi_alignment & ...
-        valid_time < isi_alignment + isi;
+        padded_time >= isi_alignment & ...
+        padded_time < isi_alignment + isi;
     isi_chunk_flags = isi_alignment_flags;
     isi_spkrates = isi_spike_rates';
     isi_spkrates(~isi_alignment_flags') = nan;
@@ -106,11 +96,11 @@ for nn = 1 : n_neurons
         t1(s2_spike_flags) + ...
         isi;
     s2_alignment_flags = ...
-        valid_time >= s2_alignment + roi2plot_padded(1) & ...
-        valid_time < s2_alignment + t2(s2_spike_flags);
+        padded_time >= s2_alignment + roi2plot_padded(1) & ...
+        padded_time < s2_alignment + t2(s2_spike_flags);
     s2_chunk_flags = ...
-        valid_time >= s2_alignment + roi2plot_padded(1) & ...
-        valid_time < s2_alignment + roi2plot_padded(2);
+        padded_time >= s2_alignment + roi2plot_padded(1) & ...
+        padded_time < s2_alignment + roi2plot_padded(2);
     s2_spkrates = s2_spike_rates';
     s2_spkrates(~s2_alignment_flags') = nan;
     s2_spkrates = reshape(...
@@ -142,9 +132,7 @@ s2_weights = s2_weights / sum(s2_weights);
 
 % z-score S1-aligned spike density functions
 s1_mus = nanmean(s1_psths(roi2use_flags,:),1);
-s1_sigs = nanstd(s1_psths(roi2use_flags,:),0,1);
-% s1_mus = s1_weights(roi2use_flags) * s1_psths(roi2use_flags,:);
-% s1_sigs = nanstd(s1_psths(roi2use_flags,:),s1_weights(roi2use_flags),1);
+s1_sigs = nanstd(s1_psths(roi2use_flags,:),0,1); 
 s1_zpsths = (s1_psths - s1_mus) ./ s1_sigs;
 
 % z-score ISI-aligned spike density functions
@@ -155,8 +143,6 @@ isi_zpsths = (isi_psths - isi_mus) ./ isi_sigs;
 % z-score S2-aligned spike density functions
 s2_mus = nanmean(s2_psths(roi2use_flags,:),1);
 s2_sigs = nanstd(s2_psths(roi2use_flags,:),0,1);
-% s2_mus = s2_weights(roi2use_flags) * s2_psths(roi2use_flags,:);
-% s2_sigs = nanstd(s2_psths(roi2use_flags,:),s2_weights(roi2use_flags),1);
 s2_zpsths = (s2_psths - s2_mus) ./ s2_sigs;
 
 %% PCA
@@ -176,63 +162,29 @@ s2_coeff = pca(s2_zpsths(roi2use_flags,:),...
     'weights',s2_weights);
 s2_score = s2_zpsths * s2_coeff;
 
-%%
+%% neuron sorting
 
-for pc_s1 = 1 : 3
-    figure('position',[94.6000+(pc_s1-1)*560 41.8000 560 1.0288e+03]);
-    [x,idcs] = sort(s1_coeff(:,pc_s1));
-    for pc_s2 = 1 : 3
-        subplot(3,1,pc_s2);
-        hold on;
-        xlabel(sprintf('S1-aligned PC_%i weights',pc_s1))
-        ylabel(sprintf('S2-aligned PC_%i weights',pc_s2))
-        y = s2_coeff(idcs,pc_s2);
-        mdl = fitlm(x,y);
-        if mdl.Coefficients.pValue(end) < .05
-            linestyle = '-';
-        else 
-            linestyle = '--';
-        end
-        plot(x,y,'.k')
-        plot(x,mdl.predict(x),'k',...
-            'linestyle',linestyle,...
-            'linewidth',1.5);
-        axis tight;
-        axis square;
-    end
-end
+% sort by angular position in S1-PC space
+[s1_theta,~] = cart2pol(s1_coeff(:,1),s1_coeff(:,2));
+[~,s1_theta_idcs] = sortrows(s1_theta);
+s1_theta_idcs = circshift(s1_theta_idcs,-175);
 
-%%
+% sort by angular position in S1-PC space
+[isi_theta,~] = cart2pol(isi_coeff(:,1),isi_coeff(:,2));
+[~,isi_theta_idcs] = sortrows(isi_theta);
+isi_theta_idcs = circshift(isi_theta_idcs,-125);
 
-figure;
-hold on;
-xlabel('S1-aligned variance')
-ylabel('S2-aligned variance')
-[x,idcs] = sort(nanvar(s1_psths));
-y = nanvar(s2_psths(:,idcs));
-mdl = fitlm(x,y);
-if mdl.Coefficients.pValue(end) < .05
-    linestyle = '-';
-else
-    linestyle = '--';
-end
-plot(x,y,'.k')
-plot(x,mdl.predict(x'),'k',...
-    'linestyle',linestyle,...
-    'linewidth',1.5);
-axis tight;
-axis square;
+% sort by angular position in S1-PC space
+[s2_theta,~] = cart2pol(s2_coeff(:,1),s2_coeff(:,2));
+[~,s2_theta_idcs] = sortrows(s2_theta);
+s2_theta_idcs = circshift(s2_theta_idcs,-150);
 
-plot(xlim,xlim,':')
-
-set(gca,...
-    'xlim',quantile(x,[0,.95]),...
-    'ylim',quantile(y,[0,.95]),...
-    'xscale','linear',...
-    'yscale','linear');
+% s1_theta_idcs = s2_theta_idcs;
+% isi_theta_idcs = s2_theta_idcs;
+% s2_theta_idcs = s2_theta_idcs;
 
 %% colormap settings
-clim = [-1.5,3.5];
+clim = [-2,4];
 
 %% S1-aligned tiling
 
@@ -258,13 +210,8 @@ title('S1-aligned PSTH raster');
 xlabel('Time since S_1 onset (ms)');
 ylabel('Neuron #');
 
-% sort by angular position in PC space
-[theta,~] = cart2pol(s1_coeff(:,1),s1_coeff(:,2));
-[~,theta_idcs] = sortrows(theta);
-theta_idcs = circshift(theta_idcs,-200);
-
 % plot psth raster
-imagesc(roi2plot_padded,[1,n_neurons],s1_zpsths(:,theta_idcs)',clim);
+imagesc(roi2plot_padded,[1,n_neurons],s1_zpsths(:,s1_theta_idcs)',clim);
 
 % color bar
 clrbar = colorbar;
@@ -301,7 +248,7 @@ fig = figure(figopt,...
 % axes initialization
 xxtick = 0:.5e3:isi;
 xxticklabel = num2cell(xxtick);
-xxticklabel(xxtick > 0 & xxtick < isi) = {''};
+xxticklabel(~ismember(xxtick,[0,isi/2,isi])) = {''};
 axes(axesopt.default,...
     'plotboxaspectratio',[2,1,1],...
     'ticklength',axesopt.default.ticklength * 1/2,...
@@ -315,13 +262,8 @@ title('ISI-aligned PSTH raster');
 xlabel('Time since S_1 offset / ISI onset (ms)');
 ylabel('Neuron #');
 
-% sort by angular position in PC space
-[theta,~] = cart2pol(isi_coeff(:,1),isi_coeff(:,2));
-[~,theta_idcs] = sortrows(theta);
-% theta_idcs = circshift(theta_idcs,-125);
-
 % plot psth raster
-imagesc([0,isi],[1,n_neurons],isi_zpsths(:,theta_idcs)',clim);
+imagesc([0,isi],[1,n_neurons],isi_zpsths(:,isi_theta_idcs)',clim);
 
 % color bar
 clrbar = colorbar;
@@ -372,13 +314,8 @@ title('S2-aligned PSTH raster');
 xlabel('Time since S_2 onset (ms)');
 ylabel('Neuron #');
 
-% sort by angular position in PC space
-[theta,~] = cart2pol(s2_coeff(:,1),s2_coeff(:,2));
-[~,theta_idcs] = sortrows(theta);
-theta_idcs = circshift(theta_idcs,40);
-
 % plot psth raster
-imagesc(roi2plot_padded,[1,n_neurons],s2_zpsths(:,theta_idcs)',clim);
+imagesc(roi2plot_padded,[1,n_neurons],s2_zpsths(:,s2_theta_idcs)',clim);
 
 % color bar
 clrbar = colorbar;
@@ -407,128 +344,6 @@ if want2save
     print(fig,svg_file,'-dsvg','-painters');
 end
 return;
-
-%% PC projections
-
-% figure initialization
-fig = figure(figopt,...
-    'position',[535,130,966,860],...
-    'name',sprintf('pc_projections_s2_%s',contrast_str));
-n_pcs2plot = 6;
-sps = gobjects(n_pcs2plot,1);
-for pc = 1 : n_pcs2plot
-    sp_idx = pc * 2 - 1 - (pc > n_pcs2plot / 2) * (n_pcs2plot - 1);
-    sps(pc) = subplot(n_pcs2plot/2,2,sp_idx);
-    xlabel(sps(pc),'Time since S_2 onset (ms)');
-    %     ylabel(sps(pc),sprintf('PC %i\n%.1f%% variance',pc,exp_pca(pc)));
-    ylabel(sps(pc),sprintf('PC %i',pc));
-end
-xxtick = unique([roi2plot';0;t_set]);
-xxticklabel = num2cell(xxtick);
-xxticklabel(xxtick > 0 & xxtick < t_set(end)) = {''};
-set(sps,...
-    axesopt.default,...
-    'xlim',roi2plot + [-1,1] * .05 * range(roi2plot),...
-    'xtick',xxtick,...
-    'xticklabel',xxticklabel,...
-    'ylimspec','tight',...
-    'plotboxaspectratio',[3,1,1]);
-
-% link axes
-linkaxes(sps,'x');
-
-% iterate through pcs
-for pc = 1 : n_pcs2plot
-    trial_flags = ...
-        valid_flags;
-    
-    % compute surviving trial counts (through time)
-    time_mat = repmat(...
-        padded_roi(1) + psthbin : psthbin : padded_roi(2),n_total_trials,1);
-    surviving_trial_counts = sum(time_mat(trial_flags,:) <= t2(trial_flags));
-    
-    % patch projection
-    mu_xpatch = roi2plot_time;
-    mu_ypatch = s2_score(:,pc)';
-    mu_ypatch(end) = nan;
-    mu_apatch = surviving_trial_counts;
-    mu_apatch = mu_apatch ./ max(mu_apatch) .* ...
-        range(alphabounds_mu) + alphabounds_mu(1);
-    if fadeifnoisy
-        alpha_levels = unique(mu_apatch,'stable');
-        n_alpha_levels = numel(alpha_levels);
-        for aa = 1 : n_alpha_levels
-            alpha_flags = mu_apatch == alpha_levels(aa);
-            p = patch(sps(pc),...
-                [mu_xpatch(alpha_flags),nan],...
-                [mu_ypatch(alpha_flags),nan],0,...
-                'edgealpha',alpha_levels(aa),...
-                'edgecolor','k',...
-                'facecolor','none',...
-                'linewidth',1.5);
-        end
-    else
-        p = plot(sps(pc),roi2plot_time,...
-            s2_score(:,pc),...
-            'color','k',...
-            'linestyle','-',...
-            'linewidth',1.5);
-    end
-
-    % plot projection onset
-    onset_flags = roi2plot_time <= 0 & ...
-        [roi2plot_time(2:end),nan] > 0;
-    plot(sps(pc),roi2plot_time(onset_flags),...
-        s2_score(onset_flags,pc),...
-        'linewidth',1.5,...
-        'marker','o',...
-        'markersize',6,...
-        'markerfacecolor','w',...
-        'markeredgecolor','k');
-    
-    % iterate through stimuli
-    for tt = 1 : n_t
-        t2_flags = t2 == t_set(tt);
-        trial_flags = ...
-            valid_flags & ...
-            contrast_flags & ...
-            t2_flags;
-        if sum(trial_flags) < 1
-            continue;
-        end
-        
-        % plot projection offset
-        offset_flags = roi2plot_time < t_set(tt) & ...
-            [roi2plot_time(2:end),nan] >= t_set(tt);
-        scatter(sps(pc),roi2plot_time(offset_flags),...
-            s2_score(offset_flags,pc),36,...
-            'linewidth',1.5,...
-            'marker','o',...
-            'markerfacealpha',alpha_levels(tt).^fadeifnoisy,...
-            'markerfacecolor','k',...
-            'markeredgecolor','none');
-    end
-end
-
-% update axes
-set(sps(pc),...
-    'ytick',unique([0,ylim(sps(pc))]),...
-    'yticklabel',{'','0',''},...
-    'ylim',ylim(sps(pc))+[-1,1]*.15*range(ylim(sps(pc))));
-
-% annotate explained variance
-text(sps(pc),...
-    .05,.95,sprintf('%.1f%% variance',exp_pca(pc)),...
-    'units','normalized');
-
-% ui stacking
-uistack(p,'bottom');
-
-% save figure
-if want2save
-    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-    print(fig,svg_file,'-dsvg','-painters');
-end
 
 %% S2-aligned PC projections
 n_pcs2plot = 5;
