@@ -19,6 +19,11 @@ file_name = sprintf('%c%s_rats_ok.mat',upper(task_str(1)),task_str(2:end));
 data_file = fullfile(data_path,file_name);
 load(data_file);
 data = DataB.Info;
+
+% load reaction time data
+rt_file = fullfile(data_path,'RT_behavior.mat');
+rts = load(rt_file);
+data.Rts = rts.(sprintf('%s_rats',capitalize(task_str)));
 % ---------------------------- THEIR RAMPS ------------------------------ %
 % Features=NeuronType_Striatum(DataB);
 % Neurons=unique(DataB.Info.NeuronNumb,'rows');
@@ -143,7 +148,7 @@ data.SDF = Z;
 clear X G Z;
 
 %% contrast settings
-contrast_str = 'choice';
+contrast_str = 'i2';
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str,'_set']);
 n_contrasts = numel(contrast_set);
