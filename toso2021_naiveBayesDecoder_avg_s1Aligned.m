@@ -106,10 +106,10 @@ fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
 %% run settings
-n_runs = 10;
+n_runs = 100;
 
 %% subject selection
-subject_flags = ismember(subjects,3);
+subject_flags = ismember(subjects,subject_set);
 
 %% concatenation settings
 n_concats_max = 2^7;

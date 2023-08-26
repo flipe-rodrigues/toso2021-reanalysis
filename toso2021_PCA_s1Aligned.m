@@ -5,7 +5,7 @@ end
 
 %% ROI settings
 pre_padd = 500;
-roi2use = [-0,t_set(end)];
+roi2use = [-pre_padd*0,t_set(end)];
 roi2plot = [-pre_padd,t_set(end)];
 roi2plot_padded = roi2plot + [-1,1] * .05 * range(roi2plot);
 roi2use_n_bins = range(roi2use) / psthbin;
@@ -138,6 +138,8 @@ pca_weights = pca_weights / max(pca_weights);
 % PCA
 [coeff,~,~,~,exp_pca] = pca(pca_design,...
     'weights',pca_weights);
+sign_flips = [-1,1,-1];
+coeff(:,1:3) = coeff(:,1:3) .* sign_flips;
 ref_score = ref_zpsths * coeff;
 
 % preallocation
@@ -387,7 +389,7 @@ end
 
 % figure initialization
 fig = figure(figopt,...
-    'position',[535,130,966,860],...
+    'position',[35,130,966,860],...
     'name',sprintf('pc_projections_s1_%s',contrast_str));
 n_pcs2plot = 6;
 sps = gobjects(n_pcs2plot,1);
@@ -426,14 +428,14 @@ for pc = 1 : n_pcs2plot
         
         % compute surviving trial counts (through time)
         time_mat = repmat(...
-            padded_roi(1) + psthbin : psthbin : padded_roi(2),n_total_trials,1);
+            roi2plot_padded(1) + psthbin : psthbin : roi2plot_padded(2),n_total_trials,1);
         surviving_trial_counts = sum(time_mat(trial_flags,:) <= t1(trial_flags));
         
         % patch projection
         mu_xpatch = roi2plot_time;
         mu_ypatch = s1_score(:,pc,ii)';
         mu_ypatch(end) = nan;
-        mu_apatch = surviving_trial_counts(~nan_flags);
+        mu_apatch = surviving_trial_counts;
         mu_apatch = mu_apatch ./ max(mu_apatch) .* ...
             range(alphabounds_mu) + alphabounds_mu(1);
         if fadeifnoisy
@@ -547,6 +549,10 @@ for ii = 1 : size(R,1)
     R = R * rotfuns{ii}(thetas(ii));
 end
 
+% nested PCA approach
+% R = pca(ref_score(:,1:3));
+R = R .* [1,1,1]';
+
 % iterate through contrast conditions
 for ii = 1 : n_contrasts
     
@@ -606,14 +612,14 @@ for ii = 1 : n_contrasts
     
     % compute surviving trial counts (through time)
     time_mat = repmat(...
-        padded_roi(1) + psthbin : psthbin : padded_roi(2),n_total_trials,1);
-    surviving_trial_counts = sum(time_mat(trial_flags,:) <= t1(trial_flags));
-    
+            roi2plot_padded(1) + psthbin : psthbin : roi2plot_padded(2),n_total_trials,1);
+        surviving_trial_counts = sum(time_mat(trial_flags,:) <= t1(trial_flags));
+        
     % patch trajectory
     mu_xpatch = S(1,:,ii);
     mu_ypatch = S(2,:,ii);
     mu_ypatch(end) = nan;
-    mu_apatch = surviving_trial_counts(~nan_flags);
+    mu_apatch = surviving_trial_counts;
     mu_apatch = mu_apatch ./ max(mu_apatch) .* ...
         range(alphabounds_mu) + alphabounds_mu(1);
     if fadeifnoisy

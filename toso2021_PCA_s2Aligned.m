@@ -5,7 +5,7 @@ end
 
 %% ROI settings
 pre_padd = 500;
-roi2use = [-pre_padd,t_set(end)];
+roi2use = [-pre_padd*1,t_set(end)];
 roi2plot = [-pre_padd,t_set(end)];
 roi2plot_padded = roi2plot + [-1,1] * .05 * range(roi2plot);
 roi2use_n_bins = range(roi2use) / psthbin;
@@ -198,6 +198,8 @@ pca_weights = pca_weights / max(pca_weights);
 % PCA
 [coeff,~,~,~,exp_pca] = pca(pca_design,...
     'weights',pca_weights);
+sign_flips = [1,1,1];
+coeff(:,1:3) = coeff(:,1:3) .* sign_flips;
 ref_score = ref_zpsths * coeff;
 % coeff_choice = coeff;
 % coeff = coeff_choice;
@@ -213,10 +215,6 @@ ref_score = ref_zpsths * coeff;
 
 % preallocation
 s2_score = nan(roi2plot_n_bins,n_selected_neurons,n_contrasts);
-
-% sign changes
-% sign_flips = [1,1,1];
-% coeff(:,1:3) = coeff(:,1:3) .* sign_flips;
 
 % iterate through contrasts
 for ii = 1 : n_contrasts
@@ -477,7 +475,7 @@ end
 
 % figure initialization
 fig = figure(figopt,...
-    'position',[535,130,966,860],...
+    'position',[35,130,966,860],...
     'name',sprintf('pc_projections_s2_%s',contrast_str));
 n_pcs2plot = 6;
 sps = gobjects(n_pcs2plot,1);
@@ -636,6 +634,10 @@ for ii = 1 : size(R,1)
     % compute compound rotation
     R = R * rotfuns{ii}(thetas(ii));
 end
+
+% nested PCA approach
+R = pca(ref_score(:,1:3));
+R = R .* [1,-1,1]';
 
 % iterate through contrast conditions
 for ii = 1 : n_contrasts

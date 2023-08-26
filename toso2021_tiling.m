@@ -4,7 +4,7 @@ if ~exist('data','var')
 end
 
 %% construct S1-, ISI- & S2-aligned psths
-pre_padd = 500;
+pre_padd = 0;
 roi2use = [-0,t_set(end)];
 roi2plot = [-pre_padd,t_set(end)];
 roi2plot_padded = roi2plot + [-1,1] * .05 * range(roi2plot);
@@ -169,15 +169,24 @@ s2_score = s2_zpsths * s2_coeff;
 [~,s1_theta_idcs] = sortrows(s1_theta);
 s1_theta_idcs = circshift(s1_theta_idcs,-175);
 
+% [~,max_idcs] = max(s1_zpsths,[],1);
+% [~,s1_theta_idcs] = sort(max_idcs);
+
 % sort by angular position in S1-PC space
 [isi_theta,~] = cart2pol(isi_coeff(:,1),isi_coeff(:,2));
 [~,isi_theta_idcs] = sortrows(isi_theta);
 isi_theta_idcs = circshift(isi_theta_idcs,-125);
 
+% [~,max_idcs] = max(isi_zpsths,[],1);
+% [~,isi_theta_idcs] = sort(max_idcs);
+
 % sort by angular position in S1-PC space
 [s2_theta,~] = cart2pol(s2_coeff(:,1),s2_coeff(:,2));
 [~,s2_theta_idcs] = sortrows(s2_theta);
-s2_theta_idcs = circshift(s2_theta_idcs,-150);
+s2_theta_idcs = circshift(s2_theta_idcs,-175);
+
+% [~,max_idcs] = max(s2_zpsths,[],1);
+% [~,s2_theta_idcs] = sort(max_idcs);
 
 % s1_theta_idcs = s2_theta_idcs;
 % isi_theta_idcs = s2_theta_idcs;
@@ -208,7 +217,7 @@ axes(axesopt.default,...
     'colormap',hot(2^8));
 title('S1-aligned PSTH raster');
 xlabel('Time since S_1 onset (ms)');
-ylabel('Neuron #');
+ylabel({'Neuron #','(sorted by S1-aligned PCs)'});
 
 % plot psth raster
 imagesc(roi2plot_padded,[1,n_neurons],s1_zpsths(:,s1_theta_idcs)',clim);
@@ -222,7 +231,7 @@ clrlabel.string = ...
 clrlabel.string = 'Firing rate (z-score)';
 clrlabel.fontsize = axesopt.default.fontsize * 1.1;
 clrlabel.rotation = 270;
-% clrlabel.position = [4.4,sum(clim)/2,0];
+clrlabel.position = [3.5,sum(clim)/2,0];
 set(clrbar,...
     axesopt.colorbar,...
     'fontsize',axesopt.default.fontsize);
@@ -242,7 +251,8 @@ end
 
 % figure initialization
 fig = figure(figopt,...
-    'position',[440 630 560*2 420],...[1.8+516,41.8,516,740.8],...
+    ...'position',[440 630 560*2 420],...[1.8+516,41.8,516,740.8],...
+    'position',[650 630 560 420],...[1.8,41.8,516,740.8],...
     'name','tiling_isi');
 
 % axes initialization
@@ -250,8 +260,8 @@ xxtick = 0:.5e3:isi;
 xxticklabel = num2cell(xxtick);
 xxticklabel(~ismember(xxtick,[0,isi/2,isi])) = {''};
 axes(axesopt.default,...
-    'plotboxaspectratio',[2,1,1],...
-    'ticklength',axesopt.default.ticklength * 1/2,...
+    ...'plotboxaspectratio',[2,1,1],...
+    ...'ticklength',axesopt.default.ticklength * 1/2,...
     'xlim',[0,isi],...
     'ylim',[1,n_neurons],...
     'xtick',xxtick,...
@@ -259,8 +269,8 @@ axes(axesopt.default,...
     'ytick',[1,n_neurons],...
     'colormap',hot(2^8));
 title('ISI-aligned PSTH raster');
-xlabel('Time since S_1 offset / ISI onset (ms)');
-ylabel('Neuron #');
+xlabel('Time since ISI onset (ms)');
+ylabel({'Neuron #','(sorted by ISI-aligned PCs)'});
 
 % plot psth raster
 imagesc([0,isi],[1,n_neurons],isi_zpsths(:,isi_theta_idcs)',clim);
@@ -274,7 +284,7 @@ clrlabel.string = ...
 clrlabel.string = 'Firing rate (z-score)';
 clrlabel.fontsize = axesopt.default.fontsize * 1.1;
 clrlabel.rotation = 270;
-% clrlabel.position = [4.4,sum(clim)/2,0];
+clrlabel.position = [3.5,sum(clim)/2,0];
 set(clrbar,...
     axesopt.colorbar,...
     'fontsize',axesopt.default.fontsize);
@@ -312,7 +322,7 @@ axes(axesopt.default,...
     'colormap',hot(2^8));
 title('S2-aligned PSTH raster');
 xlabel('Time since S_2 onset (ms)');
-ylabel('Neuron #');
+ylabel({'Neuron #','(sorted by S2-aligned PCs)'});
 
 % plot psth raster
 imagesc(roi2plot_padded,[1,n_neurons],s2_zpsths(:,s2_theta_idcs)',clim);
@@ -325,7 +335,7 @@ clrlabel.string = sprintf('z-score_{I_2 = %i %s}',...
 clrlabel.string = 'Firing rate (z-score)';
 clrlabel.fontsize = axesopt.default.fontsize * 1.1;
 clrlabel.rotation = 270;
-% clrlabel.position = [4.4,sum(clim)/2,0];
+clrlabel.position = [3.5,sum(clim)/2,0];
 set(clrbar,...
     axesopt.colorbar,...
     'color','k',...
@@ -470,7 +480,7 @@ h = -sum(P .* log2(P));
 % s2_coeff(:,2) = h; % max(P); % var(diff(Z)); % sum(diff(P));
 
 % ramp_flags = ismember(flagged_neurons,[ramp_idcs.s1.up;ramp_idcs.s1.down]);
-s2_coeff = abs(s2_coeff);
+s2_coeff = (s2_coeff);
 n_hi = 5;
 grapeplot(s2_coeff(:,1),sum(s2_coeff(:,2:n_hi),2));
 % grapeplot(s2_coeff(ramp_flags,1),s2_coeff(ramp_flags,2),...
