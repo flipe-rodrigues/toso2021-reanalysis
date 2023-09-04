@@ -109,7 +109,7 @@ conditions.test.values
 n_runs = 100;
 
 %% subject selection
-subject_flags = ismember(subjects,subject_set);
+subject_flags = ismember(subjects,subject_set n );
 
 %% concatenation settings
 n_concats_max = 2^7;

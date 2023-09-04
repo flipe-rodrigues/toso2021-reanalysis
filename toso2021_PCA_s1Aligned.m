@@ -527,7 +527,6 @@ ylabel('Neural dimension 2_{2}');
 % rotation specification
 rotfuns = {@rotxd,@rotyd,@rotzd};
 thetas = [50,-10,90] .* [1,1,1];
-% thetas = [45,45,45];
 S_ref = nan(3,roi2plot_n_bins,n_contrasts);
 S = nan(3,roi2plot_n_bins,n_contrasts);
 for pc = 1 : 3

@@ -194,13 +194,11 @@ for rr = 1 : n_runs
             % fetch spike counts & compute spike rates
             spike_counts = data.SDF(trial_flags,:)';
             
-            % S2-offset-aligned spike rates
+            % S1-offset-aligned spike rates
             alignment = ...
                 pre_init_padding + ...
                 pre_s1_delay(trial_flags) + ...
-                t1(trial_flags) + ...
-                isi + ...
-                t2(trial_flags);
+                t1(trial_flags);
             alignment_flags = ...
                 padded_time >= alignment - spk_integration_win & ...
                 padded_time < alignment;
@@ -266,7 +264,7 @@ for rr = 1 : n_runs
             concat_spkcounts(nn,concat_idcs) = ...
                 nanmean(aligned_spkcounts(rand_idcs,:),2);
             concat_s1(concat_idcs) = s1(flagged_trials(rand_idcs));
-            concat_s2(concat_idcs) = stimuli(flagged_trials(rand_idcs));
+            concat_s2(concat_idcs) = s2(flagged_trials(rand_idcs));
             concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
             concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
             concat_evalset(concat_idcs) = 'train';
@@ -300,13 +298,11 @@ for rr = 1 : n_runs
             % fetch spike counts & compute spike rates
             spike_counts = data.SDF(trial_flags,:)';
             
-            % S2-offset-aligned spike rates
+            % S1-offset-aligned spike rates
             alignment = ...
                 pre_init_padding + ...
                 pre_s1_delay(trial_flags) + ...
-                t1(trial_flags) + ...
-                isi + ...
-                t2(trial_flags);
+                t1(trial_flags);
             alignment_flags = ...
                 padded_time >= alignment - spk_integration_win & ...
                 padded_time < alignment;
@@ -336,7 +332,7 @@ for rr = 1 : n_runs
             concat_spkcounts(nn,concat_idcs) = ...
                 nanmean(aligned_spkcounts(rand_idcs,:),2);
             concat_s1(concat_idcs) = s1(flagged_trials(rand_idcs));
-            concat_s2(concat_idcs) = stimuli(flagged_trials(rand_idcs));
+            concat_s2(concat_idcs) = s2(flagged_trials(rand_idcs));
             concat_contrasts(concat_idcs) = contrasts(flagged_trials(rand_idcs));
             concat_choices(concat_idcs) = choice(flagged_trials(rand_idcs));
             concat_evalset(concat_idcs) = 'test';
@@ -408,7 +404,7 @@ for rr = 1 : n_runs
     end
 end
 
-%% visualize population state at T2 offset
+%% visualize population state at S1 offset
 X = concat_spkcounts(~invalid_flags,:)';
 % X = [concat_spkrates(~invalid_flags,concat_s2 > concat_s1),...
 %     concat_spkrates(~invalid_flags,concat_s2 < concat_s1)]';
@@ -634,7 +630,7 @@ neurocurve_pools = struct();
 % psychometric fit settings
 psyopt.fit = struct();
 psyopt.fit.expType = 'YesNo';
-psyopt.fit.sigmoidName = 'rgumbel'; % 'logistic';
+psyopt.fit.sigmoidName = 'rgumbel';
 psyopt.fit.estimateType = 'MAP';
 psyopt.fit.confP = [.95,.9,.68];
 psyopt.fit.borders = [0,1; 0,1; 0,.25; 0,.25; 0,0];
@@ -654,6 +650,11 @@ for kk = 1 : n_contrasts
     neurocurve_pools(kk).x = unique(neurocurves(kk).x);
     neurocurve_pools(kk).y = avgfun(neurocurves(kk).y,2); % sum(neurocurves(kk).y,2);
     neurocurve_pools(kk).n = avgfun(neurocurves(kk).n,2);
+    
+    % flip to allow for psignifit fitting
+    neurocurve_pools(kk).y = ...
+        neurocurve_pools(kk).n - neurocurve_pools(kk).y;
+    
     neurocurve_pools(kk).err = ....
         errfun(neurocurves(kk).y ./ neurocurves(kk).n,2);
     
@@ -672,7 +673,7 @@ end
 
 % figure initialization
 fig = figure(figopt,...
-    'name',sprintf('neurometric_curves_%s',contrast_str));
+    'name',sprintf('neurometric_curves_s1_%s',contrast_str));
 
 % axes initialization
 axes(...
@@ -694,6 +695,9 @@ psyopt.plot.overallvisibility = 'off';
 psyopt.plot.normalizemarkersize = true;
 psyopt.plot.plotfit = true;
 
+% flip to undo the data flipping
+psyopt.plot.flipy = true;
+
 % graphical object preallocation
 p = gobjects(n_contrasts,1);
 
@@ -713,6 +717,9 @@ for kk = 1 : n_contrasts
     psyopt.plot.plotfit = sum(neurocurve_pools(kk).n ~= 0) >= 2;
     p(kk) = plotpsy(neurocurve_pools(kk),neurocurve_pools(kk).fit,psyopt.plot);
 end
+
+% flip back to not affect other psycho/neurometric plotting
+psyopt.plot.flipy = true;
 
 %% inset with delta P(T2 > T1)
 axes(...
