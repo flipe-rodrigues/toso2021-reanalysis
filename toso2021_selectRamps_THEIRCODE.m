@@ -1,11 +1,16 @@
-%% ----------------------------- THEIR CODE ----------------------------- %
+%% initialization
+if ~exist('DataB','var')
+    load(data_file);
+end
+
+%% ---------------------------- THEIR CODE ----------------------------- %%
 Features=NeuronType_Striatum(DataB);
 Neurons=unique(DataB.Info.NeuronNumb,'rows');
 idN=find(Features(:,3)==0);
 Neurons(idN)=[];
 AllNeurons=Neurons;
-[Neurons,AllRamps,StereoCrit]=Selectramp(DataB,Neurons);
-[~,AllStereo]=Selectstereo(DataB,Neurons);
+[Neurons,AllRamps,StereoCrit,MeanFR]=Selectramp(DataB,Neurons);
+% [~,AllStereo]=Selectstereo(DataB,Neurons);
 
 %% parse their ramp clusters
 
@@ -69,8 +74,8 @@ nonramp_idcs.s2 = find(sum(AllRamps(:,5:8),2)==0);
 % ramp_idcs.go_cue.both = unique([...
 %     ramp_idcs.go_cue.up;...
 %     ramp_idcs.go_cue.down]);
-% ramp_idcs.go = find(sum(AllRamps(:,9:10),2)>0);
-% nonramp_idcs.go = find(sum(AllRamps(:,9:10),2)==0);
+ramp_idcs.go = find(sum(AllRamps(:,9:10),2)>0);
+nonramp_idcs.go = find(sum(AllRamps(:,9:10),2)==0);
 
 %% parse their non-stereotypical clusters
 
@@ -139,6 +144,7 @@ nonstereo_idcs.s2 = find(sum(AllStereo(:,4:end),2)==0);
 %% sanity check
 A = [numel(ramp_idcs.s1),numel(nonramp_idcs.s1);...
 numel(ramp_idcs.s2),numel(nonramp_idcs.s2);...
+numel(ramp_idcs.go),numel(nonramp_idcs.go);...
 numel(stereo_idcs.s1),numel(nonstereo_idcs.s1);...
 numel(stereo_idcs.s2),numel(nonstereo_idcs.s2)];
 [A,sum(A,2),A(:,1)./A(:,2)]

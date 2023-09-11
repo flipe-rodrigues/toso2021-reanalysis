@@ -291,8 +291,8 @@ for rr = 1 : n_runs
         for kk = 1 : conditions.test.n
             
             % flag trials for the current condition
-            feature_flags = false(n_total_trials,conditions.train.features.n);
-            for ff = 1 : conditions.train.features.n
+            feature_flags = false(n_total_trials,conditions.test.features.n);
+            for ff = 1 : conditions.test.features.n
                 feature_lbl = conditions.test.features.labels{ff};
                 feature = eval(feature_lbl);
                 feature_flags(:,ff) = ismember(...
