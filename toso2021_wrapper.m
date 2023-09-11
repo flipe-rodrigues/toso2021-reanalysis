@@ -24,20 +24,9 @@ data = DataB.Info;
 rt_file = fullfile(data_path,'RT_behavior.mat');
 rts = load(rt_file);
 data.Rts = rts.(sprintf('%s_rats',capitalize(task_str)));
-% ---------------------------- THEIR RAMPS ------------------------------ %
-% Features=NeuronType_Striatum(DataB);
-% Neurons=unique(DataB.Info.NeuronNumb,'rows');
-% AllNeurons=Neurons;
-% [Neurons,AllRamps]=Selectramp(DataB,Neurons);
-% ramp_idcs.s1.on.up = find(sum(AllRamps(:,1),2)>0);
-% ramp_idcs.s1.on.down = find(sum(AllRamps(:,2),2)>0);
-% ramp_idcs.s1.off.up = find(sum(AllRamps(:,3),2)>0);
-% ramp_idcs.s1.off.down = find(sum(AllRamps(:,4),2)>0);
-% ramp_idcs.s2.on.up = find(sum(AllRamps(:,5),2)>0);
-% ramp_idcs.s2.on.down = find(sum(AllRamps(:,6),2)>0);
-% ramp_idcs.s2.off.up = find(sum(AllRamps(:,7),2)>0);
-% ramp_idcs.s2.off.down = find(sum(AllRamps(:,8),2)>0);
-% ----------------------------------------------------------------------- %
+
+% cluster neurons into ramping & non-ramping neurons using their code
+toso2021_selectRamps_THEIRCODE;
 clear DataB;
 
 %% save settings

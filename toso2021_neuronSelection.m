@@ -7,26 +7,26 @@ end
 
 % excluded for being unstable (assessed by looking at spike rasters)
 if strcmpi(task_str,'duration')
-%     neurons2exclude_s1 = [...
-%         11,13,15,16,22,25,27,30,31,34,40,42,45,46,47,52,53,54,55,56,...
-%         57,58,64,65,66,67,68,74,77,78,80,87,89,91,95,97,128,134,142,...
-%         136,144,149,150,154,159,164,166,170,171,173,185,188,194,195,...
-%         204,205,206,214,217,219,228,230,240,241,243,257,269,...
-%         274,277,278,280,281,283,298,305,314,328,334,336,339,345,349,...
-%         350,351,356,363,365,369,370,378,380,384,386,389,390,397,405,...
-%         407,414,415,417,421,426,433,437,438,447,455,456,459,467,468,...
-%         474,477,485,490,498,500,504,505,509,523,531,535,542,544,548,...
-%         558,571,575,579,583,587,594,599];
-%     neurons2exclude_s2 = [...
-%         4,8,9,14,15,16,17,18,19,20,21,23,26,29,36,37,38,41,45,51,58,...
-%         59,60,63,71,73,75,79,82,83,86,88,92,93,96,99,100,102,105,107,...
-%         112,143,153,155,157,160,167,179,181,183,184,186,187,192,197,...
-%         198,201,202,205,212,226,239,249,252,253,254,256,258,259,261,...
-%         263,265,266,267,273,276,285,289,307,325,326,340,347,348,359,...
-%         360,361,362,371,374,375,379,398,399,400,429,430,431,432,440,...
-%         442,444,449,450,451,452,453,484,506,507,510,512,516,517,518,...
-%         522,539,541,557,562,572,578,584,585,586,596,601,602];
-%     neurons2exclude = unique([neurons2exclude_s1,neurons2exclude_s2]);
+    %     neurons2exclude_s1 = [...
+    %         11,13,15,16,22,25,27,30,31,34,40,42,45,46,47,52,53,54,55,56,...
+    %         57,58,64,65,66,67,68,74,77,78,80,87,89,91,95,97,128,134,142,...
+    %         136,144,149,150,154,159,164,166,170,171,173,185,188,194,195,...
+    %         204,205,206,214,217,219,228,230,240,241,243,257,269,...
+    %         274,277,278,280,281,283,298,305,314,328,334,336,339,345,349,...
+    %         350,351,356,363,365,369,370,378,380,384,386,389,390,397,405,...
+    %         407,414,415,417,421,426,433,437,438,447,455,456,459,467,468,...
+    %         474,477,485,490,498,500,504,505,509,523,531,535,542,544,548,...
+    %         558,571,575,579,583,587,594,599];
+    %     neurons2exclude_s2 = [...
+    %         4,8,9,14,15,16,17,18,19,20,21,23,26,29,36,37,38,41,45,51,58,...
+    %         59,60,63,71,73,75,79,82,83,86,88,92,93,96,99,100,102,105,107,...
+    %         112,143,153,155,157,160,167,179,181,183,184,186,187,192,197,...
+    %         198,201,202,205,212,226,239,249,252,253,254,256,258,259,261,...
+    %         263,265,266,267,273,276,285,289,307,325,326,340,347,348,359,...
+    %         360,361,362,371,374,375,379,398,399,400,429,430,431,432,440,...
+    %         442,444,449,450,451,452,453,484,506,507,510,512,516,517,518,...
+    %         522,539,541,557,562,572,578,584,585,586,596,601,602];
+    %     neurons2exclude = unique([neurons2exclude_s1,neurons2exclude_s2]);
     neurons2exclude = [...
         1,5,8,9,10,11,12,14,20,23,29,36,40,71,86,92,95,136,181,185,192,...
         201,207,208,239,247,249,254,265,280,285,326,336,340,374,...
@@ -87,11 +87,11 @@ for nn = neuron_idcs'
     
     % neuron selection criteria
     s2_mean_frs(nn) = nanmean(s2_spkrates,[1,2]);
-
+    
     % iterate through durations
     for tt = 1 : n_t
         t1_flags = t1 == t_set(tt);
-
+        
         % iterate through intensities
         for ii = 1 : n_i
             i1_flags = i1 == i_set(ii);
@@ -106,17 +106,17 @@ for nn = neuron_idcs'
                 neuron_flags & ...
                 t1_flags & ...
                 i2_flags;
-
+            
             % store trial type counts
             t1i1_trial_counts(nn,tt,ii) = sum(t1i1_spike_flags);
             t1i2_trial_counts(nn,tt,ii) = sum(t1i2_spike_flags);
         end
     end
     
-        % iterate through durations
+    % iterate through durations
     for tt = 1 : n_t
         t2_flags = t2 == t_set(tt);
-
+        
         % iterate through intensities
         for ii = 1 : n_i
             i1_flags = i1 == i_set(ii);
@@ -131,82 +131,82 @@ for nn = neuron_idcs'
                 neuron_flags & ...
                 t2_flags & ...
                 i2_flags;
-
+            
             % store trial type counts
             t2i1_trial_counts(nn,tt,ii) = sum(t2i1_spike_flags);
             t2i2_trial_counts(nn,tt,ii) = sum(t2i2_spike_flags);
         end
     end
-
-%     % fetch spike counts & compute spike rates
-%     spike_counts = data.FR(spike_flags,:);
-%     spike_rates = conv2(...
-%         1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
-%     n_trials = size(spike_counts,1);
-%     pre_s1_n_bins = unique(pre_s1_delay(valid_flags)) / psthbin;
-%     isi_n_bins = isi / psthbin;
-%     
-%     % pre-S1-aligned spike rates
-%     pre_s1_alignment_onset = ...
-%         pre_init_padding;
-%     pre_s1_alignment_flags = ...
-%         padded_time >= pre_s1_alignment_onset & ...
-%         padded_time < pre_s1_alignment_onset + pre_s1_delay(spike_flags);
-%     pre_s1_chunk_flags = pre_s1_alignment_flags;
-%     pre_s1_spkcounts = spike_counts;
-%     pre_s1_spkcounts(~pre_s1_alignment_flags') = nan;
-%     pre_s1_spkcounts = reshape(...
-%         pre_s1_spkcounts(pre_s1_chunk_flags'),[pre_s1_n_bins,n_trials])';
+    
+    %     % fetch spike counts & compute spike rates
+    %     spike_counts = data.FR(spike_flags,:);
+    %     spike_rates = conv2(...
+    %         1,kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
+    %     n_trials = size(spike_counts,1);
+    %     pre_s1_n_bins = unique(pre_s1_delay(valid_flags)) / psthbin;
+    %     isi_n_bins = isi / psthbin;
+    %
+    %     % pre-S1-aligned spike rates
+    %     pre_s1_alignment_onset = ...
+    %         pre_init_padding;
+    %     pre_s1_alignment_flags = ...
+    %         padded_time >= pre_s1_alignment_onset & ...
+    %         padded_time < pre_s1_alignment_onset + pre_s1_delay(spike_flags);
+    %     pre_s1_chunk_flags = pre_s1_alignment_flags;
+    %     pre_s1_spkcounts = spike_counts;
+    %     pre_s1_spkcounts(~pre_s1_alignment_flags') = nan;
+    %     pre_s1_spkcounts = reshape(...
+    %         pre_s1_spkcounts(pre_s1_chunk_flags'),[pre_s1_n_bins,n_trials])';
     
     % flag unstable units
-%     X = [trial_idcs];%,prev_choice,prev_correct,prev_t1,prev_i1,prev_t2,prev_i2];
-%     y = sum(pre_s1_spike_counts,2);
-%     mdl = fitglm(X(pre_s1_spike_flags,:),y,'linear',...
-%         'predictorvars',{'trial #'},...,'prev_choice','prev_correct','prev_t1','prev_i1','prev_t2','prev_i2'},...
-%         'distribution','poisson',...
-%         'intercept',true);
-%     pval = mdl.Coefficients.pValue(ismember(mdl.CoefficientNames,'trial #'));
-% %     [~,pval] = corr(trial_idcs(pre_s1_spike_flags),y);
-%     instability_flags(nn) = pval < .01;
-%     mdl
-%     figure; plot(y,trial_idcs(pre_s1_spike_flags))
-%     title(sprintf('Neuron: %i, p-value %.2f:',nn,mdl.Coefficients.pValue(...
-%         ismember(mdl.CoefficientNames,'trial #'))));
-%     a=1
+    %     X = [trial_idcs];%,prev_choice,prev_correct,prev_t1,prev_i1,prev_t2,prev_i2];
+    %     y = sum(pre_s1_spike_counts,2);
+    %     mdl = fitglm(X(pre_s1_spike_flags,:),y,'linear',...
+    %         'predictorvars',{'trial #'},...,'prev_choice','prev_correct','prev_t1','prev_i1','prev_t2','prev_i2'},...
+    %         'distribution','poisson',...
+    %         'intercept',true);
+    %     pval = mdl.Coefficients.pValue(ismember(mdl.CoefficientNames,'trial #'));
+    % %     [~,pval] = corr(trial_idcs(pre_s1_spike_flags),y);
+    %     instability_flags(nn) = pval < .01;
+    %     mdl
+    %     figure; plot(y,trial_idcs(pre_s1_spike_flags))
+    %     title(sprintf('Neuron: %i, p-value %.2f:',nn,mdl.Coefficients.pValue(...
+    %         ismember(mdl.CoefficientNames,'trial #'))));
+    %     a=1
     
-%     % ISI-aligned spike rates
-%     isi_alignment_onset = ...
-%         pre_init_padding + ...
-%         pre_s1_delay(spike_flags) + ...
-%         t1(spike_flags);
-%     isi_alignment_flags = ...
-%         valid_time >= isi_alignment_onset & ...
-%         valid_time < isi_alignment_onset + isi;
-%     isi_chunk_flags = isi_alignment_flags;
-%     isi_spkrates = spike_rates;
-%     isi_spkrates(~isi_alignment_flags') = nan;
-%     isi_spkrates = reshape(...
-%         isi_spkrates(isi_chunk_flags'),[isi_n_bins,n_trials])';
-
-%     % compute stability coefficients
-%     first_third_idcs = 1 : round(n_trials * 1 / 3);
-%     last_third_idcs = round(n_trials * 2 / 3) : n_trials;
-%     first_third_mu = nanmean(isi_spkrates(first_third_idcs,:),1)';
-%     last_third_mu = nanmean(isi_spkrates(last_third_idcs,:),1)';
-%     stability_coeffs(nn) = corr(...
-%         first_third_mu(~isnan(first_third_mu)&~isnan(last_third_mu)),...
-%         last_third_mu(~isnan(first_third_mu)&~isnan(last_third_mu)));
-%     coeffs = abs(corrcoef(isi_spkrates'));
-%     coeffs_triu = triu(coeffs,1);
-%     coeffs_triu(coeffs == tril(coeffs)) = nan;
-%     stability_coeffs(nn) = nanmean(coeffs_triu,[1,2]);
+    %     % ISI-aligned spike rates
+    %     isi_alignment_onset = ...
+    %         pre_init_padding + ...
+    %         pre_s1_delay(spike_flags) + ...
+    %         t1(spike_flags);
+    %     isi_alignment_flags = ...
+    %         valid_time >= isi_alignment_onset & ...
+    %         valid_time < isi_alignment_onset + isi;
+    %     isi_chunk_flags = isi_alignment_flags;
+    %     isi_spkrates = spike_rates;
+    %     isi_spkrates(~isi_alignment_flags') = nan;
+    %     isi_spkrates = reshape(...
+    %         isi_spkrates(isi_chunk_flags'),[isi_n_bins,n_trials])';
     
-%     figure; hold on;
-%     title(sprintf('Neuron: %i, corr. coeff %.2f:',nn,stability_coeffs(nn)));
-%     plot(first_third_mu(~isnan(first_third_mu)&~isnan(last_third_mu)));
-%     plot(last_third_mu(~isnan(first_third_mu)&~isnan(last_third_mu)));
-%     a=1
-
+    %     % compute stability coefficients
+    %     first_third_idcs = 1 : round(n_trials * 1 / 3);
+    %     last_third_idcs = round(n_trials * 2 / 3) : n_trials;
+    %     first_third_mu = nanmean(isi_spkrates(first_third_idcs,:),1)';
+    %     last_third_mu = nanmean(isi_spkrates(last_third_idcs,:),1)';
+    %     stability_coeffs(nn) = corr(...
+    %         first_third_mu(~isnan(first_third_mu)&~isnan(last_third_mu)),...
+    %         last_third_mu(~isnan(first_third_mu)&~isnan(last_third_mu)));
+    %     coeffs = abs(corrcoef(isi_spkrates'));
+    %     coeffs_triu = triu(coeffs,1);
+    %     coeffs_triu(coeffs == tril(coeffs)) = nan;
+    %     stability_coeffs(nn) = nanmean(coeffs_triu,[1,2]);
+    
+    %     figure; hold on;
+    %     title(sprintf('Neuron: %i, corr. coeff %.2f:',nn,stability_coeffs(nn)));
+    %     plot(first_third_mu(~isnan(first_third_mu)&~isnan(last_third_mu)));
+    %     plot(last_third_mu(~isnan(first_third_mu)&~isnan(last_third_mu)));
+    %     a=1
+    
     % compute ramping vs. non-ramping metrics
     %     mdl = fitlm(valid_time,nanmean(s2_spkrates,1));
     %     timeregr_pvals(nn) = mdl.Coefficients.pValue(2);
@@ -253,3 +253,37 @@ fprintf('- minimum trial count on all T2-I2 combinations: %i\n',...
 %     stability_cutoff);
 fprintf('- sability assessed by visual inspection\n');
 fprintf('%i/%i neurons passed.\n\n',n_neurons,n_neurons_total);
+
+%% update their clustering outputs according to our selection
+
+% update "ramping" neurons
+if exist('ramp_idcs','var')
+    epochfields = fieldnames(ramp_idcs);
+    n_epochfields = numel(epochfields);
+    for ii = 1 : n_epochfields
+        ramp_flags = ismember(ramp_idcs.(epochfields{ii}),flagged_neurons);
+        ramp_idcs.(epochfields{ii}) = ramp_idcs.(epochfields{ii})(ramp_flags);
+        nonramp_flags = ismember(nonramp_idcs.(epochfields{ii}),flagged_neurons);
+        nonramp_idcs.(epochfields{ii}) = nonramp_idcs.(epochfields{ii})(nonramp_flags);
+    end
+end
+
+% update stereotypical neurons
+if exist('nonstereo_idcs','var')
+    epochfields = fieldnames(stereo_idcs);
+    n_epochfields = numel(epochfields);
+    for ii = 1 : n_epochfields
+        flags = ismember(stereo_idcs.(epochfields{ii}),flagged_neurons);
+        stereo_idcs.(epochfields{ii}) = stereo_idcs.(epochfields{ii})(flags);
+    end
+end
+
+% update non-stereotypical neurons
+if exist('nonstereo_idcs','var')
+    epochfields = fieldnames(nonstereo_idcs);
+    n_epochfields = numel(epochfields);
+    for ii = 1 : n_epochfields
+        flags = ismember(nonstereo_idcs.(epochfields{ii}),flagged_neurons);
+        nonstereo_idcs.(epochfields{ii}) = nonstereo_idcs.(epochfields{ii})(flags);
+    end
+end
