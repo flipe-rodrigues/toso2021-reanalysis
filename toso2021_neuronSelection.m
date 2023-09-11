@@ -261,10 +261,14 @@ if exist('ramp_idcs','var')
     epochfields = fieldnames(ramp_idcs);
     n_epochfields = numel(epochfields);
     for ii = 1 : n_epochfields
-        ramp_flags = ismember(ramp_idcs.(epochfields{ii}),flagged_neurons);
-        ramp_idcs.(epochfields{ii}) = ramp_idcs.(epochfields{ii})(ramp_flags);
-        nonramp_flags = ismember(nonramp_idcs.(epochfields{ii}),flagged_neurons);
-        nonramp_idcs.(epochfields{ii}) = nonramp_idcs.(epochfields{ii})(nonramp_flags);
+        ramp_flags = ...
+            ismember(ramp_idcs.(epochfields{ii}),flagged_neurons);
+        ramp_idcs.(epochfields{ii}) = ...
+            ramp_idcs.(epochfields{ii})(ramp_flags);
+        nonramp_flags = ...
+            ismember(nonramp_idcs.(epochfields{ii}),flagged_neurons);
+        nonramp_idcs.(epochfields{ii}) = ...
+            nonramp_idcs.(epochfields{ii})(nonramp_flags);
     end
 end
 

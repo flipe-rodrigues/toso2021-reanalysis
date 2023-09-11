@@ -185,6 +185,7 @@ t1_cat_clrs = [...
     mean(t1_clrs(1:t1_mode_idx-1,:));...
     mean(t1_clrs(t1_mode_idx+1:end,:))];
 t1_cat_clrs = cool(n_t1_cat);
+ramp_clrs = [.85,.05,.25; .15,.15,.15];
 
 %% task variant adaptations
 

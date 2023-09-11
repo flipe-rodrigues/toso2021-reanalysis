@@ -1,7 +1,8 @@
 %% ----------------------------- THEIR CODE ----------------------------- %
 Features=NeuronType_Striatum(DataB);
 Neurons=unique(DataB.Info.NeuronNumb,'rows');
-idN=find(Features(:,3)==0);Neurons(idN)=[];
+idN=find(Features(:,3)==0);
+Neurons(idN)=[];
 AllNeurons=Neurons;
 [Neurons,AllRamps,StereoCrit]=Selectramp(DataB,Neurons);
 [~,AllStereo]=Selectstereo(DataB,Neurons);
@@ -59,8 +60,8 @@ nonramp_idcs.s1 = find(sum(AllRamps(:,1:4),2)==0);
 %     ramp_idcs.s2.down]);
 % ramp_idcs.s2_onset = find(sum(AllRamps(:,5:6),2)>0);
 % ramp_idcs.s2_offset = find(sum(AllRamps(:,7:8),2)>0);
-ramp_idcs.s2 = find(sum(AllRamps(:,4:end),2)>0);
-nonramp_idcs.s2 = find(sum(AllRamps(:,4:end),2)==0);
+ramp_idcs.s2 = find(sum(AllRamps(:,5:8),2)>0);
+nonramp_idcs.s2 = find(sum(AllRamps(:,5:8),2)==0);
 
 % go-aligned "ramps"
 % ramp_idcs.go_cue.up = find(sum(AllRamps(:,9),2)>0);
@@ -140,4 +141,4 @@ A = [numel(ramp_idcs.s1),numel(nonramp_idcs.s1);...
 numel(ramp_idcs.s2),numel(nonramp_idcs.s2);...
 numel(stereo_idcs.s1),numel(nonstereo_idcs.s1);...
 numel(stereo_idcs.s2),numel(nonstereo_idcs.s2)];
-[A,sum(A,2)]
+[A,sum(A,2),A(:,1)./A(:,2)]

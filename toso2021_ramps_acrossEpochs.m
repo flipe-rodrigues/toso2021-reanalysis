@@ -10,31 +10,79 @@ fig = figure(figopt,...
     'name','ramps across epochs');
 
 % epoch settings
-epochs = {...
-    'S1 onset',...
-    'S1 offset',...
-    'S2 onset',...
-    'S2 offset'};
+epochs = fieldnames(StereoCrit);
+epochs = epochs(1:end-1);
 n_epochs = numel(epochs);
 
+% axes initialization
+axes(axesopt.default,...
+    'plotboxaspectratio',[2,1,1],...
+    'color','none',...
+    'ticklength',axesopt.default.ticklength*.58,...
+    'xlim',[1,n_epochs]+[-1,1]*.75,...
+    'xtick',1:n_epochs,...
+    'xticklabel',strrep(epochs,'_',' '),...
+    'ylimspec','tight',...
+    'clipping','off',...
+    'layer','bottom');
+ylabel('Stereotypy coefficient');
+
 % preallocation
-rho_avg = table('size',[n_epochs,2],...
-    'variabletypes',{'double','double'},...
-    'variablenames',{'ramping','non-ramping'},...
-    'rownames',epochs)
-rho_err = table('size',[n_epochs,2],...
-    'variabletypes',{'double','double'},...
-    'variablenames',{'ramping','non-ramping'},...
-    'rownames',epochs);
+rho_avg = struct();
+rho_err = struct();
+
+avgfun = @(x) nanmean(x);
+errfun = @(x) [1,1] .* nanstd(x);
+% avgfun = @(x) nanmedian(x);
+% errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 
 % iterate through alignments
-for ii = 1 : n_epochs
-    epoch = epochfields{ii};
-    counts(1,1) = ramp_idcs.(epoch)
-    
+for ee = 1 : n_epochs
+    epoch = epochs{ee};
+    [~,uscore_idcs] = regexp(epoch,'_');
+    stim = lower(epoch(1:uscore_idcs(1)-1));
+    rho_avg.(epoch) = [...
+        avgfun(StereoCrit.(epoch)(ramp_idcs.(stim)));...
+        avgfun(StereoCrit.(epoch)(nonramp_idcs.(stim)))];
+    rho_err.(epoch) = [...
+        errfun(StereoCrit.(epoch)(ramp_idcs.(stim)));...
+        errfun(StereoCrit.(epoch)(nonramp_idcs.(stim)))];
 end
 
-%
+% table conversions
+rho_avg = struct2table(rho_avg,...
+    'rownames',{'ramping','non-ramping'});
+rho_err = struct2table(rho_err,...
+    'rownames',{'ramping','non-ramping'});
+
+% iterate through alignments
+for ee = 1 : n_epochs
+    epoch = epochs{ee};
+    for rr = 1 : 2
+        xoffset = (rr - 1) / 5;
+        errorbar(ee+xoffset,rho_avg.(epoch)(rr),...
+            rho_err.(epoch)(rr,1),rho_err.(epoch)(rr,2),...
+            'color','k',...
+            'marker','o',...
+            'markersize',7.5,...
+            'markeredgecolor','k',...
+            'markerfacecolor',ramp_clrs(rr,:),...
+            'linewidth',1.5);
+    end
+end
+
+% update axes
+yylim = [min(ylim),1];
+yytick = [min(yylim),.5,1];
+yyticklabel = num2cell(yytick);
+yyticklabel(1) = {''};
+set(gca,...
+    'ylim',yylim + [-1,1] * .1 * range(yylim),...
+    'ytick',yytick,...
+    'yticklabel',yyticklabel);
+
+return;
+
 % counter = 0;
 % epochfields = fieldnames(ramp_idcs);
 % n_epochfields = numel(epochfields);
@@ -206,20 +254,20 @@ end
 
 figure;
 hold on;
-histogram(nanmean(StereoCrit(ramp_idcs.s1,1),2));
-histogram(nanmean(StereoCrit(nonramp_idcs.s1,1),2));
+histogram(StereoCrit.S1_onset(ramp_idcs.s1));
+histogram(StereoCrit.S1_onset(nonramp_idcs.s1));
 
 figure;
 hold on;
-histogram(nanmean(StereoCrit(ramp_idcs.s1,2),2));
-histogram(nanmean(StereoCrit(nonramp_idcs.s1,2),2));
+histogram(StereoCrit.S1_offset(ramp_idcs.s1));
+histogram(StereoCrit.S1_offset(nonramp_idcs.s1));
 
 figure;
 hold on;
-histogram(nanmean(StereoCrit(ramp_idcs.s2,3),2));
-histogram(nanmean(StereoCrit(nonramp_idcs.s2,3),2));
+histogram(StereoCrit.S2_onset(ramp_idcs.s1));
+histogram(StereoCrit.S2_onset(nonramp_idcs.s1));
 
 figure;
 hold on;
-histogram(nanmean(StereoCrit(ramp_idcs.s2,4),2));
-histogram(nanmean(StereoCrit(nonramp_idcs.s2,4),2));
+histogram(StereoCrit.S2_offset(ramp_idcs.s1));
+histogram(StereoCrit.S2_offset(nonramp_idcs.s1));
