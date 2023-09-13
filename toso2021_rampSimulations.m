@@ -19,7 +19,7 @@ end
 % T = 100; 	% time points
 N = 50;     % neurons
 K = 100;    % trials
-B = 25;   	% bootstrap iterations
+B = 100;   	% bootstrap iterations
 P = 4;      % number of partitions with which to assess stereotypy
 
 %% time settings
@@ -50,7 +50,7 @@ pval_stereotypy_cutoff = .01;
 
 % model parameters
 gamma_ranges = [...
-    [4,4]; ...
+    [5,5]; ...
     [5,5]; ...
     [0,100]; ...
     [0,100]];
@@ -96,9 +96,10 @@ for mm = 1 : M
         
         %% model parameters
         gammas = clamp(exprnd(10,N,1),gamma_ranges(mm,1),gamma_ranges(mm,2));
-        lambdas = clamp(exprnd(.2*(tf-ti),N,1),lambda_ranges(mm,1),lambda_ranges(mm,2));
+        lambdas = clamp(exprnd(.15*(tf-ti),N,1),lambda_ranges(mm,1),lambda_ranges(mm,2));
         mus = linspace(ti,tf,N)';
-        sigmas = repmat(.25*(tf-ti),N,1);
+%         sigmas = repmat(.25*(tf-ti),N,1);
+        sigmas = abs(normrnd(.25,.05,N,1)) * (tf - ti);
         
         %% generate fake data
         
@@ -106,12 +107,15 @@ for mm = 1 : M
         X = nan(T,N,K);
         R = nan(T,N,K);
         
+        % baseline firing rate
+        bsl_fr = 2;
+        
         % iterate through neurons
         for nn = 1 : N
             for kk = 1 : K
-                X(:,nn,kk) = generativerate(...
+                X(:,nn,kk) = bsl_fr + generativerate(...
                     t,gammas(nn),mus(nn),lambdas(nn),sigmas(nn));
-                x_padded = generativerate(...
+                x_padded = bsl_fr + generativerate(...
                     t_padded,gammas(nn),mus(nn),lambdas(nn),sigmas(nn));
                 dur_padded = range(t_padded) / t_units;
                 [~,ts] = poissonprocess(x_padded,dur_padded);
@@ -124,7 +128,7 @@ for mm = 1 : M
         end
         
         % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-%         R = X;
+        R = X;
         % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         
         %% compute cross-trial averages
@@ -208,6 +212,13 @@ for mm = 1 : M
             nanmean(R(:,~ramp_flags,train_flags),3),...
             nanmean(R(:,~ramp_flags,~train_flags),3));
         
+        % enforce equal numbers of neurons on both clusters
+        n_ramp = sum(ramp_flags);
+        n_non = sum(~ramp_flags);
+        n = min(n_ramp,n_non);
+        tensor_ramp = tensor_ramp(:,randperm(n_ramp,n),:);
+        tensor_non = tensor_non(:,randperm(n_non,n),:);
+
         % decoding options
         opt = struct();
         opt.n_xpoints = 100;
@@ -220,11 +231,8 @@ for mm = 1 : M
         opt.verbose = false;
         
         % preallocation
-        P_Rt = nan(T,N,opt.n_xpoints);
-        [P_tR_ramp,P_Rt(:,ramp_flags,:),~,~] = ...
-            naivebayestimedecoder(tensor_ramp,opt);
-        [P_tR_non,P_Rt(:,~ramp_flags,:),~,~] = ...
-            naivebayestimedecoder(tensor_non,opt);
+        P_tR_ramp = naivebayestimedecoder(tensor_ramp,opt);
+        P_tR_non = naivebayestimedecoder(tensor_non,opt);
         
         % normalization
         P_tR_ramp = P_tR_ramp ./ nansum(P_tR_ramp,1);
@@ -298,8 +306,6 @@ for mm = 1 : M
         set(sps,...
             axesopt.default,...
             'xlim',[ti,tf],...
-            'ylim',[1,N],...
-            'ytick',[1,N],...
             'colormap',hot(2^8),...
             'layer','top',...
             'tickdir','out',...
@@ -308,9 +314,18 @@ for mm = 1 : M
             'linewidth',2,...
             'fontsize',12,...
             'ticklength',[1,1]*.025);
-        title(sps(1),'All (rates)');
-        title(sps(2),'Ramps (z-scores)');
-        title(sps(3),'Non-ramps (z-scores)');
+        set(sps(1),...
+            'ylim',[1,N],...
+            'ytick',[1,N]);
+        set(sps(2),...
+            'ylim',[1,sum(ramp_flags)],...
+            'ytick',[1,sum(ramp_flags)]);
+        set(sps(3),...
+            'ylim',[1,sum(~ramp_flags)],...
+            'ytick',[1,sum(~ramp_flags)]);
+        title(sps(1),'All');
+        title(sps(2),'Ramps');
+        title(sps(3),'Non-ramps');
         
         % normalization
         z = zscore(x);
@@ -321,8 +336,8 @@ for mm = 1 : M
         
         % plot psth raster
         imagesc(sps(1),t,[1,N],r',r_clim);
-        imagesc(sps(2),t,[1,N],r(:,ramp_flags)',r_clim);
-        imagesc(sps(3),t,[1,N],r(:,~ramp_flags)',r_clim);
+        imagesc(sps(2),t,[1,sum(ramp_flags)],r(:,ramp_flags)',r_clim);
+        imagesc(sps(3),t,[1,sum(~ramp_flags)],r(:,~ramp_flags)',r_clim);
 %         imagesc(sps(2),t,[1,N],z(:,ramp_flags)',clim);
 %         imagesc(sps(3),t,[1,N],z(:,~ramp_flags)',clim);
         
@@ -592,8 +607,8 @@ errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 %
 X_ramp = MU_ramp;
 X_non = MU_non;
-% X_ramp = SD_ramp;
-% X_non = SD_non;
+X_ramp = SD_ramp;
+X_non = SD_non;
 
 % iterate through models
 for mm = 1 : M
@@ -738,9 +753,10 @@ end
 
 %%
 figure;
-hold on;
 for mm = 1 : M
-    histogram(P_RAMP(:,mm),(0:.05:1.05)-.025);
+    subplot(M,1,mm);
+    histogram(P_RAMP(:,mm),(0:.025:1.05)-.0125);
+    xlim([0,1]);
 end
 return;
 
@@ -868,6 +884,16 @@ text(1,.9,...
     'horizontalalignment','right',...
     'units','normalized');
 % imagesc(t,[1,K],nanmean(R_eg(:,1,:),3)')
+
+%%
+figure;
+axes(axesopt.default);
+xlabel('Firing rate (Hz)');
+histogram(nanmean(R,[1,3]),round(N/2),...
+    'facealpha',1,...
+    'edgecolor','w',...
+    'facecolor','k',...
+    'linewidth',1.5);
 
 %% firing rate function
 function x = generativerate(time,gamma,mu,lambda,sigma)
