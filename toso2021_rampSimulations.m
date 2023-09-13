@@ -19,7 +19,7 @@ end
 % T = 100; 	% time points
 N = 50;     % neurons
 K = 100;    % trials
-B = 100;   	% bootstrap iterations
+B = 25;   	% bootstrap iterations
 P = 4;      % number of partitions with which to assess stereotypy
 
 %% time settings
@@ -50,10 +50,10 @@ pval_stereotypy_cutoff = .01;
 
 % model parameters
 gamma_ranges = [...
-    [1,1]*3.5; ...
+    [4,4]; ...
     [5,5]; ...
-    [0,30]; ...
-    [0,30]];
+    [0,100]; ...
+    [0,100]];
 lambda_ranges = [...
     [0,0]; ...
     [0,tf]; ...
@@ -65,7 +65,7 @@ M = size(gamma_ranges,1);
 model_labels = cell(M,1);
 for mm = 1 : M
     model_labels{mm} = sprintf([...
-        '\\gamma\\in[%.1f,%.1f]','\\newline',...
+        '\\gamma\\in[%i,%i]','\\newline',...
         '\\lambda\\in[%i,%i]'],...
         gamma_ranges(mm,1),gamma_ranges(mm,2),...
         lambda_ranges(mm,1),lambda_ranges(mm,2));
@@ -77,13 +77,15 @@ disp(model_labels);
 % preallocation
 MU_ramp = nan(T,B,M);
 MU_non = nan(T,B,M);
-SD_ramp = nan(B,M);
-SD_non = nan(B,M);
+SD_ramp = nan(T,B,M);
+SD_non = nan(T,B,M);
 P_RAMP = nan(B,M);
 RAMP_FLAGS = nan(N,B,M);
 MUS = nan(N,B,M);
 GAMMAS = nan(N,B,M);
 LAMBDAS = nan(N,B,M);
+
+close all
 
 % iterate through models
 for mm = 1 : M
@@ -93,7 +95,7 @@ for mm = 1 : M
         progressreport(bb,B,'bootstrapping')
         
         %% model parameters
-        gammas = clamp(exprnd(15,N,1),gamma_ranges(mm,1),gamma_ranges(mm,2));
+        gammas = clamp(exprnd(10,N,1),gamma_ranges(mm,1),gamma_ranges(mm,2));
         lambdas = clamp(exprnd(.2*(tf-ti),N,1),lambda_ranges(mm,1),lambda_ranges(mm,2));
         mus = linspace(ti,tf,N)';
         sigmas = repmat(.25*(tf-ti),N,1);
@@ -115,7 +117,7 @@ for mm = 1 : M
                 [~,ts] = poissonprocess(x_padded,dur_padded);
                 spk_times = ts * t_units + t_padded(1);
                 spk_counts = histcounts(spk_times,'binedges',t_padded);
-                r_padded = movsum(spk_counts,dt) / (dt/t_units);
+                r_padded = movsum(spk_counts,dt) / (dt / t_units);
                 t_flags = t_padded >= ti & t_padded <= tf;
                 R(:,nn,kk) = r_padded(t_flags);
             end
@@ -247,8 +249,8 @@ for mm = 1 : M
         %% store current bootstrap run
         MU_ramp(:,bb,mm) = mu_ramp;
         MU_non(:,bb,mm) = mu_non;
-        SD_ramp(bb,mm) = nanmean(sd_ramp);
-        SD_non(bb,mm) = nanmean(sd_non);
+        SD_ramp(:,bb,mm) = sd_ramp;
+        SD_non(:,bb,mm) = sd_non;
         P_RAMP(bb,mm) = nanmean(ramp_flags);
         MUS(:,bb,mm) = mus;
         GAMMAS(:,bb,mm) = gammas;
@@ -282,10 +284,18 @@ for mm = 1 : M
         
         % figure initialization
         figure(figopt,...
+            'position',[100,343,1325,420],...
             'name',sprintf('tiling_%i',mm));
         
         % axes initialization
-        set(gca,...
+        n_sps = 3;
+        sps = gobjects(n_sps,1);
+        for ii = 1 : n_sps
+            sps(ii) = subplot(1,n_sps,ii);
+            xlabel(sps(ii),'Time (s)');
+            ylabel(sps(ii),'Neuron #');
+        end
+        set(sps,...
             axesopt.default,...
             'xlim',[ti,tf],...
             'ylim',[1,N],...
@@ -298,34 +308,39 @@ for mm = 1 : M
             'linewidth',2,...
             'fontsize',12,...
             'ticklength',[1,1]*.025);
-        xlabel('Time (s)');
-        ylabel('Neuron #');
-        
-        % color limits
-        clim = [-2,4];
+        title(sps(1),'All (rates)');
+        title(sps(2),'Ramps (z-scores)');
+        title(sps(3),'Non-ramps (z-scores)');
         
         % normalization
         z = zscore(x);
         
+        % color limits
+        r_clim = [min(r,[],'all'),max(r,[],'all')];
+        z_clim = [-1,1] .* max(abs(z),[],'all');
+        
         % plot psth raster
-%         imagesc(t,[1,N],z',clim);
-        imagesc(t,[1,N],r');
+        imagesc(sps(1),t,[1,N],r',r_clim);
+        imagesc(sps(2),t,[1,N],r(:,ramp_flags)',r_clim);
+        imagesc(sps(3),t,[1,N],r(:,~ramp_flags)',r_clim);
+%         imagesc(sps(2),t,[1,N],z(:,ramp_flags)',clim);
+%         imagesc(sps(3),t,[1,N],z(:,~ramp_flags)',clim);
         
         % color bar
-        clrbar = colorbar;
-%         clrbar.Ticks = unique([0,clim]);
-%         clrlabel.string = 'Firing rate (z-score)';
-        clrlabel.string = 'Firing rate (Hz)';
-        clrlabel.fontsize = axesopt.default.fontsize * 1.1;
-        clrlabel.rotation = 270;
-        clrlabel.position = [4,sum(clrbar.Limits)/2,0];
-        set(clrbar,...
-            axesopt.colorbar,...
-            'color','k',...
-            'fontsize',axesopt.default.fontsize);
-        set(clrbar.Label,...
-            'color','k',...
-            clrlabel);
+%         clrbar = colorbar;
+% %         clrbar.Ticks = unique([0,clim]);
+% %         clrlabel.string = 'Firing rate (z-score)';
+%         clrlabel.string = 'Firing rate (Hz)';
+%         clrlabel.fontsize = axesopt.default.fontsize * 1.1;
+%         clrlabel.rotation = 270;
+%         clrlabel.position = [4,sum(clrbar.Limits)/2,0];
+%         set(clrbar,...
+%             axesopt.colorbar,...
+%             'color','k',...
+%             'fontsize',axesopt.default.fontsize);
+%         set(clrbar.Label,...
+%             'color','k',...
+%             clrlabel);
         
         %% plot single-neuron averages
         figure(figopt,...
@@ -421,7 +436,7 @@ for mm = 1 : M
         
         % legend
         legend({'Non-ramping','Ramping'},...
-            'location','southwest',...
+            'location','best',...
             'box','off');
         
         % update axes limits
@@ -465,17 +480,17 @@ for mm = 1 : M
         linkaxes(sps);
         
         % iterate through conditions
-        clims = quantile([P_tR_ramp(:);P_tR_non(:)],[0,1]);
+        clim = [0,1/T*N]; % quantile([P_tR_ramp(:);P_tR_non(:)],[0,1]);
         
         % ramping posteriors
         title(sps(1),sprintf('Ramping neurons (%i/%i)',sum(ramp_flags),N));
-        imagesc(sps(1),[ti,tf],[ti,tf],P_tR_ramp',clims);
+        imagesc(sps(1),[ti,tf],[ti,tf],P_tR_ramp',clim);
         plot(sps(1),xlim(sps(1)),ylim(sps(1)),'-k');
         plot(sps(1),xlim(sps(1)),ylim(sps(1)),'--w');
         
         % non-ramping posteriors
         title(sps(2),sprintf('Non-ramping neurons (%i/%i)',sum(~ramp_flags),N));
-        imagesc(sps(2),[ti,tf],[ti,tf],P_tR_non',clims);
+        imagesc(sps(2),[ti,tf],[ti,tf],P_tR_non',clim);
         plot(sps(2),xlim(sps(2)),ylim(sps(2)),'-k');
         plot(sps(2),xlim(sps(2)),ylim(sps(2)),'--w');
         
@@ -564,9 +579,9 @@ ylabel('Decoding precision SD (a.u.)');
 % offset between ramps and non-ramps
 xoffsets = [-1,1] * .15;
 
-% choice of metric
-metricfun = @(x,d) 1 ./ nanvar(x,0,d);
-metricfun = @(x,d) nanstd(x,0,d);
+% choice of precision function
+precisionfun = @(x,d) 1 ./ nanvar(x,0,d);
+precisionfun = @(x,d) nanstd(x,0,d);
 
 % choice of average and error functions
 avgfun = @(x) nanmean(x);
@@ -574,10 +589,16 @@ errfun = @(x) [1,1] .* nanstd(x);
 avgfun = @(x) nanmedian(x);
 errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 
+%
+X_ramp = MU_ramp;
+X_non = MU_non;
+% X_ramp = SD_ramp;
+% X_non = SD_non;
+
 % iterate through models
 for mm = 1 : M
-    sd_ramp_boots = metricfun(MU_ramp(:,:,mm),2);
-    sd_non_boots = metricfun(MU_non(:,:,mm),2);
+    sd_ramp_boots = precisionfun(X_ramp(:,:,mm),2);
+    sd_non_boots = precisionfun(X_non(:,:,mm),2);
     sd_ramp_avg = avgfun(sd_ramp_boots);
     sd_non_avg = avgfun(sd_non_boots);
     sd_ramp_err = errfun(sd_ramp_boots);
@@ -617,8 +638,8 @@ set(gca,...
 
 % iterate through alignments
 for mm = 1 : M
-    sd_ramp_boots = metricfun(MU_ramp(:,:,mm),2);
-    sd_non_boots = metricfun(MU_non(:,:,mm),2);
+    sd_ramp_boots = precisionfun(X_ramp(:,:,mm),2);
+    sd_non_boots = precisionfun(X_non(:,:,mm),2);
     xx = [-1,1] * .5 / 3 + mm;
     yy = [1,1] * max(yylim);
     plot(xx,yy,...
