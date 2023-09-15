@@ -7,7 +7,7 @@ end
 Features=NeuronType_Striatum(DataB);
 Neurons=unique(DataB.Info.NeuronNumb,'rows');
 AllNeurons = Neurons;
-[Neurons,AllRamps,StereoCrit,MeanFR]=Selectramp(DataB,Neurons);
+[Neurons,AllRamps,StereoCrit,MeanFR,preselected_idcs]=Selectramp(DataB,Neurons);
 [~,AllStereo]=Selectstereo(DataB,Neurons);
 
 %% epoch indices related to their output stucture
@@ -44,13 +44,13 @@ nonramp_idcs_ud = struct();
 % ramp_idcs.s1.both = unique([...
 %     ramp_idcs.s1.up;...
 %     ramp_idcs.s1.down]);
-ramp_idcs_ud.S1_onset = find(sum(AllRamps(:,1:2),2)>0);
-ramp_idcs_ud.S1_offset = find(sum(AllRamps(:,3:4),2)>0);
-nonramp_idcs_ud.S1_onset = find(sum(AllRamps(:,1:2),2)==0);
-nonramp_idcs_ud.S1_offset = find(sum(AllRamps(:,3:4),2)==0);
+ramp_idcs_ud.S1_onset = preselected_idcs(sum(AllRamps(:,1:2),2)>0);
+ramp_idcs_ud.S1_offset = preselected_idcs(sum(AllRamps(:,3:4),2)>0);
+nonramp_idcs_ud.S1_onset = preselected_idcs(sum(AllRamps(:,1:2),2)==0);
+nonramp_idcs_ud.S1_offset = preselected_idcs(sum(AllRamps(:,3:4),2)==0);
 
-ramp_idcs.s1 = find(sum(AllRamps(:,s1_idcs),2)>0);
-nonramp_idcs.s1 = find(sum(AllRamps(:,s1_idcs),2)==0);
+ramp_idcs.s1 = preselected_idcs(sum(AllRamps(:,s1_idcs),2)>0);
+nonramp_idcs.s1 = preselected_idcs(sum(AllRamps(:,s1_idcs),2)==0);
 
 % S2-aligned "ramps"
 % ramp_idcs.s2_onset.up = find(sum(AllRamps(:,5),2)>0);
@@ -72,13 +72,13 @@ nonramp_idcs.s1 = find(sum(AllRamps(:,s1_idcs),2)==0);
 % ramp_idcs.s2.both = unique([...
 %     ramp_idcs.s2.up;...
 %     ramp_idcs.s2.down]);
-ramp_idcs_ud.S2_onset = find(sum(AllRamps(:,5:6),2)>0);
-ramp_idcs_ud.S2_offset = find(sum(AllRamps(:,7:8),2)>0);
-nonramp_idcs_ud.S2_onset = find(sum(AllRamps(:,5:6),2)==0);
-nonramp_idcs_ud.S2_offset = find(sum(AllRamps(:,7:8),2)==0);
+ramp_idcs_ud.S2_onset = preselected_idcs(sum(AllRamps(:,5:6),2)>0);
+ramp_idcs_ud.S2_offset = preselected_idcs(sum(AllRamps(:,7:8),2)>0);
+nonramp_idcs_ud.S2_onset = preselected_idcs(sum(AllRamps(:,5:6),2)==0);
+nonramp_idcs_ud.S2_offset = preselected_idcs(sum(AllRamps(:,7:8),2)==0);
 
-ramp_idcs.s2 = find(sum(AllRamps(:,s2_idcs),2)>0);
-nonramp_idcs.s2 = find(sum(AllRamps(:,s2_idcs),2)==0);
+ramp_idcs.s2 = preselected_idcs(sum(AllRamps(:,s2_idcs),2)>0);
+nonramp_idcs.s2 = preselected_idcs(sum(AllRamps(:,s2_idcs),2)==0);
 
 % go-aligned "ramps"
 % ramp_idcs.go_cue.up = find(sum(AllRamps(:,9),2)>0);
@@ -86,39 +86,39 @@ nonramp_idcs.s2 = find(sum(AllRamps(:,s2_idcs),2)==0);
 % ramp_idcs.go_cue.both = unique([...
 %     ramp_idcs.go_cue.up;...
 %     ramp_idcs.go_cue.down]);
-ramp_idcs_ud.Go = find(sum(AllRamps(:,9:10),2)>0);
-nonramp_idcs_ud.Go = find(sum(AllRamps(:,9:10),2)==0);
+ramp_idcs_ud.Go = preselected_idcs(sum(AllRamps(:,9:10),2)>0);
+nonramp_idcs_ud.Go = preselected_idcs(sum(AllRamps(:,9:10),2)==0);
 
-ramp_idcs.go = find(sum(AllRamps(:,go_idcs),2)>0);
-nonramp_idcs.go = find(sum(AllRamps(:,go_idcs),2)==0);
+ramp_idcs.go = preselected_idcs(sum(AllRamps(:,go_idcs),2)>0);
+nonramp_idcs.go = preselected_idcs(sum(AllRamps(:,go_idcs),2)==0);
 
-% update "ramping" neurons
-if exist('flagged_neurons','var')
-    epochfields = fieldnames(ramp_idcs);
-    n_epochfields = numel(epochfields);
-    for ii = 1 : n_epochfields
-        ramp_flags = ...
-            ismember(ramp_idcs.(epochfields{ii}),flagged_neurons);
-        ramp_idcs.(epochfields{ii}) = ...
-            ramp_idcs.(epochfields{ii})(ramp_flags);
-        nonramp_flags = ...
-            ismember(nonramp_idcs.(epochfields{ii}),flagged_neurons);
-        nonramp_idcs.(epochfields{ii}) = ...
-            nonramp_idcs.(epochfields{ii})(nonramp_flags);
-    end
-    epochfields = fieldnames(ramp_idcs_ud);
-    n_epochfields = numel(epochfields);
-    for ii = 1 : n_epochfields
-        ramp_flags = ...
-            ismember(ramp_idcs_ud.(epochfields{ii}),flagged_neurons);
-        ramp_idcs_ud.(epochfields{ii}) = ...
-            ramp_idcs_ud.(epochfields{ii})(ramp_flags);
-        nonramp_flags = ...
-            ismember(nonramp_idcs_ud.(epochfields{ii}),flagged_neurons);
-        nonramp_idcs_ud.(epochfields{ii}) = ...
-            nonramp_idcs_ud.(epochfields{ii})(nonramp_flags);
-    end
-end
+% update "ramping" & "non-ramping" neurons
+% if exist('flagged_neurons','var')
+%     epochfields = fieldnames(ramp_idcs);
+%     n_epochfields = numel(epochfields);
+%     for ii = 1 : n_epochfields
+%         ramp_flags = ...
+%             ismember(ramp_idcs.(epochfields{ii}),flagged_neurons);
+%         ramp_idcs.(epochfields{ii}) = ...
+%             ramp_idcs.(epochfields{ii})(ramp_flags);
+%         nonramp_flags = ...
+%             ismember(nonramp_idcs.(epochfields{ii}),flagged_neurons);
+%         nonramp_idcs.(epochfields{ii}) = ...
+%             nonramp_idcs.(epochfields{ii})(nonramp_flags);
+%     end
+%     epochfields = fieldnames(ramp_idcs_ud);
+%     n_epochfields = numel(epochfields);
+%     for ii = 1 : n_epochfields
+%         ramp_flags = ...
+%             ismember(ramp_idcs_ud.(epochfields{ii}),flagged_neurons);
+%         ramp_idcs_ud.(epochfields{ii}) = ...
+%             ramp_idcs_ud.(epochfields{ii})(ramp_flags);
+%         nonramp_flags = ...
+%             ismember(nonramp_idcs_ud.(epochfields{ii}),flagged_neurons);
+%         nonramp_idcs_ud.(epochfields{ii}) = ...
+%             nonramp_idcs_ud.(epochfields{ii})(nonramp_flags);
+%     end
+% end
 
 %% parse their non-stereotypical clusters
 

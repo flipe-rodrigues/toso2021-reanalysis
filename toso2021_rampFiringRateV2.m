@@ -1,0 +1,213 @@
+%% initialization
+if ~exist('data','var')
+    toso2021_wrapper;
+end
+
+%% compute Si-aligned firing rates
+
+% preallocation
+meanfr = struct(...
+    's1',nan(n_neurons,1),...
+    's2',nan(n_neurons,1));
+
+% iterate through neurons
+for nn = 1 : n_neurons_total
+    progressreport(nn,n_neurons_total,'parsing neural data');
+    neuron_flags = data.NeuronNumb == neuron_idcs(nn);
+    spike_flags = ...
+        valid_flags & ...
+        neuron_flags;
+    if sum(spike_flags) == 0 || ~ismember(nn,flagged_neurons)
+        continue;
+    end
+    
+    % fetch spike counts & compute spike rates
+    spike_rates = data.SDF(spike_flags,:);
+    n_trials = size(spike_rates,1);
+    
+    % S1-aligned spike rates
+    s1_alignment = ...
+        pre_init_padding + ...
+        pre_s1_delay(spike_flags);
+    s1_alignment_flags = ...
+        padded_time >= s1_alignment & ...
+        padded_time < s1_alignment + t1(spike_flags);
+    s1_chunk_flags = ...
+        padded_time >= s1_alignment & ...
+        padded_time < s1_alignment + t_set(end);
+    s1_spkrates = spike_rates';
+    s1_spkrates(~s1_alignment_flags') = nan;
+    s1_spkrates = reshape(...
+        s1_spkrates(s1_chunk_flags'),[n_tbins,n_trials])';
+    
+    % S2-aligned spike rates
+    s2_alignment = ...
+        pre_init_padding + ...
+        pre_s1_delay(spike_flags) + ...
+        t1(spike_flags) + ...
+        isi;
+    s2_alignment_flags = ...
+        padded_time >= s2_alignment & ...
+        padded_time < s2_alignment + t2(spike_flags);
+    s2_chunk_flags = ...
+        padded_time >= s2_alignment & ...
+        padded_time < s2_alignment + t_set(end);
+    s2_spkrates = spike_rates';
+    s2_spkrates(~s2_alignment_flags') = nan;
+    s2_spkrates = reshape(...
+        s2_spkrates(s2_chunk_flags'),[n_tbins,n_trials])';
+    
+    % compute observations weights
+    s1_weights = sum(~isnan(s1_spkrates));
+    s2_weights = sum(~isnan(s1_spkrates));
+    s1_weights = s1_weights ./ nansum(s1_weights);
+    s2_weights = s2_weights ./ nansum(s2_weights);
+    
+    % replace nans with zeros to allow for weighted averaging
+    s1_spkrates(isnan(s1_spkrates)) = 0;
+    s2_spkrates(isnan(s2_spkrates)) = 0;
+    
+    % compute mean firing rates
+    meanfr.s1(nn) = mean(s1_spkrates * s1_weights');
+    meanfr.s2(nn) = mean(s2_spkrates * s2_weights');
+%     meanfr.s1(nn) = mean(max(s1_spkrates,[],2) - min(s1_spkrates,[],2));
+%     meanfr.s2(nn) = mean(max(s2_spkrates,[],2) - min(s2_spkrates,[],2));
+%     meanfr.s1(nn) = mean(diff(quantile(s1_spkrates,[.05,.95],2),1,2));
+%     meanfr.s2(nn) = mean(diff(quantile(s2_spkrates,[.05,.95],2),1,2));
+end
+
+%% plot firing rate of ramping & non-ramping neurons across task epochs
+
+% figure initialization
+fig = figure(figopt,...
+    'position',[744 630 560 412.5],...
+    'name','ramp_firing_rates');
+
+% epoch settings
+epochs = fieldnames(meanfr);
+n_epochs = numel(epochs);
+
+% axes initialization
+xxoffset = .25;
+xxoffsets = [-1,1] * xxoffset;
+xxtick = unique((1:n_epochs)+[-1;0;1]*xxoffset);
+xxticklabel = num2cell(xxtick);
+xxticklabel(~ismember(xxtick,1:n_epochs)) = {''};
+xxticklabel(ismember(xxtick,1:n_epochs)) = cellfun(@capitalize,epochs,...
+    'uniformoutput',false);
+axes(axesopt.default,...
+    'plotboxaspectratio',[1,2.25,1],...
+    'color','none',...
+    'xlim',[1,n_epochs]+[-1,1]*xxoffset*3,...
+    'xtick',xxtick,...
+    'xticklabel',xxticklabel,...
+    'ylimspec','tight',...
+    'clipping','off',...
+    'layer','bottom');
+xlabel('Stimulus period');
+ylabel('Firing rate (Hz)');
+
+% preallocation
+distro = struct();
+avg = struct();
+err = struct();
+
+% choice of average and error functions
+avgfun = @(x) nanmean(x);
+errfun = @(x) [1,1] .* nanstd(x) / sqrt(numel(x));
+avgfun = @(x) nanmedian(x);
+errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
+
+% iterate through alignments
+for ee = 1 : n_epochs
+    epoch = epochs{ee};
+    distro.(epoch) = {...
+        meanfr.(epoch)(ramp_idcs.(epoch));...
+        meanfr.(epoch)(nonramp_idcs.(epoch))};
+    avg.(epoch) = [...
+        avgfun(meanfr.(epoch)(ramp_idcs.(epoch)));...
+        avgfun(meanfr.(epoch)(nonramp_idcs.(epoch)))];
+    err.(epoch) = [...
+        errfun(meanfr.(epoch)(ramp_idcs.(epoch)));...
+        errfun(meanfr.(epoch)(nonramp_idcs.(epoch)))];
+end
+
+% table conversions
+avg = struct2table(avg,...
+    'rownames',{'ramping','non-ramping'});
+err = struct2table(err,...
+    'rownames',{'ramping','non-ramping'});
+
+% iterate through alignments
+for ee = 1 : n_epochs
+    epoch = epochs{ee};
+    plot(ee+xxoffsets,avg.(epoch),...
+        'color','k',...
+        'linewidth',1.5,...
+        'handlevisibility','off');
+    for rr = 1 : 2
+        errorbar(ee+xxoffsets(rr),avg.(epoch)(rr),...
+            err.(epoch)(rr,1),err.(epoch)(rr,2),...
+            'color','k',...
+            'marker','o',...
+            'markersize',7.5,...
+            'markeredgecolor','k',...
+            'markerfacecolor',ramp_clrs(rr,:),...
+            'linewidth',1.5,...
+            'capsize',0);
+    end
+end
+
+% legend
+legend({'"ramping"','"non-ramping"'},...
+    'autoupdate','off',...
+    'box','off',...
+    'location','best');
+
+% update axes
+yymax = floor(max(ylim)/10) * 10 + 5;
+yylim = [0,yymax];
+yytick = linspace(yylim(1),yylim(2),4);
+yyticklabel = num2cell(yytick);
+yyticklabel(~ismember(yytick,yylim)) = {''};
+set(gca,...
+    'ylim',yylim + [-1,1] * .05 * range(yylim),...
+    'ytick',yytick,...
+    'yticklabel',yyticklabel);
+
+% zero line
+plot(xlim,[0,0],':k');
+
+% iterate through alignments
+for ee = 1 : n_epochs
+    xx = [-1,1] * .5 / 3 + ee;
+    yy = [1,1] * max(yylim);
+    plot([1,1]*ee,[min(ylim),yymax],':k',...
+        'handlevisibility','off');
+    plot(xx,yy,...
+        'color','k',...
+        'linewidth',1.5,...
+        'handlevisibility','off');
+    epoch = epochs{ee};
+    [~,pval] = kstest2(distro.(epoch){1},distro.(epoch){2});
+%     pval = kruskalwallis(vertcat(distro.(epoch){:}),[],'off');
+    pval = pval * n_epochs;
+    if pval < .01
+        test_str = '**';
+    elseif pval < .05
+        test_str = '*';
+    else
+        test_str = 'n.s.';
+    end
+    text(mean(xx),mean(yy)-.025*range(ylim),test_str,...
+        'color','k',...
+        'fontsize',16,...
+        'horizontalalignment','center',...
+        'verticalalignment','bottom');
+end
+
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
+end
