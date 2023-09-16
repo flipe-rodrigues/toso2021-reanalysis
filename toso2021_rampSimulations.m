@@ -12,20 +12,19 @@ end
 % rng(0);
 
 %% tensor settings
-% T = 100;      % time points
-N = 150;     	% neurons
+N = 200;     	% neurons
 N_clus = 25;    % neurons per cluster
 K = 100;        % trials
-B = 50;         % bootstrap iterations
+S = 50;         % simulations
 P = 4;          % number of partitions with which to assess stereotypy
 
 %% time settings
-dt = 100;
+dt = 75;
 ti = 0;
 tf = 1000;
 t = ti : tf;
-t_padded = ti - dt/2 : tf + dt/2;
 T = numel(t);
+t_padded = ti - dt/2 : tf + dt/2;
 t_idcs = 1 : T;
 t_units = 1e3;
 
@@ -44,16 +43,16 @@ pval_stereotypy_cutoff = .01;
 %% model settings
 
 % model parameters
+gamma_ranges = [...
+    [3.5,3.5,10]; ...
+    [0,100,7.5]; ...
+    [7,7,10]; ...
+    [0,100,7.5]];
 lambda_ranges = [...
     [0,0]; ...
-    [0,tf*2]; ...
     [0,0]; ...
+    [0,tf*2]; ...
     [0,tf*2]];
-gamma_ranges = [...
-    [4,4,10]; ...
-    [4,4,10]; ...
-    [0,100,10]; ...
-    [0,100,10]];
 M = size(lambda_ranges,1);
 
 % model labels
@@ -65,30 +64,37 @@ for mm = 1 : M
         gamma_ranges(mm,1),gamma_ranges(mm,2),...
         lambda_ranges(mm,1),lambda_ranges(mm,2));
 end
+model_labels = {...
+    '\gamma=\gamma_0\newline\lambda=\lambda_0';...
+    '\gamma\sim\newline\lambda=\lambda_0';...
+    '\gamma=\gamma_0\newline\lambda\sim';...
+    '\gamma\sim\newline\lambda\sim';...
+    };
 disp(model_labels);
 
 %% model simulations
 
 % preallocation
-P_TR_RAMP = nan(T,T,B,M);
-P_TR_NON = nan(T,T,B,M);
-MAP_ramp = nan(T,B,M);
-MAP_non = nan(T,B,M);
-MU_ramp = nan(T,B,M);
-MU_non = nan(T,B,M);
-MED_ramp = nan(T,B,M);
-MED_non = nan(T,B,M);
-SD_ramp = nan(T,B,M);
-SD_non = nan(T,B,M);
-IQR_ramp = nan(T,B,M);
-IQR_non = nan(T,B,M);
-MUS = nan(N_clus*2,B,M);
-SIGMAS = nan(N_clus*2,B,M);
-GAMMAS = nan(N_clus*2,B,M);
-LAMBDAS = nan(N_clus*2,B,M);
-SELECTED_RAMP_FLAGS = false(N_clus*2,B,M);
-ALL_RAMP_FLAGS = false(N,B,M);
-P_RAMP = nan(B,M);
+P_TR_RAMP = nan(T,T,S,M);
+P_TR_NON = nan(T,T,S,M);
+MAP_ramp = nan(T,S,M);
+MAP_non = nan(T,S,M);
+MU_ramp = nan(T,S,M);
+MU_non = nan(T,S,M);
+MED_ramp = nan(T,S,M);
+MED_non = nan(T,S,M);
+SD_ramp = nan(T,S,M);
+SD_non = nan(T,S,M);
+IQR_ramp = nan(T,S,M);
+IQR_non = nan(T,S,M);
+MUS = nan(N_clus*2,S,M);
+SIGMAS = nan(N_clus*2,S,M);
+GAMMAS = nan(N_clus*2,S,M);
+LAMBDAS = nan(N_clus*2,S,M);
+MEAN_FR = nan(N_clus*2,S,M);
+SELECTED_RAMP_FLAGS = false(N_clus*2,S,M);
+ALL_RAMP_FLAGS = false(N,S,M);
+P_RAMP = nan(S,M);
 
 % all unit indices
 all_idcs = 1 : N;
@@ -98,21 +104,22 @@ close all
 % iterate through models
 for mm = 1 : M
     
-    % iterate through bootstrap iterations
-    for bb = 1 : B
-        progressreport(bb,B,'bootstrapping')
+    % iterate through simulations
+    for ss = 1 : S
+        progressreport(ss,S,'simulating')
         
         %% model parameters
-        if mm == 1 || mm == M
-            mus = sort(unifrnd(ti,tf,N,1));
-        else
-            mus = [repmat(ti,floor(N/2),1);repmat(tf,ceil(N/2),1)];
-        end
+%         if mm == 1 || mm == M
+        mus = sort(unifrnd(ti,tf,N,1));
+%         else
+%             mus = [repmat(ti,floor(N/2),1);repmat(tf,ceil(N/2),1)];
+%         end
         gammas = clamp(exprnd(gamma_ranges(mm,3),N,1),...
             gamma_ranges(mm,1),gamma_ranges(mm,2));
         lambdas = clamp(exprnd(1/3*(tf-ti),N,1),...
             lambda_ranges(mm,1),lambda_ranges(mm,2));
-        sigmas = abs(normrnd(.25,.05,N,1)) * (tf - ti);
+%         sigmas = abs(normrnd(.25,.05,N,1)) * (tf - ti);
+        sigmas = ones(N,1) * .25 * (tf - ti);
         
         %% generate fake data
         
@@ -121,7 +128,7 @@ for mm = 1 : M
         R = nan(T,N,K);
         
         % baseline firing rate
-        bsl_fr = 2;
+        bsl_fr = 1;
         
         % iterate through neurons
         for nn = 1 : N
@@ -135,13 +142,13 @@ for mm = 1 : M
                 spk_times = ts * t_units + t_padded(1);
                 spk_counts = histcounts(spk_times,'binedges',t_padded);
                 r_padded = movsum(spk_counts,dt) / (dt / t_units);
-                t_flags = t_padded >= ti & t_padded <= tf;
+                t_flags = t_padded >= ti & t_padded < tf + 1;
                 R(:,nn,kk) = r_padded(t_flags);
             end
         end
         
         % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        R = X;
+%         R = X;
         % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         
         %% compute cross-trial averages
@@ -231,11 +238,11 @@ for mm = 1 : M
         n = min(n_ramp,n_non);
         all_ramp_idcs = all_idcs(ramp_flags);
         all_non_idcs = all_idcs(~ramp_flags);
-        selected_ramp_idcs = randperm(n_ramp,N_clus);
-        selected_non_idcs = randperm(n_non,N_clus);
-        selected_idcs = [...
+        selected_ramp_idcs = sort(randperm(n_ramp,N_clus));
+        selected_non_idcs = sort(randperm(n_non,N_clus));
+        selected_idcs = sort([...
             all_ramp_idcs(selected_ramp_idcs),...
-            all_non_idcs(selected_non_idcs)];
+            all_non_idcs(selected_non_idcs)]);
         tensor_ramp = tensor_ramp(:,selected_ramp_idcs,:);
         tensor_non = tensor_non(:,selected_non_idcs,:);
         
@@ -254,7 +261,7 @@ for mm = 1 : M
         P_tR_ramp = naivebayestimedecoder(tensor_ramp,opt);
         P_tR_non = naivebayestimedecoder(tensor_non,opt);
         
-        %% compute decoding error
+        %% compute decoding statistics
         
         % preallocation
         mu_ramp = nan(T,1);
@@ -272,11 +279,11 @@ for mm = 1 : M
         
         % compute posterior median
         median_flags_ramp = [false(T,1),diff(cumsum(P_tR_ramp,2) > .5,1,2) == 1];
-        median_flags_non = [false(T,1),diff(cumsum(P_tR_ramp,2) > .5,1,2) == 1];
+        median_flags_non = [false(T,1),diff(cumsum(P_tR_non,2) > .5,1,2) == 1];
         [~,median_idcs_ramp] = max(median_flags_ramp,[],2);
         [~,median_idcs_non] = max(median_flags_non,[],2);
         med_ramp = t(median_idcs_ramp);
-        med_non = t(median_idcs_ramp);
+        med_non = t(median_idcs_non);
         
         % compute posterior IQR
         q25_flags_ramp = [false(T,1),diff(cumsum(P_tR_ramp,2) > .25,1,2) == 1];
@@ -296,29 +303,30 @@ for mm = 1 : M
         map_ramp = t(mode_idcs_ramp);
         map_non = t(mode_idcs_non);
         
-        %% store current bootstrap run
-        P_TR_RAMP(:,:,bb,mm) = P_tR_ramp;
-        P_TR_NON(:,:,bb,mm) = P_tR_non;
-        MAP_ramp(:,bb,mm) = map_ramp;
-        MAP_non(:,bb,mm) = map_non;
-        MU_ramp(:,bb,mm) = mu_ramp;
-        MU_non(:,bb,mm) = mu_non;
-        MED_ramp(:,bb,mm) = med_ramp;
-        MED_non(:,bb,mm) = med_non;
-        SD_ramp(:,bb,mm) = sd_ramp;
-        SD_non(:,bb,mm) = sd_non;
-        IQR_ramp(:,bb,mm) = iqr_ramp;
-        IQR_non(:,bb,mm) = iqr_non;
-        MUS(:,bb,mm) = mus(selected_idcs);
-        SIGMAS(:,bb,mm) = sigmas(selected_idcs);
-        GAMMAS(:,bb,mm) = gammas(selected_idcs);
-        LAMBDAS(:,bb,mm) = lambdas(selected_idcs);
-        SELECTED_RAMP_FLAGS(:,bb,mm) = ramp_flags(selected_idcs);
-        ALL_RAMP_FLAGS(:,bb,mm) = ramp_flags;
-        P_RAMP(bb,mm) = nanmean(ramp_flags);
+        %% store current simulation
+        P_TR_RAMP(:,:,ss,mm) = P_tR_ramp;
+        P_TR_NON(:,:,ss,mm) = P_tR_non;
+        MAP_ramp(:,ss,mm) = map_ramp;
+        MAP_non(:,ss,mm) = map_non;
+        MU_ramp(:,ss,mm) = mu_ramp;
+        MU_non(:,ss,mm) = mu_non;
+        MED_ramp(:,ss,mm) = med_ramp;
+        MED_non(:,ss,mm) = med_non;
+        SD_ramp(:,ss,mm) = sd_ramp;
+        SD_non(:,ss,mm) = sd_non;
+        IQR_ramp(:,ss,mm) = iqr_ramp;
+        IQR_non(:,ss,mm) = iqr_non;
+        MUS(:,ss,mm) = mus(selected_idcs);
+        SIGMAS(:,ss,mm) = sigmas(selected_idcs);
+        GAMMAS(:,ss,mm) = gammas(selected_idcs);
+        LAMBDAS(:,ss,mm) = lambdas(selected_idcs);
+        MEAN_FR(:,ss,mm) = mean(r(:,selected_idcs),1);
+        SELECTED_RAMP_FLAGS(:,ss,mm) = ramp_flags(selected_idcs);
+        ALL_RAMP_FLAGS(:,ss,mm) = ramp_flags;
+        P_RAMP(ss,mm) = nanmean(ramp_flags);
         
         %% skip plotting single-run stuff if it's not the last run
-        if bb < B
+        if ss < S
             continue;
         end
         
@@ -326,14 +334,16 @@ for mm = 1 : M
         
         % figure initialization
         figure(figopt,...
-            'position',[100,343,1325,420],...
+            'windowstyle','docked',...
             'name',sprintf('tiling_%i',mm));
         
         % axes initialization
-        n_sps = 3;
+        n_rows = 2;
+        n_cols = 3;
+        n_sps = n_rows * n_cols;
         sps = gobjects(n_sps,1);
         for ii = 1 : n_sps
-            sps(ii) = subplot(1,n_sps,ii);
+            sps(ii) = subplot(n_rows,n_cols,ii);
             xlabel(sps(ii),'Time (s)');
             ylabel(sps(ii),'Neuron #');
         end
@@ -348,32 +358,36 @@ for mm = 1 : M
             'linewidth',2,...
             'fontsize',12,...
             'ticklength',[1,1]*.025);
-        set(sps(1),...
-            'ylim',[1,N],...
-            'ytick',[1,N]);
-        set(sps(2),...
+        set(sps(1+[0,n_cols]),...
+            'ylim',[1,N_clus*2],...
+            'ytick',[1,N_clus*2]);
+        set(sps([2;3]+[0,n_cols]),...
             'ylim',[1,N_clus],...
-            'ytick',[1,N_clus]);
-        set(sps(3),...
-            'ylim',[1,N_clus],...
-            'ytick',[1,N_clus]);
+            'ytick',[1,N_clus])
         title(sps(1),'All');
         title(sps(2),'Ramps');
         title(sps(3),'Non-ramps');
         
         % normalization
-        z = zscore(x);
+        z = zscore(r);
         
         % color limits
         r_clim = [min(r,[],'all'),max(r,[],'all')];
         z_clim = [-1,1] .* max(abs(z),[],'all');
         
-        % plot psth raster
-        imagesc(sps(1),t,[1,N],r',r_clim);
+        % plot rate rasters
+        imagesc(sps(1),t,[1,N_clus*2],r(:,selected_idcs)',r_clim);
         imagesc(sps(2),t,[1,N_clus],...
             r(:,all_ramp_idcs(selected_ramp_idcs))',r_clim);
         imagesc(sps(3),t,[1,N_clus],...
             r(:,all_non_idcs(selected_non_idcs))',r_clim);
+        
+        % plot z-score rasters
+        imagesc(sps(4),t,[1,N_clus*2],z(:,selected_idcs)',z_clim);
+        imagesc(sps(5),t,[1,N_clus],...
+            z(:,all_ramp_idcs(selected_ramp_idcs))',z_clim);
+        imagesc(sps(6),t,[1,N_clus],...
+            z(:,all_non_idcs(selected_non_idcs))',z_clim);
         %         imagesc(sps(2),t,[1,N],z(:,ramp_flags)',clim);
         %         imagesc(sps(3),t,[1,N],z(:,~ramp_flags)',clim);
         
@@ -419,7 +433,7 @@ for mm = 1 : M
         linkaxes(sps);
         
         % iterate through conditions
-        clim = [0,1/T*N]; % quantile([P_tR_ramp(:);P_tR_non(:)],[0,1]);
+        clim = quantile([P_tR_ramp(:);P_tR_non(:)],[.001,.999]);
         
         % ramping posteriors
         title(sps(1),sprintf('Ramping neurons (%i/%i)',sum(ramp_flags),N));
@@ -432,45 +446,6 @@ for mm = 1 : M
         imagesc(sps(2),[ti,tf],[ti,tf],P_tR_non',clim);
         plot(sps(2),xlim(sps(2)),ylim(sps(2)),'-k');
         plot(sps(2),xlim(sps(2)),ylim(sps(2)),'--w');
-        
-        %%
-        figure(...
-            'name',sprintf('posterior_means_SD_%i',mm),...
-            'numbertitle','off',...
-            'windowstyle','docked');
-        n_rows = 1;
-        n_cols = 2;
-        sps = gobjects(n_rows,n_cols);
-        for rr = 1 : n_rows
-            for cc = 1 : n_cols
-                sp_idx = cc + (rr - 1) * n_cols;
-                sps(rr,cc) = subplot(n_rows,n_cols,sp_idx);
-                xlabel(sps(rr,cc),'Real time (ms)');
-                ylabel(sps(rr,cc),'Decoded time (ms)');
-            end
-        end
-        set(sps,...
-            'xlim',[ti,tf],...
-            'ylim',[ti,tf],...
-            'xdir','normal',...
-            'ydir','normal',...
-            'nextplot','add',...
-            'plotboxaspectratio',[1,1,1]);
-        linkaxes(sps);
-        
-        % ramping posteriors
-        title(sps(1),sprintf('Ramping neurons (%i/%i)',sum(ramp_flags),N));
-        errorbar(sps(1),t,mu_ramp,sd_ramp,...
-            'color',ramp_clrs(1,:),...
-            'capsize',0);
-        % plot(sps(1),xlim(sps(1)),ylim(sps(1)),'--k');
-        
-        % non-ramping posteriors
-        title(sps(2),sprintf('Non-ramping neurons (%i/%i)',sum(~ramp_flags),N));
-        errorbar(sps(2),t,mu_non,sd_non,...
-            'color',ramp_clrs(2,:),...
-            'capsize',0);
-        % plot(sps(2),xlim(sps(2)),ylim(sps(2)),'--k');
     end
 end
 
@@ -647,12 +622,15 @@ end
 pthat_str = 'MU';
 pthat_ramp = eval([pthat_str,'_ramp']);
 pthat_non = eval([pthat_str,'_non']);
+errhat_str = 'SD';
+errhat_ramp = eval([errhat_str,'_ramp']);
+errhat_non = eval([errhat_str,'_non']);
 
 %% decoding accuracy in ramps & non-ramps across models
 
 % figure initialization
 fig = figure(figopt,...
-    'position',[100,50,460,420],...
+    'position',[100,50,440,420],...
     'name','ramps_decoding_accuracy');
 
 % axes initialization
@@ -675,7 +653,7 @@ ylabel('Error (ms)');
 % offset between ramps and non-ramps
 xoffsets = [-1,1] * .15;
 
-% choice of precision function
+% choice of accuracy function
 accuracyfun = @(x,d) nanmean((x-t').^2,d);
 accuracyfun = @(x,d) nanmean(abs(x-t'),d);
 
@@ -686,17 +664,17 @@ avgfun = @(x) nanmedian(x);
 errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 
 % preallocation
-ramp_boots = nan(T,M);
-non_boots = nan(T,M);
+ramp_sims = nan(T,M);
+non_sims = nan(T,M);
 
 % iterate through models
 for mm = 1 : M
-    ramp_boots(:,mm) = accuracyfun(pthat_ramp(:,:,mm),2);
-    non_boots(:,mm) = accuracyfun(pthat_non(:,:,mm),2);
-    ramp_avg = avgfun(ramp_boots(:,mm));
-    non_avg = avgfun(non_boots(:,mm));
-    ramp_err = errfun(ramp_boots(:,mm));
-    non_err = errfun(non_boots(:,mm));
+    ramp_sims(:,mm) = accuracyfun(pthat_ramp(:,:,mm),2);
+    non_sims(:,mm) = accuracyfun(pthat_non(:,:,mm),2);
+    ramp_avg = avgfun(ramp_sims(:,mm));
+    non_avg = avgfun(non_sims(:,mm));
+    ramp_err = errfun(ramp_sims(:,mm));
+    non_err = errfun(non_sims(:,mm));
     plot(mm+xoffsets,[ramp_avg,non_avg],...
         'color','k',...
         'linewidth',1.5);
@@ -729,9 +707,9 @@ yyticklabel(~ismember(yytick,yylim)) = {''};
 set(gca,...
     'ylim',yylim + [-1,1] * .05 * 2.5 * range(yylim),...
     'ytick',yytick,...
-    'yticklabel',{'0',''});
+    'yticklabel',yyticklabel); % {'0',''});
 
-% iterate through alignments
+% iterate through models
 for mm = 1 : M
     xx = [-1,1] * .5 / 3 + mm;
     yy = [1,1] * max(yylim);
@@ -739,8 +717,8 @@ for mm = 1 : M
         'color','k',...
         'linewidth',1.5,...
         'handlevisibility','off');
-    [~,pval] = kstest2(ramp_boots(:,mm),non_boots(:,mm));
-    pval = kruskalwallis([ramp_boots(:,mm),non_boots(:,mm)],[],'off');
+    [~,pval] = kstest2(ramp_sims(:,mm),non_sims(:,mm));
+    pval = kruskalwallis([ramp_sims(:,mm),non_sims(:,mm)],[],'off');
     if pval < .01
         test_str = '**';
     elseif pval < .05
@@ -765,7 +743,7 @@ end
 
 % figure initialization
 fig = figure(figopt,...
-    'position',[100,350,460,420],...
+    'position',[100,350,440,420],...
     'name','ramps_decoding_precision');
 
 % axes initialization
@@ -783,7 +761,7 @@ axes(axesopt.default,...
     'clipping','off',...
     'layer','bottom');
 xlabel('Parameter range');
-ylabel('SD (ms)');
+ylabel('SD of point estimates (ms)');
 
 % offset between ramps and non-ramps
 xoffsets = [-1,1] * .15;
@@ -799,19 +777,19 @@ avgfun = @(x) nanmedian(x);
 errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 
 % preallocation
-ramp_boots = nan(T,M);
-non_boots = nan(T,M);
+ramp_sims = nan(T,M);
+non_sims = nan(T,M);
 
 % iterate through models
 for mm = 1 : M
-    ramp_boots(:,mm) = precisionfun(pthat_ramp(:,:,mm),2);
-    non_boots(:,mm) = precisionfun(pthat_non(:,:,mm),2);
-    %     ramp_boots(:,mm) = mean(SD_ramp(:,:,mm),1);
-    %     non_boots(:,mm) = mean(SD_non(:,:,mm),1);
-    ramp_avg = avgfun(ramp_boots(:,mm));
-    non_avg = avgfun(non_boots(:,mm));
-    ramp_err = errfun(ramp_boots(:,mm));
-    non_err = errfun(non_boots(:,mm));
+    ramp_sims(:,mm) = precisionfun(pthat_ramp(:,:,mm),2);
+    non_sims(:,mm) = precisionfun(pthat_non(:,:,mm),2);
+%     ramp_sims(:,mm) = nanmean(errhat_ramp(:,:,mm),1);
+%     non_sims(:,mm) = nanmean(errhat_non(:,:,mm),1);
+    ramp_avg = avgfun(ramp_sims(:,mm));
+    non_avg = avgfun(non_sims(:,mm));
+    ramp_err = errfun(ramp_sims(:,mm));
+    non_err = errfun(non_sims(:,mm));
     plot(mm+xoffsets,[ramp_avg,non_avg],...
         'color','k',...
         'linewidth',1.5);
@@ -846,7 +824,7 @@ set(gca,...
     'ytick',yytick,...
     'yticklabel',yyticklabel);
 
-% iterate through alignments
+% iterate through models
 for mm = 1 : M
     xx = [-1,1] * .5 / 3 + mm;
     yy = [1,1] * max(yylim);
@@ -854,8 +832,117 @@ for mm = 1 : M
         'color','k',...
         'linewidth',1.5,...
         'handlevisibility','off');
-    [~,pval] = kstest2(ramp_boots(:,mm),non_boots(:,mm));
-    pval = kruskalwallis([ramp_boots(:,mm),non_boots(:,mm)],[],'off');
+    [~,pval] = kstest2(ramp_sims(:,mm),non_sims(:,mm));
+    pval = kruskalwallis([ramp_sims(:,mm),non_sims(:,mm)],[],'off');
+    if pval < .01
+        test_str = '**';
+    elseif pval < .05
+        test_str = '*';
+    else
+        test_str = 'n.s.';
+    end
+    text(mean(xx),mean(yy)-.025/2.5*range(ylim),test_str,...
+        'color','k',...
+        'fontsize',16,...
+        'horizontalalignment','center',...
+        'verticalalignment','bottom');
+end
+
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
+end
+
+%% decoding precision in ramps & non-ramps across models
+
+% figure initialization
+fig = figure(figopt,...
+    'position',[550,350,440,420],...
+    'name','ramps_decoding_precision');
+
+% axes initialization
+xxtick = unique((1:M)+[-1;0;1]*.05*M);
+xxticklabel = num2cell(xxtick);
+xxticklabel(~ismember(xxtick,1:M)) = {''};
+xxticklabel(ismember(xxtick,1:M)) = model_labels;
+axes(axesopt.default,...
+    'plotboxaspectratio',[2.5,1,1],...
+    'color','none',...
+    'xlim',[1,M]+[-1,1]*.1*M,...
+    'xtick',xxtick,...
+    'xticklabel',xxticklabel,...
+    'ylimspec','tight',...
+    'clipping','off',...
+    'layer','bottom');
+xlabel('Parameter range');
+ylabel('SD (ms)');
+
+% offset between ramps and non-ramps
+xoffsets = [-1,1] * .15;
+
+% choice of average and error functions
+avgfun = @(x) nanmean(x);
+errfun = @(x) [1,1] .* nanstd(x);
+avgfun = @(x) nanmedian(x);
+errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
+
+% preallocation
+ramp_sims = nan(T,M);
+non_sims = nan(T,M);
+
+% iterate through models
+for mm = 1 : M
+    ramp_sims(:,mm) = nanmean(errhat_ramp(:,:,mm),2);
+    non_sims(:,mm) = nanmean(errhat_non(:,:,mm),2);
+    ramp_avg = avgfun(ramp_sims(:,mm));
+    non_avg = avgfun(non_sims(:,mm));
+    ramp_err = errfun(ramp_sims(:,mm));
+    non_err = errfun(non_sims(:,mm));
+    plot(mm+xoffsets,[ramp_avg,non_avg],...
+        'color','k',...
+        'linewidth',1.5);
+    errorbar(mm+xoffsets(1),ramp_avg,...
+        ramp_err(1),ramp_err(2),...
+        'color','k',...
+        'marker','o',...
+        'markersize',7.5,...
+        'markeredgecolor','k',...
+        'markerfacecolor',ramp_clrs(1,:),...
+        'linewidth',1.5,...
+        'capsize',0);
+    errorbar(mm+xoffsets(2),non_avg,...
+        non_err(1),non_err(2),...
+        'color','k',...
+        'marker','o',...
+        'markersize',7.5,...
+        'markeredgecolor','k',...
+        'markerfacecolor',ramp_clrs(2,:),...
+        'linewidth',1.5,...
+        'capsize',0);
+end
+
+% update axes
+yymax = ceil(max(ylim)/10) * 10;
+yylim = [0,yymax];
+yytick = linspace(yylim(1),yylim(2),2);
+yyticklabel = num2cell(yytick);
+yyticklabel(~ismember(yytick,yylim)) = {''};
+set(gca,...
+    'ylim',yylim + [-1,1] * .05 * 2.5 * range(yylim),...
+    'ytick',yytick,...
+    'yticklabel',yyticklabel);
+
+% iterate through models
+for mm = 1 : M
+    xx = [-1,1] * .5 / 3 + mm;
+    yy = [1,1] * max(yylim);
+    plot(xx,yy,...
+        'color','k',...
+        'linewidth',1.5,...
+        'handlevisibility','off');
+    [~,pval] = kstest2(ramp_sims(:,mm),non_sims(:,mm));
+    pval = kruskalwallis([ramp_sims(:,mm),non_sims(:,mm)],[],'off');
     if pval < .01
         test_str = '**';
     elseif pval < .05
@@ -909,52 +996,31 @@ for mm = 1 : M
     title(sps(1),sprintf('Ramping neurons (%.0f%%)',nanmean(P_RAMP(:,mm))*100));
     errorbar(sps(1),...
         t,nanmean(pthat_ramp(:,:,mm),2),...
-        nanmean(SD_ramp(:,:,M),2),...nanstd(pthat_ramp(:,:,mm),0,2),...
+        nanmean(errhat_ramp(:,:,mm),2),...
         'color',ramp_clrs(1,:),...
         'linewidth',.1,...
         'capsize',0);
     plot(sps(1),t,nanmean(pthat_ramp(:,:,mm),2),...
         'color','w',...
         'linewidth',1.5);
-    %     for bb = 1 : B
-    %         plot(sps(1),t,nanmean(pthat_ramp(:,bb,mm),2),...
-    %             'color','b',...
-    %             'linewidth',.1);
-    %     end
-    
+
     % non-ramping posteriors
     title(sps(2),sprintf('Non-ramping neurons (%.0f%%)',(1-nanmean(P_RAMP(:,mm)))*100));
     errorbar(sps(2),...
         t,nanmean(pthat_non(:,:,mm),2),...
-        nanmean(SD_non(:,:,M),2),...nanstd(pthat_non(:,:,mm),0,2),...
+        nanmean(errhat_non(:,:,mm),2),...
         'color',ramp_clrs(2,:),...
         'linewidth',.1,...
         'capsize',0);
     plot(sps(2),t,nanmean(pthat_non(:,:,mm),2),...
         'color','w',...
         'linewidth',1.5);
-    %     for bb = 1 : B
-    %         plot(sps(2),t,nanmean(MU_non(:,bb,mm),2),...
-    %             'color','b',...
-    %             'linewidth',.1);
-    %     end
-    %     errorbar(sps(2),...
-    %         t,nanmean(pthat_ramp(:,:,mm),2),nanstd(pthat_ramp(:,:,mm),0,2),...
-    %         'color',ramp_clrs(1,:),...
-    %         'linewidth',.1,...
-    %         'capsize',0);
-    %     plot(sps(2),t,nanmean(pthat_ramp(:,:,mm),2),...
-    %         'color','w',...
-    %         'linewidth',1.5);
-    
+
+    % annotate model parameters
     text(sps(1),.05,.95,model_labels{mm},...
         'horizontalalignment','left',...
         'verticalalignment','top',...
         'units','normalized');
-    
-    % identity lines
-    %     plot(sps(1),xlim(sps(1)),ylim(sps(1)),'--b','linewidth',1.5);
-    %     plot(sps(2),xlim(sps(2)),ylim(sps(2)),'--b','linewidth',1.5);
 end
 
 %% compare decoding from ramps & non-ramps (superimposed)
@@ -976,35 +1042,25 @@ axes(axesopt.default,...
 xlabel('Time (ms) X_i');
 ylabel('Decoded time (ms) X_i');
 
-% choice of average and error functions
-avgfun = @(x,d) nanmean(x,d);
-errfun = @(x,d) [1,1] .* nanstd(x,0,d);
-% avgfun = @(x,d) nanmedian(x,d);
-% errfun = @(x,d) abs(quantile(x,[.25,.75],d) - nanmedian(x,d));
-
 % non-ramping posteriors
-non_avg = avgfun(pthat_non(:,:,M),2);
-non_err = [1,1] .* nanmean(SD_non(:,:,M),2); % errfun(pthat_non(:,:,M),2);
+non_avg = nanmean(pthat_non(:,:,M),2);
+non_err = [1,1] .* nanmean(errhat_non(:,:,M),2);
+% non_err = errfun(pthat_non(:,:,M),2);
 xpatch = [t,fliplr(t)];
 ypatch = [non_avg-non_err(:,1);flipud(non_avg+non_err(:,2))];
 patch(xpatch,ypatch,ramp_clrs(2,:),...
     'facealpha',1,...
     'edgecolor','none');
-% plot(t,non_avg,...
-%     'color',ramp_clrs(2,:),...
-%     'linewidth',1.5);
 
 % ramping posteriors
-ramp_avg = avgfun(pthat_ramp(:,:,M),2);
-ramp_err = [1,1] .* nanmean(SD_ramp(:,:,M),2); % errfun(pthat_ramp(:,:,M),2);
+ramp_avg = nanmean(pthat_ramp(:,:,M),2);
+ramp_err = [1,1] .* nanmean(errhat_ramp(:,:,M),2);
+% ramp_err = errfun(pthat_ramp(:,:,M),2);
 xpatch = [t,fliplr(t)];
 ypatch = [ramp_avg-ramp_err(:,1);flipud(ramp_avg+ramp_err(:,2))];
 patch(xpatch,ypatch,ramp_clrs(1,:),...
     'facealpha',1,...
     'edgecolor','none');
-% plot(t,ramp_avg,...
-%     'color','w',...
-%     'linewidth',3);
 
 % plot averages
 plot(t,non_avg,...
@@ -1075,26 +1131,6 @@ for ii = 1 : 2
         'linewidth',1.5);
 end
 
-% inset with contrast-split MAPs
-% axes(...
-%     axesopt.inset.se,...
-%     axesopt.default,...
-%     'box','off',...
-%     'color','w',...
-%     'xlim',[ti,tf],...
-%     'ylim',[ti,tf]);
-%
-% % iterate through contrast conditions
-% for ii = 1 : 2
-%     map_avg = squeeze(avgfun(map(:,ii,:),3));
-%     map_err = squeeze(errfun(map(:,ii,:),3));
-%     errorpatch(roi_time,map_avg,map_err,contrast_clrs(ii,:),...
-%         'facealpha',.25);
-%     plot(roi_time,map_avg,...
-%         'color',contrast_clrs(ii,:),...
-%         'linewidth',1.5);
-% end
-
 % save figure
 if want2save
     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
@@ -1107,6 +1143,32 @@ for mm = 1 : M
     subplot(M,1,mm);
     histogram(P_RAMP(:,mm),(0:.025:1.05)-.0125);
     xlim([0,1]);
+end
+figure(...
+    'position',[1.0258e+03 41.8000 1.0224e+03 1.0288e+03]);
+fr_edges = linspace(0,30,50);
+for mm = 1 : M
+    subplot(M,1,mm);
+    set(gca,axesopt.default,...
+        'plotboxaspectratio',[M,1,1]);
+    xlabel('Firing rate (Hz)');
+    ylabel('Count');
+    mm_ramp_flags = SELECTED_RAMP_FLAGS(:,:,mm);
+    mm_mean_fr = MEAN_FR(:,:,mm);
+    histogram(mm_mean_fr(mm_ramp_flags),fr_edges,...
+        'facecolor',ramp_clrs(1,:),...
+        'linewidth',1.5);
+    histogram(mm_mean_fr(~mm_ramp_flags),fr_edges,...
+        'facecolor',ramp_clrs(2,:),...
+        'linewidth',1.5);
+    axis tight;
+    yymax = max(ylim);
+    plot([1,1]*mean(mm_mean_fr(mm_ramp_flags),[1,2]),[0,1]*yymax*1.05,...
+        'color',ramp_clrs(1,:),...
+        'linewidth',3);
+    plot([1,1]*mean(mm_mean_fr(~mm_ramp_flags),[1,2]),[0,1]*yymax*1.05,...
+        'color',ramp_clrs(2,:),...
+        'linewidth',3);
 end
 return;
 
@@ -1153,7 +1215,7 @@ text(.5,1.25,...
     'horizontalalignment','center',...
     'units','normalized');
 text(.5,1.05,...
-    ['$\rm{FR}_{n,k}=\gamma_{n}\cdot\mathcal{N}',...
+    ['$\rm{FR}_{n,k}\propto\gamma_{n}\cdot\mathcal{N}',...
     '(\nu_{n,k}\sim\mathcal{N}(\mu_{n},\lambda_{n}),\sigma_{n})$'],...
     'color','k',...
     'fontsize',12,...
@@ -1292,19 +1354,9 @@ for ee = 1 : n_eg
     end
 end
 
-%%
-figure;
-axes(axesopt.default);
-xlabel('Firing rate (Hz)');
-histogram(nanmean(R,[1,3]),round(N/2),...
-    'facealpha',1,...
-    'edgecolor','w',...
-    'facecolor','k',...
-    'linewidth',1.5);
-
 %% firing rate function
 function x = generativerate(time,gamma,mu,lambda,sigma)
-mu_sample = clamp(normrnd(mu,lambda),time(1),time(end));
-x_pdf = normpdf(time,mu_sample,sigma);
-x = gamma * x_pdf ./ max(x_pdf);
+    mu_sample = clamp(normrnd(mu,lambda),time(1),time(end));
+    x_pdf = normpdf(time,mu_sample,sigma);
+    x = gamma * x_pdf ./ max(x_pdf);
 end

@@ -3,10 +3,13 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
-%% compute Si-aligned firing rates
+%% bootstrap settings
+n_boots = 50;
+
+%% compute Si-aligned stereotypy
 
 % preallocation
-meanfr = struct(...
+fr_stereotypy = struct(...
     's1',nan(n_neurons,1),...
     's2',nan(n_neurons,1));
 
@@ -57,23 +60,27 @@ for nn = 1 : n_neurons_total
     s2_spkrates = reshape(...
         s2_spkrates(s2_chunk_flags'),[n_tbins,n_trials])';
     
-    % compute observations weights
-    s1_weights = sum(~isnan(s1_spkrates));
-    s2_weights = sum(~isnan(s1_spkrates));
-    s1_weights = s1_weights ./ nansum(s1_weights);
-    s2_weights = s2_weights ./ nansum(s2_weights);
+    % preallocation
+    s1_rhos = nan(n_boots,2,2);
+    s2_rhos = nan(n_boots,2,2);
     
-    % replace nans with zeros to allow for weighted averaging
-    s1_spkrates(isnan(s1_spkrates)) = 0;
-    s2_spkrates(isnan(s2_spkrates)) = 0;
+    % iterate through bootstrap iterations
+    for bb = 1 : n_boots
+        train_flags = ismember(1:n_trials,...
+            randperm(n_trials,floor(n_trials/2)));
+        
+        % compute correlation coefficients
+        s1_rhos(bb,:,:) = corrcoef(...
+            nanmean(s1_spkrates(train_flags,:)),...
+            nanmean(s1_spkrates(~train_flags,:)));
+        s2_rhos(bb,:,:) = corrcoef(...
+            nanmean(s2_spkrates(train_flags,:)),...
+            nanmean(s2_spkrates(~train_flags,:)));
+    end
     
-    % compute mean firing rates
-    meanfr.s1(nn) = mean(s1_spkrates * s1_weights');
-    meanfr.s2(nn) = mean(s2_spkrates * s2_weights');
-%     meanfr.s1(nn) = mean(max(s1_spkrates,[],2) - min(s1_spkrates,[],2));
-%     meanfr.s2(nn) = mean(max(s2_spkrates,[],2) - min(s2_spkrates,[],2));
-%     meanfr.s1(nn) = mean(diff(quantile(s1_spkrates,[.05,.95],2),1,2));
-%     meanfr.s2(nn) = mean(diff(quantile(s2_spkrates,[.05,.95],2),1,2));
+    % compute stereotypy coefficient
+    fr_stereotypy.s1(nn) = nanmean(s1_rhos(:,1,2));
+    fr_stereotypy.s2(nn) = nanmean(s2_rhos(:,1,2));
 end
 
 %% plot firing rate of ramping & non-ramping neurons across task epochs
@@ -81,10 +88,10 @@ end
 % figure initialization
 fig = figure(figopt,...
     'position',[744 630 560 412.5],...
-    'name','ramp_firing_rates');
+    'name','ramp_fr_stereotypy');
 
 % epoch settings
-epochs = fieldnames(meanfr);
+epochs = fieldnames(fr_stereotypy);
 n_epochs = numel(epochs);
 
 % axes initialization
@@ -102,10 +109,13 @@ axes(axesopt.default,...
     'xtick',xxtick,...
     'xticklabel',xxticklabel,...
     'ylimspec','tight',...
+    'yaxislocation','right',...
     'clipping','off',...
     'layer','bottom');
 xlabel('Stimulus period');
-ylabel('Firing rate (Hz)');
+ylabel('Stereotypy coefficient',...
+    'rotation',-90,...
+    'verticalalignment','bottom');
 
 % preallocation
 distro = struct();
@@ -122,14 +132,14 @@ errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 for ee = 1 : n_epochs
     epoch = epochs{ee};
     distro.(epoch) = {...
-        meanfr.(epoch)(ramp_idcs.(epoch));...
-        meanfr.(epoch)(nonramp_idcs.(epoch))};
+        fr_stereotypy.(epoch)(ramp_idcs.(epoch));...
+        fr_stereotypy.(epoch)(nonramp_idcs.(epoch))};
     avg.(epoch) = [...
-        avgfun(meanfr.(epoch)(ramp_idcs.(epoch)));...
-        avgfun(meanfr.(epoch)(nonramp_idcs.(epoch)))];
+        avgfun(fr_stereotypy.(epoch)(ramp_idcs.(epoch)));...
+        avgfun(fr_stereotypy.(epoch)(nonramp_idcs.(epoch)))];
     err.(epoch) = [...
-        errfun(meanfr.(epoch)(ramp_idcs.(epoch)));...
-        errfun(meanfr.(epoch)(nonramp_idcs.(epoch)))];
+        errfun(fr_stereotypy.(epoch)(ramp_idcs.(epoch)));...
+        errfun(fr_stereotypy.(epoch)(nonramp_idcs.(epoch)))];
 end
 
 % table conversions
@@ -159,17 +169,16 @@ for ee = 1 : n_epochs
 end
 
 % legend
-legend({'"ramping"','"non-ramping"'},...
+legend({'ramping','non-ramping'},...
     'autoupdate','off',...
     'box','off',...
-    'location','best');
+    'location','southwest');
 
 % update axes
-yymax = floor(max(ylim)/10) * 10 + 5;
-yylim = [0,yymax];
-yytick = linspace(yylim(1),yylim(2),4);
+yylim = [0,1]; % [-.1,1];
+yytick = unique([yylim,linspace(0,yylim(2),4)]);
 yyticklabel = num2cell(yytick);
-yyticklabel(~ismember(yytick,yylim)) = {''};
+yyticklabel(~ismember(yytick,[0,1])) = {''};
 set(gca,...
     'ylim',yylim + [-1,1] * .05 * range(yylim),...
     'ytick',yytick,...
@@ -182,7 +191,7 @@ plot(xlim,[0,0],':k');
 for ee = 1 : n_epochs
     xx = [-1,1] * .5 / 3 + ee;
     yy = [1,1] * max(yylim);
-    plot([1,1]*ee,[min(ylim),yymax],':k',...
+    plot([1,1]*ee,[min(ylim),1],':k',...
         'handlevisibility','off');
     plot(xx,yy,...
         'color','k',...

@@ -3,15 +3,18 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
-%% bootstrap settings
-n_boots = 50;
-
-%% compute Si-aligned stereotypy
+%% compute Si-aligned firing rate statistics
 
 % preallocation
-stereotypy = struct(...
+fr_mu = struct(...
     's1',nan(n_neurons,1),...
     's2',nan(n_neurons,1));
+fr_range = struct(...
+    's1',nan(n_neurons,1),...
+    's2',nan(n_neurons,1));
+
+% modulation metric settings
+alpha = .05;
 
 % iterate through neurons
 for nn = 1 : n_neurons_total
@@ -27,7 +30,7 @@ for nn = 1 : n_neurons_total
     % fetch spike counts & compute spike rates
     spike_rates = data.SDF(spike_flags,:);
     n_trials = size(spike_rates,1);
-    
+
     % S1-aligned spike rates
     s1_alignment = ...
         pre_init_padding + ...
@@ -60,38 +63,39 @@ for nn = 1 : n_neurons_total
     s2_spkrates = reshape(...
         s2_spkrates(s2_chunk_flags'),[n_tbins,n_trials])';
     
-    % preallocation
-    s1_rhos = nan(n_boots,2,2);
-    s2_rhos = nan(n_boots,2,2);
+    % compute observations weights
+    s1_weights = sum(~isnan(s1_spkrates));
+    s2_weights = sum(~isnan(s1_spkrates));
+    s1_weights = s1_weights ./ nansum(s1_weights);
+    s2_weights = s2_weights ./ nansum(s2_weights);
     
-    % iterate through bootstrap iterations
-    for bb = 1 : n_boots
-        train_flags = ismember(1:n_trials,...
-            randperm(n_trials,floor(n_trials/2)));
-        
-        % compute correlation coefficients
-        s1_rhos(bb,:,:) = corrcoef(...
-            nanmean(s1_spkrates(train_flags,:)),...
-            nanmean(s1_spkrates(~train_flags,:)));
-        s2_rhos(bb,:,:) = corrcoef(...
-            nanmean(s2_spkrates(train_flags,:)),...
-            nanmean(s2_spkrates(~train_flags,:)));
-    end
+    % replace nans with zeros to allow for weighted averaging
+    s1_spkrates(isnan(s1_spkrates)) = 0;
+    s2_spkrates(isnan(s2_spkrates)) = 0;
     
-    % compute stereotypy coefficient
-    stereotypy.s1(nn) = nanmean(s1_rhos(:,1,2));
-    stereotypy.s2(nn) = nanmean(s2_rhos(:,1,2));
+    % compute average spike rates through time
+    s1_spkrate = s1_spkrates * s1_weights';
+    s2_spkrate = s2_spkrates * s2_weights';
+    
+    % compute firing rate statistics
+    fr_mu.s1(nn) = mean(s1_spkrate);
+    fr_mu.s2(nn) = mean(s2_spkrate);
+    fr_range.s1(nn) = diff(quantile(s1_spkrate,[alpha,1-alpha]));
+    fr_range.s2(nn) = diff(quantile(s2_spkrate,[alpha,1-alpha]));
 end
+
+%% statistic selection
+stat2plot = fr_range;
 
 %% plot firing rate of ramping & non-ramping neurons across task epochs
 
 % figure initialization
 fig = figure(figopt,...
     'position',[744 630 560 412.5],...
-    'name','ramp_stereotypy');
+    'name','ramp_fr_range');
 
 % epoch settings
-epochs = fieldnames(stereotypy);
+epochs = fieldnames(stat2plot);
 n_epochs = numel(epochs);
 
 % axes initialization
@@ -109,13 +113,10 @@ axes(axesopt.default,...
     'xtick',xxtick,...
     'xticklabel',xxticklabel,...
     'ylimspec','tight',...
-    'yaxislocation','right',...
     'clipping','off',...
     'layer','bottom');
 xlabel('Stimulus period');
-ylabel('Stereotypy coefficient',...
-    'rotation',-90,...
-    'verticalalignment','bottom');
+ylabel('Firing rate range (Hz)');
 
 % preallocation
 distro = struct();
@@ -132,14 +133,14 @@ errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 for ee = 1 : n_epochs
     epoch = epochs{ee};
     distro.(epoch) = {...
-        stereotypy.(epoch)(ramp_idcs.(epoch));...
-        stereotypy.(epoch)(nonramp_idcs.(epoch))};
+        stat2plot.(epoch)(ramp_idcs.(epoch));...
+        stat2plot.(epoch)(nonramp_idcs.(epoch))};
     avg.(epoch) = [...
-        avgfun(stereotypy.(epoch)(ramp_idcs.(epoch)));...
-        avgfun(stereotypy.(epoch)(nonramp_idcs.(epoch)))];
+        avgfun(stat2plot.(epoch)(ramp_idcs.(epoch)));...
+        avgfun(stat2plot.(epoch)(nonramp_idcs.(epoch)))];
     err.(epoch) = [...
-        errfun(stereotypy.(epoch)(ramp_idcs.(epoch)));...
-        errfun(stereotypy.(epoch)(nonramp_idcs.(epoch)))];
+        errfun(stat2plot.(epoch)(ramp_idcs.(epoch)));...
+        errfun(stat2plot.(epoch)(nonramp_idcs.(epoch)))];
 end
 
 % table conversions
@@ -169,16 +170,17 @@ for ee = 1 : n_epochs
 end
 
 % legend
-legend({'ramping','non-ramping'},...
+legend({'"ramping"','"non-ramping"'},...
     'autoupdate','off',...
     'box','off',...
-    'location','best');
+    'location','southwest');
 
 % update axes
-yylim = [-.1,1];
-yytick = unique([yylim,linspace(0,yylim(2),4)]);
+yymax = floor(max(ylim)/10) * 10 + 5;
+yylim = [0,yymax];
+yytick = linspace(yylim(1),yylim(2),4);
 yyticklabel = num2cell(yytick);
-yyticklabel(~ismember(yytick,[0,1])) = {''};
+yyticklabel(~ismember(yytick,yylim)) = {''};
 set(gca,...
     'ylim',yylim + [-1,1] * .05 * range(yylim),...
     'ytick',yytick,...
@@ -191,7 +193,7 @@ plot(xlim,[0,0],':k');
 for ee = 1 : n_epochs
     xx = [-1,1] * .5 / 3 + ee;
     yy = [1,1] * max(yylim);
-    plot([1,1]*ee,[min(ylim),1],':k',...
+    plot([1,1]*ee,[min(ylim),yymax],':k',...
         'handlevisibility','off');
     plot(xx,yy,...
         'color','k',...

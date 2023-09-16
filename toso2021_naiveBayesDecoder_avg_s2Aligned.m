@@ -131,7 +131,7 @@ slice_clrs = gray(n_slices);
 %% construct spike rate tensor (time X neurons X concatenations)
 
 % data clearance
-clear concat_tensor P_tR;
+clear R P_tR;
 
 % preallocation
 P_tR = nan(roi_n_bins,roi_n_bins,conditions.test.n,n_runs);
@@ -153,7 +153,7 @@ for rr = 1 : n_runs
         neuron_flags = data.NeuronNumb == flagged_neurons(nn);
         
         % preallocation
-        xval_train_trials_bab = cell(conditions.train.n,conditions.test.n);
+        xval_train_trials = cell(conditions.train.n,conditions.test.n);
         
         % iterate through training conditions
         for kk = 1 : conditions.train.n
@@ -183,7 +183,7 @@ for rr = 1 : n_runs
             % fetch spike counts & compute spike rates
             spike_rates = data.SDF(trial_flags,:);
             
-            % S2-offset-aligned spike rates
+            % S2-onset-aligned spike rates
             alignment = ...
                 pre_init_padding + ...
                 pre_s1_delay(trial_flags) + ...
@@ -235,12 +235,12 @@ for rr = 1 : n_runs
                     n_xval_trials = numel(xval_trials);
                     n_train_trials = round(n_xval_trials * 2 / 3);
                     xval_train_idcs = randperm(n_xval_trials,n_train_trials);
-                    xval_train_trials_bab{kk,ii} = xval_trials(xval_train_idcs);
+                    xval_train_trials{kk,ii} = xval_trials(xval_train_idcs);
                 end
                 
                 % concatenate sub-sampled training sets across test conditions
                 train_idcs = find(ismember(...
-                    flagged_trials,vertcat(xval_train_trials_bab{kk,:})));
+                    flagged_trials,vertcat(xval_train_trials{kk,:})));
             else
                 
                 % train using all trials in the remaining conditions
@@ -336,7 +336,7 @@ for rr = 1 : n_runs
             
             % handle cross-validation
             test_idcs = find(~ismember(...
-                flagged_trials,vertcat(xval_train_trials_bab{:,kk})));
+                flagged_trials,vertcat(xval_train_trials{:,kk})));
             if isempty(test_idcs)
                 continue;
             end
