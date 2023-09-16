@@ -189,6 +189,7 @@ plot(xlim,[0,0],':k');
 
 % iterate through alignments
 for ee = 1 : n_epochs
+    epoch = epochs{ee};
     xx = [-1,1] * .5 / 3 + ee;
     yy = [1,1] * max(yylim);
     plot([1,1]*ee,[min(ylim),1],':k',...
@@ -197,7 +198,6 @@ for ee = 1 : n_epochs
         'color','k',...
         'linewidth',1.5,...
         'handlevisibility','off');
-    epoch = epochs{ee};
     [~,pval] = kstest2(distro.(epoch){1},distro.(epoch){2});
 %     pval = kruskalwallis(vertcat(distro.(epoch){:}),[],'off');
     pval = pval * n_epochs;

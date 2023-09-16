@@ -30,7 +30,7 @@ for nn = 1 : n_neurons_total
     % fetch spike counts & compute spike rates
     spike_rates = data.SDF(spike_flags,:);
     n_trials = size(spike_rates,1);
-
+    
     % S1-aligned spike rates
     s1_alignment = ...
         pre_init_padding + ...
@@ -191,6 +191,7 @@ plot(xlim,[0,0],':k');
 
 % iterate through alignments
 for ee = 1 : n_epochs
+    epoch = epochs{ee};
     xx = [-1,1] * .5 / 3 + ee;
     yy = [1,1] * max(yylim);
     plot([1,1]*ee,[min(ylim),yymax],':k',...
@@ -199,9 +200,8 @@ for ee = 1 : n_epochs
         'color','k',...
         'linewidth',1.5,...
         'handlevisibility','off');
-    epoch = epochs{ee};
     [~,pval] = kstest2(distro.(epoch){1},distro.(epoch){2});
-%     pval = kruskalwallis(vertcat(distro.(epoch){:}),[],'off');
+    %     pval = kruskalwallis(vertcat(distro.(epoch){:}),[],'off');
     pval = pval * n_epochs;
     if pval < .01
         test_str = '**';
