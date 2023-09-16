@@ -7,8 +7,9 @@ end
 Features = NeuronType_Striatum(DataB);
 Neurons=unique(DataB.Info.NeuronNumb,'rows');
 AllNeurons = Neurons;
-[Neurons,AllRamps,StereoCrit,MeanFR,preselected_idcs] = ...
+[Neurons,AllRamps,~,~,preselected_idcs] = ...
     Selectramp(DataB,Neurons);
+[Neurons,AllCorrs] = Selectcorr(DataB,Neurons);
 
 %% epoch indices related to their output stucture
 s1_idcs = 1 : 4;
@@ -33,3 +34,21 @@ nonramp_idcs.s2 = preselected_idcs(sum(AllRamps(:,s2_idcs),2)==0);
 % go-aligned "ramps"
 ramp_idcs.go = preselected_idcs(sum(AllRamps(:,go_idcs),2)>0);
 nonramp_idcs.go = preselected_idcs(sum(AllRamps(:,go_idcs),2)==0);
+
+%% parse their correlated clusters
+
+% preallocation
+corr_idcs = struct();
+noncorr_idcs = struct();
+
+% S1-aligned "corrs"
+corr_idcs.s1 = preselected_idcs(sum(AllCorrs(:,s1_idcs),2)>0);
+noncorr_idcs.s1 = preselected_idcs(sum(AllCorrs(:,s1_idcs),2)==0);
+
+% S2-aligned "corrs"
+corr_idcs.s2 = preselected_idcs(sum(AllCorrs(:,s2_idcs),2)>0);
+noncorr_idcs.s2 = preselected_idcs(sum(AllCorrs(:,s2_idcs),2)==0);
+
+% go-aligned "corrs"
+corr_idcs.go = preselected_idcs(sum(AllCorrs(:,go_idcs),2)>0);
+noncorr_idcs.go = preselected_idcs(sum(AllCorrs(:,go_idcs),2)==0);

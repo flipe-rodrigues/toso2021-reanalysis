@@ -26,16 +26,26 @@ epochs = {'s1','s2'};
 n_epochs = numel(epochs);
 
 %% cluster settings
-cluster_labels = {'ramp','non'};
-cluster_idcs = cell2table({ramp_idcs.s2,nonramp_idcs.s2},...
-    'variablenames',cluster_labels);
+cluster_labels = {'ramp','nonramp','corr','noncorr'};
 n_clusters = numel(cluster_labels);
 min_cluster_size = inf;
-for kk = 1 : n_clusters
-    cluster = cluster_labels{kk};
-    idcs = cluster_idcs.(cluster){:};
-    cluster_idcs.(cluster) = {idcs(ismember(idcs,flagged_neurons))};
-    min_cluster_size = min(min_cluster_size,numel(cluster_idcs.(cluster){:}));
+
+% preallocation
+cluster_idcs = cell(n_epochs,n_clusters);
+
+% iterate through epochs
+for ee = 1 : n_epochs
+%     cluster_idcs = cell2table({ramp_idcs.s2,nonramp_idcs.s2},...
+%         'variablenames',cluster_labels);
+    
+    % iterate through clusters
+    for kk = 1 : n_clusters
+        cluster = cluster_labels{kk};
+        cluster_idcs{ee,kk} = eval(cluster,'_idcs').(epoch);
+        idcs = cluster_idcs.(cluster){:};
+        cluster_idcs.(cluster) = {idcs(ismember(idcs,flagged_neurons))};
+        min_cluster_size = min(min_cluster_size,numel(cluster_idcs.(cluster){:}));
+    end
 end
 cluster_clrs = ramp_clrs;
 
@@ -237,9 +247,7 @@ set(sps,...
     'xlim',[ti,tf],...
     'xtick',unique([[ti,tf]';[ti,tf]';0;t_set]),...
     'ylim',[ti,tf],...
-    'ytick',unique([[ti,tf]';[ti,tf]';0;t_set]),...
-    'xticklabelrotation',0,...
-    'yticklabelrotation',0);
+    'ytick',unique([[ti,tf]';[ti,tf]';0;t_set]));
 
 % iterate through epochs
 for ee = 1 : n_epochs
@@ -282,20 +290,20 @@ fig = figure(figopt,...
     'name','ramps_decoding_accuracy_s1s2');
 
 % axes initialization
-xxtick = unique((1:M)+[-1;0;1]*.05*M);
+xxtick = unique((1:n_epochs*2)+[-1;0;1]*.05*n_epochs*2);
 xxticklabel = num2cell(xxtick);
-xxticklabel(~ismember(xxtick,1:M)) = {''};
-xxticklabel(ismember(xxtick,1:M)) = model_labels;
+xxticklabel(~ismember(xxtick,1:n_epochs)) = {''};
+xxticklabel(ismember(xxtick,1:n_epochs)) = upper(epochs);
 axes(axesopt.default,...
     'plotboxaspectratio',[2.5,1,1],...
     'color','none',...
-    'xlim',[1,M]+[-1,1]*.1*M,...
+    'xlim',[1,n_epochs*2]+[-1,1]*.1*n_epochs*2,...
     'xtick',xxtick,...
     'xticklabel',xxticklabel,...
     'ylimspec','tight',...
     'clipping','off',...
     'layer','bottom');
-xlabel('Parameter range');
+xlabel('Epochs');
 ylabel('Error (ms)');
 
 % offset between ramps and non-ramps
@@ -392,20 +400,20 @@ fig = figure(figopt,...
     'name','ramps_decoding_precision_s1s2');
 
 % axes initialization
-xxtick = unique((1:M)+[-1;0;1]*.05*M);
+xxtick = unique((1:n_epochs*2)+[-1;0;1]*.05*n_epochs*2);
 xxticklabel = num2cell(xxtick);
-xxticklabel(~ismember(xxtick,1:M)) = {''};
-xxticklabel(ismember(xxtick,1:M)) = model_labels;
+xxticklabel(~ismember(xxtick,1:n_epochs)) = {''};
+xxticklabel(ismember(xxtick,1:n_epochs)) = upper(epochs);
 axes(axesopt.default,...
     'plotboxaspectratio',[2.5,1,1],...
     'color','none',...
-    'xlim',[1,M]+[-1,1]*.1*M,...
+    'xlim',[1,n_epochs*2]+[-1,1]*.1*n_epochs*2,...
     'xtick',xxtick,...
     'xticklabel',xxticklabel,...
     'ylimspec','tight',...
     'clipping','off',...
     'layer','bottom');
-xlabel('Parameter range');
+xlabel('Epochs');
 ylabel('SD (ms)');
 
 % offset between ramps and non-ramps
