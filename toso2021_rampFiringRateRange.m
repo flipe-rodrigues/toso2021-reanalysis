@@ -13,9 +13,6 @@ fr_range = struct(...
     's1',nan(n_neurons,1),...
     's2',nan(n_neurons,1));
 
-% modulation metric settings
-alpha = .0;
-
 % iterate through neurons
 for nn = 1 : n_neurons_total
     progressreport(nn,n_neurons_total,'parsing neural data');
