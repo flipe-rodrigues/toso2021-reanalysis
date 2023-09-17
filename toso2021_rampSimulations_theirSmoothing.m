@@ -28,13 +28,6 @@ t_padded = ti - dt/2 : tf + dt/2;
 t_idcs = 1 : T;
 t_units = 1e3;
 
-%% smoothing kernel settings
-% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-% reimplement this with our smoothing so that everything is done the same?
-kernel_peak_time = 50;
-kernel = gammakernel('peakx',kernel_peak_time,'binwidth',dt);
-t_padded = ti + kernel.paddx(1) : dt : tf + kernel.paddx(end);
-
 %% "ramping" criteria
 
 % "monotonocity" criteria

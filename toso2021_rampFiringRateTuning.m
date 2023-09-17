@@ -3,18 +3,15 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
-%% compute Si-aligned firing rate statistics
+%% compute Si-aligned stereotypy
 
 % preallocation
-fr_mu = struct(...
-    's1',nan(n_neurons,1),...
-    's2',nan(n_neurons,1));
-fr_range = struct(...
+fr_tuning = struct(...
     's1',nan(n_neurons,1),...
     's2',nan(n_neurons,1));
 
-% modulation metric settings
-alpha = .05;
+% time vector
+t = linspace(0,t_set(end),n_tbins);
 
 % iterate through neurons
 for nn = 1 : n_neurons_total
@@ -63,36 +60,30 @@ for nn = 1 : n_neurons_total
     s2_spkrates = reshape(...
         s2_spkrates(s2_chunk_flags'),[n_tbins,n_trials])';
     
-    % compute observations weights
-    s1_weights = sum(~isnan(s1_spkrates));
-    s2_weights = sum(~isnan(s1_spkrates));
-    s1_weights = s1_weights ./ nansum(s1_weights);
-    s2_weights = s2_weights ./ nansum(s2_weights);
-
     % compute average spike rates across trials
     s1_spkrate = mean(s1_spkrates,'omitnan');
     s2_spkrate = mean(s2_spkrates,'omitnan');
+    
+    % normalize
+%     s1_spkrate = s1_spkrate - min(s1_spkrate);
+%     s2_spkrate = s2_spkrate - min(s2_spkrate);
+    s1_spkrate = s1_spkrate ./ nansum(s1_spkrate);
+    s2_spkrate = s2_spkrate ./ nansum(s2_spkrate);
 
-    % compute firing rate statistics
-    fr_mu.s1(nn) = s1_spkrate * s1_weights';
-    fr_mu.s2(nn) = s2_spkrate * s2_weights';
-    fr_range.s1(nn) = range(s1_spkrate);
-    fr_range.s2(nn) = range(s2_spkrate);
+    % compute stereotypy coefficient
+    fr_tuning.s1(nn) = s1_spkrate * t';
+    fr_tuning.s2(nn) = s2_spkrate * t';
 end
-
-%% statistic selection
-stat2plot = fr_range;
-% stat2plot = fr_stereotypy;
 
 %% plot firing rate of ramping & non-ramping neurons across task epochs
 
 % figure initialization
-figure(figopt,...
+fig = figure(figopt,...
     'position',[200 200 560 412.5],...
-    'name','ramp_fr_range');
+    'name','ramp_fr_tuning');
 
 % epoch settings
-epochs = fieldnames(stat2plot);
+epochs = fieldnames(fr_tuning);
 n_epochs = numel(epochs);
 
 % axes initialization
@@ -110,10 +101,13 @@ axes(axesopt.default,...
     'xtick',xxtick,...
     'xticklabel',xxticklabel,...
     'ylimspec','tight',...
+    'yaxislocation','right',...
     'clipping','off',...
     'layer','bottom');
 xlabel('Stimulus period');
-ylabel('Firing rate range (Hz)');
+ylabel('Stereotypy coefficient',...
+    'rotation',-90,...
+    'verticalalignment','bottom');
 
 % preallocation
 distro = struct();
@@ -121,6 +115,8 @@ avg = struct();
 err = struct();
 
 % choice of average and error functions
+avgfun = @(x) nanmean(x);
+errfun = @(x) [1,1] .* nanstd(x) / sqrt(numel(x));
 avgfun = @(x) nanmedian(x);
 errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 
@@ -128,30 +124,21 @@ errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 for ee = 1 : n_epochs
     epoch = epochs{ee};
     distro.(epoch) = {...
-        stat2plot.(epoch)(ramp_idcs.(epoch)(~isnan(stat2plot.(epoch)(ramp_idcs.(epoch)))));...
-        stat2plot.(epoch)(nonramp_idcs.(epoch)(~isnan(stat2plot.(epoch)(nonramp_idcs.(epoch)))));...
-        stat2plot.(epoch)(corr_idcs.(epoch)(~isnan(stat2plot.(epoch)(corr_idcs.(epoch)))));...
-        stat2plot.(epoch)(noncorr_idcs.(epoch)(~isnan(stat2plot.(epoch)(noncorr_idcs.(epoch)))))};
+        fr_tuning.(epoch)(ramp_idcs.(epoch));...
+        fr_tuning.(epoch)(nonramp_idcs.(epoch))};
     avg.(epoch) = [...
-        avgfun(stat2plot.(epoch)(ramp_idcs.(epoch)));...
-        avgfun(stat2plot.(epoch)(nonramp_idcs.(epoch)));...
-        avgfun(stat2plot.(epoch)(corr_idcs.(epoch)));...
-        avgfun(stat2plot.(epoch)(noncorr_idcs.(epoch)))];
+        avgfun(fr_tuning.(epoch)(ramp_idcs.(epoch)));...
+        avgfun(fr_tuning.(epoch)(nonramp_idcs.(epoch)))];
     err.(epoch) = [...
-        errfun(stat2plot.(epoch)(ramp_idcs.(epoch)));...
-        errfun(stat2plot.(epoch)(nonramp_idcs.(epoch)));...
-        errfun(stat2plot.(epoch)(corr_idcs.(epoch)));...
-        errfun(stat2plot.(epoch)(noncorr_idcs.(epoch)))];
+        errfun(fr_tuning.(epoch)(ramp_idcs.(epoch)));...
+        errfun(fr_tuning.(epoch)(nonramp_idcs.(epoch)))];
 end
 
 % table conversions
 avg = struct2table(avg,...
-    'rownames',{'ramp','nonramp','corr','noncorr'});
+    'rownames',{'ramping','non-ramping'});
 err = struct2table(err,...
-    'rownames',{'ramp','nonramp','corr','noncorr'});
-
-xxoffsets = repmat(xxoffsets,1,2);
-clrs = [ramp_clrs; corr_clrs];
+    'rownames',{'ramping','non-ramping'});
 
 % iterate through alignments
 for ee = 1 : n_epochs
@@ -160,31 +147,30 @@ for ee = 1 : n_epochs
         'color','k',...
         'linewidth',1.5,...
         'handlevisibility','off');
-    for rr = 1 : 4
+    for rr = 1 : 2
         errorbar(ee+xxoffsets(rr),avg.(epoch)(rr),...
             err.(epoch)(rr,1),err.(epoch)(rr,2),...
             'color','k',...
             'marker','o',...
             'markersize',7.5,...
             'markeredgecolor','k',...
-            'markerfacecolor',clrs(rr,:),...
+            'markerfacecolor',ramp_clrs(rr,:),...
             'linewidth',1.5,...
             'capsize',0);
     end
 end
 
 % legend
-legend({'ramping','non-ramping','correlated','non-correlated'},...
+legend({'ramping','non-ramping'},...
     'autoupdate','off',...
     'box','off',...
     'location','southwest');
 
 % update axes
-yymax = floor(max(ylim)/5) * 5;
-yylim = [0,yymax];
-yytick = linspace(yylim(1),yylim(2),4);
+yylim = [0,t_set(end)];
+yytick = unique([yylim,linspace(0,yylim(2),4)]);
 yyticklabel = num2cell(yytick);
-yyticklabel(~ismember(yytick,yylim)) = {''};
+yyticklabel(~ismember(yytick,[0,1])) = {''};
 set(gca,...
     'ylim',yylim + [-1,1] * .05 * range(yylim),...
     'ytick',yytick,...
@@ -198,7 +184,7 @@ for ee = 1 : n_epochs
     epoch = epochs{ee};
     xx = [-1,1] * .5 / 3 + ee;
     yy = [1,1] * max(yylim);
-    plot([1,1]*ee,[min(ylim),yymax],':k',...
+    plot([1,1]*ee,[min(ylim),1],':k',...
         'handlevisibility','off');
     plot(xx,yy,...
         'color','k',...
@@ -219,4 +205,24 @@ for ee = 1 : n_epochs
         'fontsize',16,...
         'horizontalalignment','center',...
         'verticalalignment','bottom');
+end
+
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
+end
+
+%%
+figure;
+binedges = linspace(t_set(end)*.1,t_set(end)*.9,40);
+% iterate through alignments
+for ee = 1 : n_epochs
+    subplot(n_epochs,1,ee); hold on;
+    epoch = epochs{ee};
+    for rr = 1 : 2
+        histogram(distro.(epoch){rr},binedges,...
+            'facecolor',ramp_clrs(rr,:),...
+            'normalization','pdf');
+    end
 end

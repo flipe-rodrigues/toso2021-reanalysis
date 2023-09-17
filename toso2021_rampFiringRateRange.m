@@ -9,6 +9,9 @@ end
 fr_mu = struct(...
     's1',nan(n_neurons,1),...
     's2',nan(n_neurons,1));
+fr_min = struct(...
+    's1',nan(n_neurons,1),...
+    's2',nan(n_neurons,1));
 fr_range = struct(...
     's1',nan(n_neurons,1),...
     's2',nan(n_neurons,1));
@@ -59,6 +62,10 @@ for nn = 1 : n_neurons_total
     s2_spkrates(~s2_alignment_flags') = nan;
     s2_spkrates = reshape(...
         s2_spkrates(s2_chunk_flags'),[n_tbins,n_trials])';
+
+    % compute average spike rates across trials
+    s1_spkrate = mean(s1_spkrates,'omitnan');
+    s2_spkrate = mean(s2_spkrates,'omitnan');
     
     % compute observations weights
     s1_weights = sum(~isnan(s1_spkrates));
@@ -66,13 +73,11 @@ for nn = 1 : n_neurons_total
     s1_weights = s1_weights ./ nansum(s1_weights);
     s2_weights = s2_weights ./ nansum(s2_weights);
 
-    % compute average spike rates across trials
-    s1_spkrate = mean(s1_spkrates,'omitnan');
-    s2_spkrate = mean(s2_spkrates,'omitnan');
-
     % compute firing rate statistics
     fr_mu.s1(nn) = s1_spkrate * s1_weights';
     fr_mu.s2(nn) = s2_spkrate * s2_weights';
+    fr_min.s1(nn) = min(s1_spkrate);
+    fr_min.s2(nn) = min(s2_spkrate);
     fr_range.s1(nn) = range(s1_spkrate);
     fr_range.s2(nn) = range(s2_spkrate);
 end

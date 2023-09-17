@@ -7,8 +7,7 @@ end
 Features = NeuronType_Striatum(DataB);
 Neurons=unique(DataB.Info.NeuronNumb,'rows');
 AllNeurons = Neurons;
-[Neurons,AllRamps,~,~,preselected_idcs] = ...
-    Selectramp(DataB,Neurons);
+[Neurons,AllRamps,~,~,preselected_idcs] = Selectramp(DataB,Neurons);
 [Neurons,AllCorrs] = Selectcorr(DataB,Neurons);
 
 %% epoch indices related to their output stucture

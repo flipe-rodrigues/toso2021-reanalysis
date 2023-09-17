@@ -5,15 +5,12 @@ if ~exist('data','var')
 end
 
 %% bootstrap settings
-n_boots = 10;
-
-%% temporal smoothing kernel
-gauss_kernel = gausskernel('sig',50,'binwidth',psthbin);
+n_boots = 50;
 
 %% time settings
 dt = 75;
 ti = 0;
-tf = t_set(end-2);
+tf = t_set(end);
 t = linspace(ti,tf,T);
 T = (tf - ti) / psthbin;
 ti_padded = ti - dt / 2;
@@ -90,7 +87,7 @@ for bb = 1 : n_boots
         end
         
         % fetch spike counts & compute spike rates
-        spike_rates = data.SDF(spike_flags,:);
+        spike_rates = data.FR(spike_flags,:);
         n_trials = size(spike_rates,1);
         
         % S1-onset-aligned spike rates
@@ -98,15 +95,15 @@ for bb = 1 : n_boots
             pre_init_padding + ...
             pre_s1_delay(spike_flags);
         s1_alignment_flags = ...
-            padded_time >= s1_alignment + ti & ...
+            padded_time >= s1_alignment + ti_padded & ...
             padded_time < s1_alignment + t1(spike_flags);
         s1_chunk_flags = ...
-            padded_time >= s1_alignment + ti & ...
-            padded_time < s1_alignment + tf;
+            padded_time >= s1_alignment + ti_padded & ...
+            padded_time < s1_alignment + tf_padded;
         s1_spkrates = spike_rates';
         s1_spkrates(~s1_alignment_flags') = nan;
         s1_spkrates = reshape(s1_spkrates(s1_chunk_flags'),...
-            [T,n_trials])';
+            [T_padded,n_trials])';
         
         % S2-onset-aligned spike rates
         s2_alignment = ...
@@ -115,15 +112,15 @@ for bb = 1 : n_boots
             t1(spike_flags) + ...
             isi;
         s2_alignment_flags = ...
-            padded_time >= s2_alignment + ti & ...
+            padded_time >= s2_alignment + ti_padded & ...
             padded_time < s2_alignment + t2(spike_flags);
         s2_chunk_flags = ...
-            padded_time >= s2_alignment + ti & ...
-            padded_time < s2_alignment + tf;
+            padded_time >= s2_alignment + ti_padded & ...
+            padded_time < s2_alignment + tf_padded;
         s2_spkrates = spike_rates';
         s2_spkrates(~s2_alignment_flags') = nan;
         s2_spkrates = reshape(s2_spkrates(s2_chunk_flags'),...
-            [T,n_trials])';
+            [T_padded,n_trials])';
         
         % handle cross-validation
         train_flags = ismember(1:n_trials,...
@@ -132,23 +129,13 @@ for bb = 1 : n_boots
         % iterate through epochs
         for ee = 1 : n_epochs
             epoch_spkrates = eval([epochs{ee},'_spkrates']);
-            
+            epoch_spkrates = movsum(epoch_spkrates,dt,2) / (dt / t_units);
+            t_flags = t_padded >= ti & t_padded <= tf;
+                
             % iterate through train & test sets
             for tt = [0,1]
-                r = epoch_spkrates(train_flags==tt,:);
-
-                % compute average firing rates through time
-                r_mu = nanmean(r);
-                nan_flags = isnan(r_mu);
-
-                % temporal smoothing
-                r_gauss = conv2(1,gauss_kernel.pdf,r_mu,'valid');
-                r_gauss = padarray(r_gauss,[0,floor(gauss_kernel.nbins/2)],nan,'pre');
-                r_gauss = padarray(r_gauss,[0,ceil(gauss_kernel.nbins/2)-1],nan,'post');
-                r_gauss(nan_flags) = nan;
-
-                % store train & test spike rates
-                R_all(:,nn,ee,2-tt) = r_mu;
+                r = epoch_spkrates(train_flags == tt,t_flags);
+                R_all(:,nn,ee,2-tt) = nanmean(r);
             end
         end
     end
@@ -199,6 +186,10 @@ for bb = 1 : n_boots
     end
 end
 
+%% choice of average & error functions
+avgfun = @(x,d)nanmean(x,d);
+errfun = @(x,d)nanstd(x,0,d);
+
 %% plot cluster-split posterior averages
 figure(...
     'name','cluster-split posterior averages',...
@@ -225,10 +216,6 @@ set(sps,...
     'ylim',[ti,tf],...
     'ytick',unique([[ti,tf]';[ti,tf]';0;t_set]));
 linkaxes(sps);
-
-% choice of average & error functions
-avgfun = @(x,d)nanmean(x,d);
-errfun = @(x,d)nanstd(x,0,d);
 
 clims = quantile(P_tR,[0,.999],'all')';
 
@@ -269,10 +256,6 @@ set(sps,...
     'ytick',unique([[ti,tf]';[ti,tf]';0;t_set]));
 linkaxes(sps);
 
-% choice of average & error functions
-avgfun = @(x,d)nanmean(x,d);
-errfun = @(x,d)nanstd(x,0,d);
-
 % iterate through epochs
 for ee = 1 : n_epochs
     
@@ -291,7 +274,6 @@ for ee = 1 : n_epochs
     for kk = 1 : n_clusters
         pthat_avg = squeeze(avgfun(P_tR_mu(:,ee,kk,:),4));
         pthat_err = squeeze(avgfun(P_tR_sd(:,ee,kk,:),4)); % squeeze(errfun(P_tR_mu(:,ee,kk,:),4));
-        nanmean(pthat_err)
         plot(sps(ee),t,pthat_avg,...
             'color',cluster_clrs(kk,:),...
             'linewidth',1.5);
