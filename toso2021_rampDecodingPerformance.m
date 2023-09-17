@@ -5,15 +5,15 @@ if ~exist('data','var')
 end
 
 %% bootstrap settings
-n_boots = 25;
+n_boots = 10;
 
 %% temporal smoothing kernel
 gauss_kernel = gausskernel('sig',50,'binwidth',psthbin);
 
 %% time settings
 dt = 75;
-ti = 0;
-tf = t_set(end);
+ti = 0 + gauss_kernel.paddx(1);
+tf = t_set(t2_mode_idx+1) + gauss_kernel.paddx(2);
 T = (tf - ti) / psthbin;
 t = linspace(ti,tf,T);
 % t = ti : tf;
@@ -35,19 +35,26 @@ cluster_idcs = cell(n_epochs,n_clusters);
 
 % iterate through epochs
 for ee = 1 : n_epochs
-%     cluster_idcs = cell2table({ramp_idcs.s2,nonramp_idcs.s2},...
-%         'variablenames',cluster_labels);
-    
+    epoch = epochs{ee};
+
     % iterate through clusters
     for kk = 1 : n_clusters
         cluster = cluster_labels{kk};
-        cluster_idcs{ee,kk} = eval(cluster,'_idcs').(epoch);
-        idcs = cluster_idcs.(cluster){:};
-        cluster_idcs.(cluster) = {idcs(ismember(idcs,flagged_neurons))};
-        min_cluster_size = min(min_cluster_size,numel(cluster_idcs.(cluster){:}));
+        all_idcs = eval([cluster,'_idcs']).(epoch);
+        cluster_idcs{ee,kk} = all_idcs(ismember(all_idcs,flagged_neurons));
+        min_cluster_size = min(min_cluster_size,numel(cluster_idcs{ee,kk}));
     end
 end
-cluster_clrs = ramp_clrs;
+
+% table conversion
+cluster_idcs = cell2table(cluster_idcs',...
+    'variablenames',epochs,...
+    'rownames',cluster_labels);
+
+% color settings
+cluster_clrs = [...
+    ramp_clrs;...
+    corr_clrs];
 
 %% cross-validation settings
 n_folds = 2;
@@ -139,7 +146,7 @@ for bb = 1 : n_boots
                 r_gauss(nan_flags) = nan;
 
                 % store train & test spike rates
-                R_all(:,nn,ee,tt+1) = r_mu;
+                R_all(:,nn,ee,2-tt) = r_gauss;
             end
         end
     end
@@ -148,15 +155,14 @@ for bb = 1 : n_boots
     
     % iterate through epochs
     for ee = 1 : n_epochs
+        epoch = epochs{ee};
         
         % iterate through clusters
         for kk = 1 : n_clusters
-            cluster = cluster_labels{kk};
-            idcs = cluster_idcs.(cluster){:};
-            cluster_size = numel(idcs);
+            cluster_size = numel(cluster_idcs.(epoch){kk});
             cluster_flags = ismember(1:cluster_size,...
                 randperm(cluster_size,min_cluster_size));
-            R = R_all(:,idcs(cluster_flags),ee,:);
+            R = R_all(:,cluster_idcs.(epoch){kk}(cluster_flags),ee,:);
             
             %% naive bayes decoder
             nbdopt = struct();
@@ -167,7 +173,7 @@ for bb = 1 : n_boots
             nbdopt.test.trial_idcs = 2;
             nbdopt.test.n_trials = numel(nbdopt.test.trial_idcs);
             nbdopt.assumepoissonmdl = true;
-            nbdopt.verbose = true;
+            nbdopt.verbose = false;
             
             tic
             P_tR(:,:,ee,kk,bb) = naivebayestimedecoder(R,nbdopt);
@@ -194,12 +200,19 @@ figure(...
     'name','cluster-split posterior averages',...
     'numbertitle','off',...
     'windowstyle','docked');
-n_sps = n_clusters * n_epochs;
-sps = gobjects(n_sps,1);
-for ii = 1 : n_sps
-    sps(ii) = subplot(n_clusters,n_epochs,ii);
-    xlabel(sps(ii),'Time since S_2 onset (ms)');
-    ylabel(sps(ii),'Decoded time since S_2 onset (ms)');
+sps = gobjects(n_epochs,n_clusters);
+for ee = 1 : n_epochs
+    for kk = 1 : n_clusters
+        sp_idx = kk + (ee - 1) * n_clusters;
+        sps(ee,kk) = subplot(n_epochs,n_clusters,sp_idx);
+        if ee == 1
+            title(sps(ee,kk),cluster_labels{kk});
+        end
+    end
+    xlabel(sps(ee,:),...
+        sprintf('Time since %s onset (ms)',upper(epochs{ee})));
+    ylabel(sps(ee,:),...
+        sprintf('Decoded time since %s onset (ms)',upper(epochs{ee})));
 end
 set(sps,...
     axesopt.default,...
@@ -207,21 +220,19 @@ set(sps,...
     'xtick',unique([[ti,tf]';[ti,tf]';0;t_set]),...
     'ylim',[ti,tf],...
     'ytick',unique([[ti,tf]';[ti,tf]';0;t_set]));
-title(sps(1),epochs{1});
-title(sps(2),epochs{2});
 linkaxes(sps);
 
 clims = quantile(P_tR,[0,.999],'all')';
 
-% iterate through clusters
-for kk = 1 : n_clusters
+% iterate through epochs
+for ee = 1 : n_epochs
     
-    % iterate through epochs
-    for ee = 1 : n_clusters
-        sp_idx = ee + (kk - 1) * n_epochs;
+    % iterate through clusters
+    for kk = 1 : n_clusters
+        
         p_tR = squeeze(avgfun(P_tR(:,:,ee,kk,:),5));
-        imagesc(sps(sp_idx),[ti,tf],[ti,tf],p_tR',clims);
-        plot(sps(sp_idx),xlim,ylim,'--w');
+        imagesc(sps(ee,kk),[ti,tf],[ti,tf],p_tR',clims);
+        plot(sps(ee,kk),xlim,ylim,'--w');
     end
 end
 
@@ -267,9 +278,6 @@ for ee = 1 : n_epochs
     for kk = 1 : n_clusters
         pthat_avg = squeeze(avgfun(P_tR_mu(:,ee,kk,:),4));
         pthat_err = squeeze(errfun(P_tR_mu(:,ee,kk,:),4));
-%         errorpatch(t,pthat_avg,pthat_err,cluster_clrs(kk,:),...
-%             'facealpha',.25,...
-%             'parent',sps(ee));
         plot(sps(ee),t,pthat_avg,...
             'color',cluster_clrs(kk,:),...
             'linewidth',1.5);
@@ -317,38 +325,27 @@ avgfun = @(x) nanmedian(x);
 errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 
 % preallocation
-ramp_sims = nan(T,n_epochs);
-non_sims = nan(T,n_epochs);
+accuracy = nan(T,n_epochs,n_clusters);
+% accuracy = nan(n_boots,n_epochs,n_clusters);
 
 % iterate through epochs
 for ee = 1 : n_epochs
-    ramp_sims(:,ee) = accuracyfun(P_tR_mu(:,ee,1,:),4);
-    non_sims(:,ee) = accuracyfun(P_tR_mu(:,ee,2,:),4);
-    ramp_avg = avgfun(ramp_sims(:,ee));
-    non_avg = avgfun(non_sims(:,ee));
-    ramp_err = errfun(ramp_sims(:,ee));
-    non_err = errfun(non_sims(:,ee));
-    plot(ee+xoffsets,[ramp_avg,non_avg],...
-        'color','k',...
-        'linewidth',1.5);
-    errorbar(ee+xoffsets(1),ramp_avg,...
-        ramp_err(1),ramp_err(2),...
-        'color','k',...
-        'marker','o',...
-        'markersize',7.5,...
-        'markeredgecolor','k',...
-        'markerfacecolor',ramp_clrs(1,:),...
-        'linewidth',1.5,...
-        'capsize',0);
-    errorbar(ee+xoffsets(2),non_avg,...
-        non_err(1),non_err(2),...
-        'color','k',...
-        'marker','o',...
-        'markersize',7.5,...
-        'markeredgecolor','k',...
-        'markerfacecolor',ramp_clrs(2,:),...
-        'linewidth',1.5,...
-        'capsize',0);
+    
+    % iterate through clusters
+    for kk = 1 : n_clusters
+        accuracy(:,ee,kk) = accuracyfun(P_tR_mu(:,ee,kk,:),4);
+        avg = avgfun(accuracy(:,ee,kk));
+        err = errfun(accuracy(:,ee,kk));
+        errorbar(ee+xoffsets(1+iseven(kk)),avg,...
+            err(1),err(2),...
+            'color','k',...
+            'marker','o',...
+            'markersize',7.5,...
+            'markeredgecolor','k',...
+            'markerfacecolor',cluster_clrs(kk,:),...
+            'linewidth',1.5,...
+            'capsize',0);
+    end
 end
 
 % update axes
@@ -370,8 +367,7 @@ for ee = 1 : n_epochs
         'color','k',...
         'linewidth',1.5,...
         'handlevisibility','off');
-    [~,pval] = kstest2(ramp_sims(:,ee),non_sims(:,ee));
-    pval = kruskalwallis([ramp_sims(:,ee),non_sims(:,ee)],[],'off');
+    pval = kruskalwallis([accuracy(:,ee,1),accuracy(:,ee,2)],[],'off');
     if pval < .01
         test_str = '**';
     elseif pval < .05
@@ -423,40 +419,28 @@ xoffsets = [-1,1] * .15;
 avgfun = @(x) nanmedian(x);
 errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 
-
 % preallocation
-ramp_sims = nan(T,n_epochs);
-non_sims = nan(T,n_epochs);
+precision = nan(T,n_epochs,n_clusters);
+% precision = nan(n_boots,n_epochs,n_clusters);
 
 % iterate through epochs
 for ee = 1 : n_epochs
-    ramp_sims(:,ee) = nanmean(P_tR_sd(:,ee,1,:),4);
-    non_sims(:,ee) = nanmean(P_tR_sd(:,ee,2,:),4);
-    ramp_avg = avgfun(ramp_sims(:,ee));
-    non_avg = avgfun(non_sims(:,ee));
-    ramp_err = errfun(ramp_sims(:,ee));
-    non_err = errfun(non_sims(:,ee));
-    plot(ee+xoffsets,[ramp_avg,non_avg],...
-        'color','k',...
-        'linewidth',1.5);
-    errorbar(ee+xoffsets(1),ramp_avg,...
-        ramp_err(1),ramp_err(2),...
-        'color','k',...
-        'marker','o',...
-        'markersize',7.5,...
-        'markeredgecolor','k',...
-        'markerfacecolor',ramp_clrs(1,:),...
-        'linewidth',1.5,...
-        'capsize',0);
-    errorbar(ee+xoffsets(2),non_avg,...
-        non_err(1),non_err(2),...
-        'color','k',...
-        'marker','o',...
-        'markersize',7.5,...
-        'markeredgecolor','k',...
-        'markerfacecolor',ramp_clrs(2,:),...
-        'linewidth',1.5,...
-        'capsize',0);
+    
+    % iterate through clusters
+    for kk = 1 : n_clusters
+        precision(:,ee,kk) = nanmean(P_tR_sd(:,ee,kk,:),4);
+        avg = avgfun(precision(:,ee,kk));
+        err = errfun(precision(:,ee,kk));
+        errorbar(ee+xoffsets(1+iseven(kk)),avg,...
+            err(1),err(2),...
+            'color','k',...
+            'marker','o',...
+            'markersize',7.5,...
+            'markeredgecolor','k',...
+            'markerfacecolor',cluster_clrs(kk,:),...
+            'linewidth',1.5,...
+            'capsize',0);
+    end
 end
 
 % update axes
@@ -478,8 +462,7 @@ for ee = 1 : n_epochs
         'color','k',...
         'linewidth',1.5,...
         'handlevisibility','off');
-    [~,pval] = kstest2(ramp_sims(:,ee),non_sims(:,ee));
-    pval = kruskalwallis([ramp_sims(:,ee),non_sims(:,ee)],[],'off');
+    pval = kruskalwallis([precision(:,ee,1),precision(:,ee,2)],[],'off');
     if pval < .01
         test_str = '**';
     elseif pval < .05

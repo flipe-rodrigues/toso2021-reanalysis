@@ -87,7 +87,7 @@ stat2plot = fr_stereotypy;
 %% plot firing rate of ramping & non-ramping neurons across task epochs
 
 % figure initialization
-fig = figure(figopt,...
+figure(figopt,...
     'position',[200 200 560 412.5],...
     'name','ramp_fr_range');
 
@@ -174,13 +174,13 @@ for ee = 1 : n_epochs
 end
 
 % legend
-legend({'ramping','non-ramping'},...
+legend({'ramping','non-ramping','correlated','non-correlated'},...
     'autoupdate','off',...
     'box','off',...
     'location','southwest');
 
 % update axes
-yymax = floor(max(ylim)/5) * 5;
+yymax = 1;floor(max(ylim)/5) * 5;
 yylim = [0,yymax];
 yytick = linspace(yylim(1),yylim(2),4);
 yyticklabel = num2cell(yytick);
@@ -219,10 +219,4 @@ for ee = 1 : n_epochs
         'fontsize',16,...
         'horizontalalignment','center',...
         'verticalalignment','bottom');
-end
-
-% save figure
-if want2save
-    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-    print(fig,svg_file,'-dsvg','-painters');
 end
