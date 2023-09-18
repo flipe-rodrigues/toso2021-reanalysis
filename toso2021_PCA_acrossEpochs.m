@@ -397,7 +397,6 @@ s2_isi_exp_err = errfun(s2_isi_exp,2);
 s2_s2_exp_err = errfun(s2_s2_exp,2);
 
 %%
-
 figure(figopt,...
     'position',[1.8000 41.8000 1.0248e+03 1.0288e+03]);
 
@@ -431,7 +430,6 @@ for pc_s1 = 1 : 3
 end
 
 %%
-
 % figure(figopt);
 %
 % for ii = 1 : 2

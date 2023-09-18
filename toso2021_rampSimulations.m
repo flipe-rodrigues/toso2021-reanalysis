@@ -18,22 +18,20 @@ K = 100;        % trials
 S = 100;        % simulations
 P = 4;          % number of partitions with which to assess stereotypy
 
+%% temporal smoothing kernel
+gauss_kernel = gausskernel('sig',50,'binwidth',psthbin);
+
 %% time settings
-dt = 75;
 ti = 0;
 tf = 1000;
-t = ti : tf;
-T = numel(t);
-t_padded = ti - dt/2 : tf + dt/2;
-t_idcs = 1 : T;
+ti_padded = ti + gauss_kernel.paddx(1);
+tf_padded = tf + gauss_kernel.paddx(2);
+T = (tf - ti) / psthbin;
+T_padded = (tf_padded - ti_padded) / psthbin;
+t = linspace(ti,tf,T);
+t_padded = linspace(ti_padded,tf_padded,T_padded);
 t_units = 1e3;
-
-%% smoothing kernel settings
-% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-% reimplement this with our smoothing so that everything is done the same?
-kernel_peak_time = 50;
-kernel = gammakernel('peakx',kernel_peak_time,'binwidth',dt);
-t_padded = ti + kernel.paddx(1) : dt : tf + kernel.paddx(end);
+dt = diff(t(1:2));
 
 %% "ramping" criteria
 
@@ -144,13 +142,18 @@ for mm = 1 : M
                     t,gammas(nn),mus(nn),lambdas(nn),sigmas(nn));
                 x_padded = bsl_fr + generativerate(...
                     t_padded,gammas(nn),mus(nn),lambdas(nn),sigmas(nn));
-                dur_padded = range(t_padded) / t_units;
+                dur_padded = (tf_padded - ti_padded) / t_units;
                 [~,ts] = poissonprocess(x_padded,dur_padded);
-                spk_times = ts * t_units + t_padded(1);
+                spk_times = ts * t_units + ti_padded;
                 spk_counts = histcounts(spk_times,'binedges',t_padded);
-                r_padded = movsum(spk_counts,dt) / (dt / t_units);
-                t_flags = t_padded >= ti & t_padded < tf + 1;
-                R(:,nn,kk) = r_padded(t_flags);
+                R(:,nn,kk) = conv(spk_counts/(dt/t_units),gauss_kernel.pdf,'valid');
+%                 dur_padded = range(t_padded) / t_units;
+%                 [~,ts] = poissonprocess(x_padded,dur_padded);
+%                 spk_times = ts * t_units + t_padded(1);
+%                 spk_counts = histcounts(spk_times,'binedges',t_padded);
+%                 r_padded = movsum(spk_counts,dt) / (dt / t_units);
+%                 t_flags = t_padded >= ti & t_padded < tf + 1;
+%                 R(:,nn,kk) = r_padded(t_flags);
             end
         end
         
@@ -167,7 +170,7 @@ for mm = 1 : M
         
         % iterate through neurons
         for nn = 1 : N
-            rhos_monotonocity(nn) = corr(t_idcs',r(:,nn));
+            rhos_monotonocity(nn) = corr((1:T)',r(:,nn));
         end
         
         %% perform linear regression
@@ -177,8 +180,8 @@ for mm = 1 : M
         
         % iterate through neurons
         for nn = 1 : N
-            mdls{nn} = fitlm(t_idcs,r(:,nn));
-            p = polyfit(t_idcs,r(:,nn)',1);
+            mdls{nn} = fitlm(1:T,r(:,nn));
+            p = polyfit(1:T,r(:,nn)',1);
             pvals_monotonocity(nn) = mdls{nn}.Coefficients.pValue(end);
             betas_monotonocity(nn) = p(1);
         end
@@ -492,7 +495,7 @@ ramps2plot_flags = SELECTED_RAMP_FLAGS(:,:,model2plot);
 n_bins = 30;
 mu_bounds = [0,tf];
 lambda_bounds = [0,tf];
-gamma_bounds = [0,30];
+gamma_bounds = [0,25];
 mu_edges = linspace(mu_bounds(1),mu_bounds(2),n_bins);
 lambda_edges = linspace(lambda_bounds(1),lambda_bounds(2),n_bins);
 gamma_edges = linspace(gamma_bounds(1),gamma_bounds(2),n_bins);

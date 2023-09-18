@@ -11,16 +11,10 @@ n_boots = 10;
 gauss_kernel = gausskernel('sig',50,'binwidth',psthbin);
 
 %% time settings
-dt = 75;
 ti = 0;
 tf = t_set(end-2);
-t = linspace(ti,tf,T);
 T = (tf - ti) / psthbin;
-ti_padded = ti - dt / 2;
-tf_padded = tf + dt / 2;
-t_padded = ti_padded : tf_padded;
-T_padded = (tf_padded - ti_padded) / psthbin;
-t_units = 1e3;
+t = linspace(ti,tf,T);
 
 %% epoch settings
 epochs = {'s1','s2'};
