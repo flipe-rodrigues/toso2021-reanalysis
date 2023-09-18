@@ -338,14 +338,16 @@ axes(axesopt.default,...
 xlabel('S_{2}-aligned PC 1 coefficient_{1}');
 ylabel('S_{2}-aligned PC 2 coefficient_{2}');
 
-s2_coeff = pca(s2_zpsths);
-for nn = 1 : n_neurons
-    s2_coeff(nn,1) = s2_zpsths(:,nn) \ t';
-end
-
 % coefficient scatter
 grapeplot(s2_coeff(:,1),s2_coeff(:,2),...
     'markerfacecolor',s2_cluster_clrs);
+
+% [~,bah] = sort(s2_theta_idcs);
+% for nn = 1  : n_neurons
+%     text(s2_coeff(nn,1),s2_coeff(nn,2),sprintf('%i',bah(nn)),...
+%         'fontsize',20,...
+%         'color','m');
+% end
 
 % update axis
 xxlim = xlim;
@@ -464,7 +466,7 @@ z_comb = zscore(r_comb);
 figure; imagesc(z_comb');
 
 %%
-max_k = 30;
+max_k = 15;
 fig = figure(figopt,...
     'name','pc_coefficients_gap_s2');
 axes(axesopt.default,...
