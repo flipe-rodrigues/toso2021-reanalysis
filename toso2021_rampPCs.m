@@ -7,6 +7,7 @@ end
 max_k = 6;
 max_pc2consider = 10;
 pc_clrs = flipud(gray(max_pc2consider+1));
+pc_clrs = pc_clrs(2:end,:);
 
 %% ROI settings
 si_roi = [0,t_set(end)];
@@ -30,7 +31,7 @@ for nn = 1 : n_neurons
     % fetch spike rates
     spike_rates = data.SDF(spike_flags,:);
     n_trials = size(spike_rates,1);
-
+    
     % S1-aligned spike rates
     s1_alignment_offset = ...
         pre_init_padding + ...
@@ -46,7 +47,7 @@ for nn = 1 : n_neurons
     s1_spkrates = reshape(...
         s1_spkrates(s1_chunk_flags'),...
         [si_n_bins,n_trials])';
-
+    
     % S2-aligned spike rates
     s2_alignment = ...
         pre_init_padding + ...
@@ -93,11 +94,11 @@ s2_weights = s2_weights / sum(s2_weights);
 
 % compute S1-aligned PCs
 [s1_coeff,~,~,~,s1_exp] = pca(s1_zpsths,...
-    'weights',s1_weights);
+    'weights',s1_weights.^0);
 
 % compute S2-aligned PCs
 [s2_coeff,~,~,~,s2_exp] = pca(s2_zpsths,...
-    'weights',s2_weights);
+    'weights',s2_weights.^0);
 
 %% compute gap statistics
 
@@ -132,7 +133,7 @@ for pc = 1 : max_pc2consider
     s2_eval.k(pc) = eval.OptimalK;
 end
 
-%% handle cluster indices & colors
+%% parse cluster indices & colors
 
 % S1-aligned clusters
 s1_ramp_flags = ismember(flagged_neurons,ramp_idcs.s1);
@@ -156,15 +157,15 @@ s2_cluster_clrs(s2_cluster_flags,:) = ...
 
 % figure initialization
 fig = figure(figopt,...
-    'position',[10 630 560 420],...
+    'position',[100,200,560,420],...
     'name','tiling_s1');
 
 % axes initialization
-xxtick = unique([0;roi2use';roi2plot';t_set]);
+xxtick = unique([0;si_roi';t_set]);
 xxticklabel = num2cell(xxtick);
 xxticklabel(xxtick > 0 & xxtick < t_set(end)) = {''};
 axes(axesopt.default,...
-    'xlim',roi2plot,...
+    'xlim',si_roi,...
     'ylim',[1,n_neurons],...
     'xtick',xxtick,...
     'xticklabel',xxticklabel,...
@@ -178,7 +179,10 @@ ylabel({'Neuron #','(sorted by S1-aligned PCs)'});
 % sort by angular position in PC space
 [s1_theta,~] = cart2pol(s1_coeff(:,1),s1_coeff(:,2));
 [~,s1_theta_idcs] = sortrows(s1_theta);
-s1_theta_idcs = circshift(s1_theta_idcs,-175);
+s1_theta_idcs = circshift(s1_theta_idcs,150);
+
+% color limits
+clim = [-2,4];
 
 % plot psth raster
 imagesc(si_roi,[1,n_neurons],s1_zpsths(:,s1_theta_idcs)',clim);
@@ -192,13 +196,6 @@ plot(0-.0125*range(xlim),find(s1_nonramp_flags(s1_theta_idcs)),...
     'color',ramp_clrs(2,:),...
     'marker','.',...
     'markersize',5);
-
-% figure;
-% hold on;
-% histogram(find(s1_ramp_flags(s1_theta_idcs)),30,...
-%     'facecolor',ramp_clrs(1,:),'normalization','pdf')
-% histogram(find(s1_nonramp_flags(s1_theta_idcs)),30,...
-%     'facecolor',ramp_clrs(2,:),'normalization','pdf')
 
 % color bar
 clrbar = colorbar;
@@ -231,15 +228,15 @@ end
 
 % figure initialization
 fig = figure(figopt,...
-    'position',[1325 630 560 420],...
+    'position',[100,200,560,420],...
     'name','tiling_s2');
 
 % axes initialization
-xxtick = unique([0;roi2use';roi2plot';t_set]);
+xxtick = unique([0;si_roi';t_set]);
 xxticklabel = num2cell(xxtick);
 xxticklabel(xxtick > 0 & xxtick < t_set(end)) = {''};
 axes(axesopt.default,...
-    'xlim',roi2plot,...
+    'xlim',si_roi,...
     'ylim',[1,n_neurons],...
     'xtick',xxtick,...
     'xticklabel',xxticklabel,...
@@ -253,7 +250,7 @@ ylabel({'Neuron #','(sorted by S2-aligned PCs)'});
 % sort by angular position in PC space
 [s2_theta,~] = cart2pol(s2_coeff(:,1),s2_coeff(:,2));
 [~,s2_theta_idcs] = sortrows(s2_theta);
-s2_theta_idcs = circshift(s2_theta_idcs,-175);
+s2_theta_idcs = flipud(circshift(s2_theta_idcs,-125));
 
 % plot psth raster
 imagesc(si_roi,[1,n_neurons],s2_zpsths(:,s2_theta_idcs)',clim);
@@ -341,6 +338,11 @@ axes(axesopt.default,...
 xlabel('S_{2}-aligned PC 1 coefficient_{1}');
 ylabel('S_{2}-aligned PC 2 coefficient_{2}');
 
+s2_coeff = pca(s2_zpsths);
+for nn = 1 : n_neurons
+    s2_coeff(nn,1) = s2_zpsths(:,nn) \ t';
+end
+
 % coefficient scatter
 grapeplot(s2_coeff(:,1),s2_coeff(:,2),...
     'markerfacecolor',s2_cluster_clrs);
@@ -378,11 +380,15 @@ ylabel('Gap value');
 for pc = 1 : max_pc2consider
     errorbar(1:max_k,s1_eval.gap(pc,:),s1_eval.se(pc,:),...
         'color',pc_clrs(pc,:),...
-        'linewidth',1.5);
+        'linewidth',1.5,...
+        'capsize',0);
     plot(s1_eval.k(pc),s1_eval.gap(pc,s1_eval.k(pc)),...
         'color','k',...
-        'marker','.',...
-        'markersize',15,...
+        'marker','o',...
+        'markersize',6.5,...
+        'markeredgecolor',pc_clrs(pc,:),...
+        'markerfacecolor','w',...
+        'linewidth',1.5,...
         'handlevisibility','off');
 end
 
@@ -390,7 +396,7 @@ end
 leg_str = arrayfun(...
     @(x)sprintf('first %i PCs_{s1}',x),1:max_pc2consider,...
     'uniformoutput',false);
-legend(leg_str);
+% legend(leg_str);
 
 % update axis
 set(gca,...
@@ -417,14 +423,14 @@ ylabel('Gap value');
 % iterate through number of PCs considered
 for pc = 1 : max_pc2consider
     errorbar(1:max_k,s2_eval.gap(pc,:),s2_eval.se(pc,:),...
-        'color',pc_clrs(pc+1,:),...
+        'color',pc_clrs(pc,:),...
         'linewidth',1.5,...
         'capsize',0);
     plot(s2_eval.k(pc),s2_eval.gap(pc,s2_eval.k(pc)),...
         'color','k',...
         'marker','o',...
         'markersize',6.5,...
-        'markeredgecolor',pc_clrs(pc+1,:),...
+        'markeredgecolor',pc_clrs(pc,:),...
         'markerfacecolor','w',...
         'linewidth',1.5,...
         'handlevisibility','off');
@@ -448,8 +454,17 @@ if want2save
     print(fig,svg_file,'-dsvg','-painters');
 end
 
-%% 
-max_k = 10;
+%%
+load('r.mat','r_bumps');
+r_ramps = si_time' .* randn(1,size(r,2)) + randn(si_n_bins,size(r,2))*0;
+figure; plot(si_time,r_ramps(:,1:10),'k');
+figure; imagesc(r_ramps');
+r_comb = [r_ramps,r];
+z_comb = zscore(r_comb);
+figure; imagesc(z_comb');
+
+%%
+max_k = 30;
 fig = figure(figopt,...
     'name','pc_coefficients_gap_s2');
 axes(axesopt.default,...
@@ -459,7 +474,32 @@ axes(axesopt.default,...
 xlabel('Number of clusters');
 ylabel('Gap value');
 
-eval = evalclusters(s2_coeff(:,1:10),'kmeans','gap',...
+Z = s2_zpsths;
+% Z = z_comb;
+W = pca(Z);
+% t = si_time;
+% for ii = 1 : size(Z,2)
+%     W(ii,1) = Z(:,ii) \ t';
+%     p = polyfit(t,Z(:,ii),2);
+% %     W(ii,1) = p(3);
+%     z = Z(:,ii);
+%     dz = diff(z);
+%     W(ii,2) = entropy(diff(Z(:,ii)));
+%     W(ii,2) = p(3);
+%     %      z = Z(:,ii) - min(Z(:,ii));
+%     %      W(ii,2) = t * (z / nansum(z));
+% end
+
+% whiten
+% W = W';
+% sig = (W' * W) / n_neurons;
+% [U,S] = svd(sig);
+% tol = eps(class(W));
+% W = W - mean(W,1);
+% W = W * U * diag(1 ./ sqrt(diag(S) + tol)) * U';
+% W = W';
+
+eval = evalclusters(W(:,1:2),'kmeans','gap',...
     'referencedistribution','uniform',...
     'klist',1:max_k);
 s2_eval2.gap = eval.CriterionValues;
@@ -469,22 +509,40 @@ s2_eval2.k = eval.OptimalK;
 % iterate through number of PCs considered
 errorbar(1:max_k,s2_eval2.gap,s2_eval2.se,...
     'color','k',...
-    'linewidth',1.5);
-
-% legend
-leg_str = arrayfun(...
-    @(x)sprintf('first %i PCs_{s2}',x),1:max_pc2consider,...
-    'uniformoutput',false);
-legend(leg_str);
-
+    'linewidth',1.5,...
+    'capsize',0);
+plot(s2_eval2.k,s2_eval2.gap(s2_eval2.k),...
+        'color','k',...
+        'marker','o',...
+        'markersize',7.5,...
+        'markeredgecolor','k',...
+        'markerfacecolor','w',...
+        'linewidth',1.5,...
+        'handlevisibility','off');
+    
 % update axis
 set(gca,...
     'ytick',ylim,...
     'ylim',ylim+[-1,1]*.05*range(ylim),...
     'yticklabel',{});
 
-% save figure
-if want2save
-    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-    print(fig,svg_file,'-dsvg','-painters');
+%%
+figure; h = gscatter(W(:,1),W(:,2),eval.OptimalY);
+A = nan(si_n_bins,eval.OptimalK);
+for kk = 1 : eval.OptimalK
+    A(:,kk) = nanmean(Z(:,eval.OptimalY==kk),2);
+end
+Wa = pca(A);
+[theta,~] = cart2pol(Wa(:,1),Wa(:,2));
+[~,theta_idcs] = sortrows(theta);
+theta_idcs = circshift(theta_idcs,sum(theta<0));
+figure; imagesc(A(:,theta_idcs)');
+figure('position',[1.8000 41.8000 182.4000 740.8000],'color','w');
+set(gca,'color','none','ycolor','none','nextplot','add','clipping','off');
+for kk = 1 : eval.OptimalK
+    plot(si_time,A(:,theta_idcs(kk))+kk*3,...
+        'color',h(theta_idcs(kk)).Color,...
+        'linewidth',1.5);
+    text(range(xlim)*-.1,kk*3,...
+        sprintf('%i',sum(eval.OptimalY==theta_idcs(kk))));
 end
