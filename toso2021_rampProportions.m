@@ -3,105 +3,77 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
-%% plot stereotypy of ramping & non-ramping neurons across task epochs
+%% plot proportion of ramping & non-ramping neurons across task epochs
 
 % figure initialization
 fig = figure(figopt,...
-    'position',[744,630,460,420],...
-    'name','ramp_proportion_across_epochs');
+    'position',[550,350,380,420],...
+    'name','ramp_proportions');
 
-% epoch settings
-epochs = fieldnames(ramp_idcs_ud);
-n_epochs = numel(epochs);
+% horizontal offset between clusters
+xxoffset = .325;
+xxoffsets = [-1,1] * xxoffset;
 
 % axes initialization
-xxtick = unique((1:n_epochs)+[-1;0;1]*.05*n_epochs);
+xxtick = unique((1:n_ramp_epochs)+[-1;0;1]*xxoffset);
 xxticklabel = num2cell(xxtick);
-xxticklabel(~ismember(xxtick,1:n_epochs)) = {''};
-xxticklabel(ismember(xxtick,1:n_epochs)) = strrep(epochs,'_',' ');
+xxticklabel(~ismember(xxtick,1:n_cluster_epochs)) = {''};
+xxticklabel(ismember(xxtick,1:n_cluster_epochs)) = cellfun(...
+    @(x)capitalize(strrep(x,'_',' ')),cluster_epochs,...
+    'uniformoutput',false);
+yytick = linspace(0,1,5);
+yyticklabel = num2cell(yytick);
+yyticklabel(~ismember(yytick,[0,1])) = {''};
 axes(axesopt.default,...
-    'plotboxaspectratio',[2.5,1,1],...
+    'plotboxaspectratio',[2.25,1,1],...
     'color','none',...
-    'ticklength',axesopt.default.ticklength*.58,...
-    'xlim',[1,n_epochs]+[-1,1]*.75,...
+    'xlim',[1,n_cluster_epochs]+[-1,1]*xxoffset*2,...
     'xtick',xxtick,...
     'xticklabel',xxticklabel,...
     'xticklabelrotation',45,...
-    'ylim',[0,1]+[-1,1]*.0,...
-    'ytick',linspace(0,1,5),...
-    'clipping','off',...
-    'layer','bottom');
+    'ylim',[0,1]+[-1,1]*.05*2.25,...
+    'ytick',yytick,...
+    'yticklabel',yyticklabel,...
+    'clipping','off');
 xlabel('Task event');
 ylabel('Proportion of neurons');
 
 % preallocation
-proportion_ramp = struct();
-proportion_stereo = struct();
-proportion_stim = struct();
+proportion = struct();
 
 % iterate through alignments
-for ee = 1 : n_epochs
-    epoch = epochs{ee};
-    proportion_ramp.(epoch) = [...
-        numel(ramp_idcs_ud.(epoch)); numel(nonramp_idcs_ud.(epoch))] ./ ...
-        (numel(ramp_idcs_ud.(epoch)) + numel(nonramp_idcs_ud.(epoch)));
-    proportion_stereo.(epoch) = [...
-        numel(stereo_idcs_ud.(epoch)); numel(nonstereo_idcs_ud.(epoch))] ./ ...
-        (numel(stereo_idcs_ud.(epoch)) + numel(nonstereo_idcs_ud.(epoch)));
+for ee = 1 : n_cluster_epochs
+    epoch = cluster_epochs{ee};
+    proportion.(epoch) = [...
+        numel(cluster_idcs.(epoch){'ramp'}); numel(cluster_idcs.(epoch){'nonramp'})] ./ ...
+        (numel(cluster_idcs.(epoch){'ramp'}) + numel(cluster_idcs.(epoch){'nonramp'}));
 end
 
-%
-proportion_stim.s1 = [...
-    numel(ramp_idcs.s1); numel(nonramp_idcs.s1)] ./ ...
-    (numel(ramp_idcs.s1) + numel(nonramp_idcs.s1));
-proportion_stim.s2 = [...
-    numel(ramp_idcs.s2); numel(nonramp_idcs.s2)] ./ ...
-    (numel(ramp_idcs.s2) + numel(nonramp_idcs.s2));
-
 % table conversions
-proportion_ramp = struct2table(proportion_ramp,...
-    'rownames',{'ramping','non-ramping'});
-proportion_stereo = struct2table(proportion_stereo,...
-    'rownames',{'stereotypycal','non-stereotypycal'});
-proportion_stim = struct2table(proportion_stim,...
-    'rownames',{'ramping','non-ramping'});
+proportion = struct2table(proportion,...
+    'rownames',cluster_labels);
 
-% offset between ramps and non-ramps
-xoffsets = [-1,1] * .15;
+% plot reference lines
+plot(xlim,[1,1]*.5,':k');
 
 % iterate through alignments
-for ee = 1 : n_epochs
-    epoch = epochs{ee};
-    xxrange = xxtick(ee*3+[-2:0]);
-    for rr = 1 : 2
-        xx = xxrange(rr*2-1) + [0,.05] * n_epochs * (-1)^(rr == 2) * .85;
+for ee = 1 : n_cluster_epochs
+    epoch = cluster_epochs{ee};
+    plot([1,1]*ee,ylim,':k');
+    xxrange = xxtick(ee*3+(-2:0));
+    for kk = 1 : n_clusters
+        xx = xxrange(kk*2-1) + [0,1] * xxoffset * (-1)^(kk == 2) * .75;
         xpatch = [xx,fliplr(xx)];
-        ypatch = sort(repmat([0,proportion_ramp.(epoch)(rr)],1,2));
-        patch(xpatch,ypatch,ramp_clrs(rr,:),...
+        ypatch = sort(repmat([0,proportion.(epoch)(kk)],1,2));
+        patch(xpatch,ypatch,ramp_clrs(kk,:),...
             'facealpha',1,...
             'edgecolor','k',...
             'linewidth',1.5);
     end
 end
 
-%%
-return;
-figure;
-hold on;
-histogram(StereoCrit.S1_onset(ramp_idcs.s1));
-histogram(StereoCrit.S1_onset(nonramp_idcs.s1));
-
-figure;
-hold on;
-histogram(StereoCrit.S1_offset(ramp_idcs.s1));
-histogram(StereoCrit.S1_offset(nonramp_idcs.s1));
-
-figure;
-hold on;
-histogram(StereoCrit.S2_onset(ramp_idcs.s1));
-histogram(StereoCrit.S2_onset(nonramp_idcs.s1));
-
-figure;
-hold on;
-histogram(StereoCrit.S2_offset(ramp_idcs.s1));
-histogram(StereoCrit.S2_offset(nonramp_idcs.s1));
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
+end

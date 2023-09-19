@@ -8,46 +8,54 @@ Features = NeuronType_Striatum(DataB);
 Neurons=unique(DataB.Info.NeuronNumb,'rows');
 AllNeurons = Neurons;
 [Neurons,AllRamps,~,~,preselected_idcs] = Selectramp(DataB,Neurons);
-[Neurons,AllCorrs] = Selectcorr(DataB,Neurons);
+
+%% cluster settings
+cluster_labels = {'ramp','nonramp'};
+n_clusters = numel(cluster_labels);
 
 %% epoch indices related to their output stucture
-s1_idcs = 1 : 4;
-s2_idcs = 5 : 8;	% what they say they do in the methods
-% s2_idcs = 4 : 10;	% what's in their code
-go_idcs = 9 : 10;
+
+% preallocation
+epoch_idcs = struct();
+
+% epoch indices
+epoch_idcs.s1_onset = 1 : 2;
+epoch_idcs.s1_offset = 3 : 4;
+epoch_idcs.s2_onset = 5 : 6;
+epoch_idcs.s2_offset = 7 : 8;
+epoch_idcs.go_cue = 9 : 10;
+epoch_idcs.s1 = [epoch_idcs.s1_onset,epoch_idcs.s1_offset];
+epoch_idcs.s2 = [epoch_idcs.s2_onset,epoch_idcs.s2_offset];
+
+%% cluster epoch settings
+cluster_epochs = fieldnames(epoch_idcs);
+n_cluster_epochs = numel(cluster_epochs);
+
+%% cluster roi settings
+cluster_roi = [-1,1] * 500;
+cluster_roi_n_bins = range(cluster_roi) / psthbin;
+cluster_roi_time = linspace(cluster_roi(1),cluster_roi(2),cluster_roi_n_bins);
 
 %% parse their ramp clusters
 
 % preallocation
-ramp_idcs = struct();
-nonramp_idcs = struct();
+cluster_idcs = cell(n_cluster_epochs,n_clusters);
 
-% S1-aligned "ramps"
-ramp_idcs.s1 = preselected_idcs(sum(AllRamps(:,s1_idcs),2)>0);
-nonramp_idcs.s1 = preselected_idcs(sum(AllRamps(:,s1_idcs),2)==0);
+% iterate through epochs
+for ee = 1 : n_cluster_epochs
+    epoch = cluster_epochs{ee};
 
-% S2-aligned "ramps"
-ramp_idcs.s2 = preselected_idcs(sum(AllRamps(:,s2_idcs),2)>0);
-nonramp_idcs.s2 = preselected_idcs(sum(AllRamps(:,s2_idcs),2)==0);
+    % iterate through clusters
+    for kk = 1 : n_clusters
+        cluster = cluster_labels{kk};
+        rule = sum(AllRamps(:,epoch_idcs.(epoch)),2) > 0 == strcmpi(cluster,'ramp');
+        their_idcs = preselected_idcs(rule);
+        intersection_flags = ismember(their_idcs,flagged_neurons);
+        cluster_idcs{ee,kk} = their_idcs(intersection_flags);
+    end
+end
 
-% go-aligned "ramps"
-ramp_idcs.go = preselected_idcs(sum(AllRamps(:,go_idcs),2)>0);
-nonramp_idcs.go = preselected_idcs(sum(AllRamps(:,go_idcs),2)==0);
-
-%% parse their correlated clusters
-
-% preallocation
-corr_idcs = struct();
-noncorr_idcs = struct();
-
-% S1-aligned "corrs"
-corr_idcs.s1 = preselected_idcs(sum(AllCorrs(:,s1_idcs),2)>0);
-noncorr_idcs.s1 = preselected_idcs(sum(AllCorrs(:,s1_idcs),2)==0);
-
-% S2-aligned "corrs"
-corr_idcs.s2 = preselected_idcs(sum(AllCorrs(:,s2_idcs),2)>0);
-noncorr_idcs.s2 = preselected_idcs(sum(AllCorrs(:,s2_idcs),2)==0);
-
-% go-aligned "corrs"
-corr_idcs.go = preselected_idcs(sum(AllCorrs(:,go_idcs),2)>0);
-noncorr_idcs.go = preselected_idcs(sum(AllCorrs(:,go_idcs),2)==0);
+% table conversion
+cluster_idcs = cell2table(cluster_idcs',...
+    'variablenames',cluster_epochs,...
+    'rownames',cluster_labels);
