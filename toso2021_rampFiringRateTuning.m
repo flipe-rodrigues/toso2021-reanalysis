@@ -150,7 +150,6 @@ for nn = 1 : n_neurons_total
         epoch_spkrate = nanmean(epoch_spkrates);
         
         % normalize
-%         epoch_spkrate = epoch_spkrate - min(epoch_spkrate);
         epoch_spkrate = epoch_spkrate ./ nansum(epoch_spkrate);
 
         % compute center of mass
@@ -228,8 +227,10 @@ counts = struct2table(counts,...
 % iterate through alignments
 for ee = 1 : n_epochs
     epoch = epochs{ee};
+    
+    % iterate through clusters
     for kk = n_clusters : -1 : 1
-        cluster = cluster_labels(kk);
+        cluster = cluster_labels{kk};
         xx = counts.(epoch){cluster} / nansum(counts.(epoch){cluster});
         xx = xx / max(xx) * xxoffset * 1.25 * (-1)^(~iseven(kk)) + ee;
         xx = xx .* [1;1];
@@ -244,6 +245,44 @@ for ee = 1 : n_epochs
     end
 end
 
+% % iterate through alignments
+% for ee = 1 : n_epochs
+%     epoch = epochs{ee};
+%     xx = [-1,1] * .5 / 3 + ee;
+%     yy = [1,1] * yylim(2);
+%     
+%     % iterate through clusters
+%     for kk = 1 : n_clusters
+%         cluster = cluster_labels{kk};
+%         
+% %         n_modes = [];
+% %         aic = inf;
+% %         for mm = 1 : 2
+% %             gmfit = fitgmdist(distro.(epoch){cluster},mm);
+% %             if aic > gmfit.BIC
+% %                 aic = gmfit.BIC;
+% %                 n_modes = mm;
+% %             end
+% %         end
+%         
+%         [~,pval] = kstest(distro.(epoch){cluster}-mean(distro.(epoch){cluster}));
+% %         pval = pval * n_epochs
+%         if pval < .01
+%             test_str = '**';
+%         elseif pval < .05
+%             test_str = '*';
+%         else
+%             test_str = 'n.s.';
+%         end
+%         text(xx(kk),mean(yy)-.025*range(ylim),test_str,...
+%             'color',cluster_clrs(kk,:),...
+%             'fontsize',16,...
+%             'horizontalalignment','center',...
+%             'verticalalignment','bottom');
+%     end
+% end
+% return
+
 % iterate through alignments
 for ee = 1 : n_epochs
     epoch = epochs{ee};
@@ -256,7 +295,9 @@ for ee = 1 : n_epochs
         'linewidth',1.5,...
         'handlevisibility','off');
     [~,pval] = kstest2(distro.(epoch){'ramp'},distro.(epoch){'nonramp'});
-    %     pval = kruskalwallis(vertcat(distro.(epoch){:}),[],'off');
+%     pval = kruskalwallis(vertcat(distro.(epoch){:}),...
+%         [ones(size(distro.(epoch){'ramp'}));...
+%         zeros(size(distro.(epoch){'nonramp'}))],'off');
     pval = pval * n_epochs;
     if pval < .01
         test_str = '**';

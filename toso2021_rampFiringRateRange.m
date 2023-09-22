@@ -15,6 +15,12 @@ fr_min = struct(...
 fr_range = struct(...
     's1',nan(n_neurons,1),...
     's2',nan(n_neurons,1));
+fr_dynrange = struct(...
+    's1',nan(n_neurons,1),...
+    's2',nan(n_neurons,1));
+fr_fano = struct(...
+    's1',nan(n_neurons,1),...
+    's2',nan(n_neurons,1));
 
 % iterate through neurons
 for nn = 1 : n_neurons_total
@@ -80,6 +86,10 @@ for nn = 1 : n_neurons_total
     fr_min.s2(nn) = min(s2_spkrate);
     fr_range.s1(nn) = range(s1_spkrate);
     fr_range.s2(nn) = range(s2_spkrate);
+    fr_dynrange.s1(nn) = max(s1_spkrate) / min(s1_spkrate);
+    fr_dynrange.s2(nn) = max(s2_spkrate) / min(s2_spkrate);
+    fr_fano.s1(nn) = var(s1_spkrate) / mean(s1_spkrate);
+    fr_fano.s2(nn) = var(s2_spkrate) / mean(s2_spkrate);
 end
 
 %% statistic selection

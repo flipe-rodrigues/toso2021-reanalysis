@@ -93,12 +93,10 @@ s2_weights = s2_weights / sum(s2_weights);
 %% PCA
 
 % compute S1-aligned PCs
-[s1_coeff,~,~,~,s1_exp] = pca(s1_zpsths,...
-    'weights',s1_weights.^0);
+[s1_coeff,s1_score,~,~,s1_exp] = pca(zscore(s1_psths'));
 
 % compute S2-aligned PCs
-[s2_coeff,~,~,~,s2_exp] = pca(s2_zpsths,...
-    'weights',s2_weights.^0);
+[s2_coeff,s2_score,~,~,s2_exp] = pca(zscore(s2_psths'));
 
 %% compute gap statistics
 
@@ -136,8 +134,8 @@ end
 %% parse cluster indices & colors
 
 % S1-aligned clusters
-s1_ramp_flags = ismember(flagged_neurons,ramp_idcs.s1);
-s1_nonramp_flags = ismember(flagged_neurons,nonramp_idcs.s1);
+s1_ramp_flags = ismember(flagged_neurons,cluster_idcs.s1{'ramp'});
+s1_nonramp_flags = ismember(flagged_neurons,cluster_idcs.s1{'nonramp'});
 s1_cluster_ids = s1_ramp_flags + s1_nonramp_flags * 2;
 s1_cluster_flags = s1_cluster_ids > 0;
 s1_cluster_clrs = repmat([1,1,1],n_neurons,1);
@@ -145,8 +143,8 @@ s1_cluster_clrs(s1_cluster_flags,:) = ...
     ramp_clrs(s1_cluster_ids(s1_cluster_flags),:);
 
 % S2-aligned clusters
-s2_ramp_flags = ismember(flagged_neurons,ramp_idcs.s2);
-s2_nonramp_flags = ismember(flagged_neurons,nonramp_idcs.s2);
+s2_ramp_flags = ismember(flagged_neurons,cluster_idcs.s2{'ramp'});
+s2_nonramp_flags = ismember(flagged_neurons,cluster_idcs.s2{'nonramp'});
 s2_cluster_ids = s2_ramp_flags + s2_nonramp_flags * 2;
 s2_cluster_flags = s2_cluster_ids > 0;
 s2_cluster_clrs = repmat([1,1,1],n_neurons,1);
@@ -301,8 +299,8 @@ xlabel('S_{1}-aligned PC 1 coefficient_{1}');
 ylabel('S_{1}-aligned PC 2 coefficient_{2}');
 
 % coefficient scatter
-grapeplot(s1_coeff(:,1),s1_coeff(:,2),...
-    'markerfacecolor',s1_cluster_clrs);
+grapeplot(s1_score(s2_cluster_flags,1),s1_score(s2_cluster_flags,2),...
+    'markerfacecolor',s1_cluster_clrs(s2_cluster_flags,:));
 
 % update axis
 xxlim = xlim;
@@ -331,26 +329,9 @@ axes(axesopt.default,...
 xlabel('S_{2}-aligned PC 1 coefficient_{1}');
 ylabel('S_{2}-aligned PC 2 coefficient_{2}');
 
-s2_wavs = s2_psths';
-s2_zwavs = zscore(s2_wavs);
-[wav_coeff,wav_score] = pca(s2_zwavs);
-whos wav_coeff
-whos wav_score
-
 % coefficient scatter
-grapeplot(wav_score(:,1),wav_score(:,2),...
-    'markerfacecolor',s2_cluster_clrs);
-% scatter3(...
-%     wav_score(:,1),...
-%     wav_score(:,2),...
-%     wav_score(:,3),30,'k');
-
-% [~,bah] = sort(s2_theta_idcs);
-% for nn = 1  : n_neurons
-%     text(s2_coeff(nn,1),s2_coeff(nn,2),sprintf('%i',bah(nn)),...
-%         'fontsize',20,...
-%         'color','m');
-% end
+grapeplot(s2_score(s2_cluster_flags,1),s2_score(s2_cluster_flags,2),...
+    'markerfacecolor',s2_cluster_clrs(s2_cluster_flags,:));
 
 % update axis
 xxlim = xlim;
@@ -479,9 +460,9 @@ axes(axesopt.default,...
 xlabel('Number of clusters');
 ylabel('Gap value');
 
-Z = s2_zpsths;
+Z = zscore(s2_psths');
 % Z = z_comb;
-W = pca(Z);
+[~,W] = pca(Z);
 % t = si_time;
 % for ii = 1 : size(Z,2)
 %     W(ii,1) = Z(:,ii) \ t';
