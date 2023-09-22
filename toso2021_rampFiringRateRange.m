@@ -200,7 +200,7 @@ for ee = 1 : n_epochs
         'color','k',...
         'linewidth',1.5,...
         'handlevisibility','off');
-    [~,pval] = kstest2(distro.(epoch){1},distro.(epoch){2});
+    [~,pval] = kstest2(distro.(epoch){'ramp'},distro.(epoch){'nonramp'});
     %     pval = kruskalwallis(vertcat(distro.(epoch){:}),[],'off');
     pval = pval * n_epochs;
     if pval < .01

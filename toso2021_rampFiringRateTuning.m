@@ -162,7 +162,7 @@ end
 
 % figure initialization
 fig = figure(figopt,...
-    'position',[200 200 560 412.5],...
+    'position',[550,350,410,420],...
     'name','ramp_fr_tuning');
 
 % epoch settings
@@ -180,9 +180,10 @@ xxticklabel(~ismember(xxtick,1:n_cluster_epochs)) = {''};
 xxticklabel(ismember(xxtick,1:n_cluster_epochs)) = cellfun(...
     @(x)capitalize(strrep(x,'_',' ')),cluster_epochs,...
     'uniformoutput',false);
-yytick = linspace(cluster_roi(1),cluster_roi(2),5);
+yylim = cluster_roi / 2;
+yytick = linspace(yylim(1),yylim(2),5);
 yyticklabel = num2cell(yytick);
-yyticklabel(~ismember(yytick,cluster_roi)) = {''};
+yyticklabel(~ismember(yytick,[yylim,0])) = {''};
 axes(axesopt.default,...
     'plotboxaspectratio',[2.25,1,1],...
     'color','none',...
@@ -190,21 +191,22 @@ axes(axesopt.default,...
     'xtick',xxtick,...
     'xticklabel',xxticklabel,...
     'xticklabelrotation',45,...
-    'ylim',cluster_roi+[-1,1]*.05*2.25*range(cluster_roi),...
+    'ylim',yylim+[-1,1]*.05*2.25*range(yylim),...
     'ytick',yytick,...
     'yticklabel',yyticklabel,...
     'clipping','off');
 xlabel('Task event');
-ylabel('Response COM');
+ylabel('Response COM (ms)');
+
+% zero line
+plot(xlim,[0,0],':k');
 
 % preallocation
 distro = struct();
 counts = struct();
 
-% bin settings !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-fulldistro = distro.Variables;
-bounds = quantile(vertcat(fulldistro{:}),[0,1]);
-edges = linspace(bounds(1),bounds(2),30);
+% bin settings
+edges = linspace(yylim(1),yylim(2),30);
 
 % iterate through alignments
 for ee = 1 : n_epochs
@@ -226,10 +228,10 @@ counts = struct2table(counts,...
 % iterate through alignments
 for ee = 1 : n_epochs
     epoch = epochs{ee};
-    for kk = 1 : n_clusters
+    for kk = n_clusters : -1 : 1
         cluster = cluster_labels(kk);
-        xx = counts.(epoch){cluster};
-        xx = (xx - min(xx)) / range(xx) * xxoffset * (-1)^(~iseven(kk)) + ee;
+        xx = counts.(epoch){cluster} / nansum(counts.(epoch){cluster});
+        xx = xx / max(xx) * xxoffset * 1.25 * (-1)^(~iseven(kk)) + ee;
         xx = xx .* [1;1];
         xx = [ee; xx(:); ee];
         yy = edges .* [1;1];
@@ -239,31 +241,21 @@ for ee = 1 : n_epochs
             'edgecolor','none',...
             'facealpha',1,...
             'linewidth',1.5);
-        plot(xx(:),yy(:),'k');
     end
 end
-return;
-% legend
-legend({'ramping','non-ramping'},...
-    'autoupdate','off',...
-    'box','off',...
-    'location','southwest');
-
-% zero line
-plot(xlim,[0,0],':k');
 
 % iterate through alignments
 for ee = 1 : n_epochs
     epoch = epochs{ee};
     xx = [-1,1] * .5 / 3 + ee;
-    yy = [1,1] * max(yylim);
-    plot([1,1]*ee,[min(ylim),1],':k',...
+    yy = [1,1] * yylim(2);
+    plot([1,1]*ee,[min(ylim),yylim(2)],':k',...
         'handlevisibility','off');
     plot(xx,yy,...
         'color','k',...
         'linewidth',1.5,...
         'handlevisibility','off');
-    [~,pval] = kstest2(distro.(epoch){1},distro.(epoch){2});
+    [~,pval] = kstest2(distro.(epoch){'ramp'},distro.(epoch){'nonramp'});
     %     pval = kruskalwallis(vertcat(distro.(epoch){:}),[],'off');
     pval = pval * n_epochs;
     if pval < .01
@@ -284,18 +276,4 @@ end
 if want2save
     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
-end
-
-%%
-figure;
-binedges = linspace(t_set(end)*.1,t_set(end)*.9,40);
-% iterate through alignments
-for ee = 1 : n_epochs
-    subplot(n_epochs,1,ee); hold on;
-    epoch = epochs{ee};
-    for kk = 1 : 2
-        histogram(distro.(epoch){kk},binedges,...
-            'facecolor',ramp_clrs(kk,:),...
-            'normalization','pdf');
-    end
 end
