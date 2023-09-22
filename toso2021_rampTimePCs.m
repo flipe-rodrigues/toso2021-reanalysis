@@ -333,15 +333,17 @@ ylabel('S_{2}-aligned PC 2 coefficient_{2}');
 
 s2_wavs = s2_psths';
 s2_zwavs = zscore(s2_wavs);
-[wav_coeff,wav_score] = pca(s2_zwavs,...
-    'economy',false);
+[wav_coeff,wav_score] = pca(s2_zwavs);
 whos wav_coeff
 whos wav_score
 
 % coefficient scatter
 grapeplot(wav_score(:,1),wav_score(:,2),...
     'markerfacecolor',s2_cluster_clrs);
-% scatter3(s2_coeff(:,1),s2_coeff(:,2),s2_coeff(:,3),30,'k');
+% scatter3(...
+%     wav_score(:,1),...
+%     wav_score(:,2),...
+%     wav_score(:,3),30,'k');
 
 % [~,bah] = sort(s2_theta_idcs);
 % for nn = 1  : n_neurons
