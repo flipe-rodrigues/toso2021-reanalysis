@@ -33,7 +33,7 @@ n_cluster_epochs = numel(cluster_epochs);
 
 %% cluster roi settings
 cluster_roi = [-1,1] * 500;
-cluster_roi_n_bins = range(cluster_roi) / psthbin;
+cluster_roi_n_bins = range(cluster_roi);
 cluster_roi_time = linspace(cluster_roi(1),cluster_roi(2),cluster_roi_n_bins);
 
 %% parse their ramp clusters

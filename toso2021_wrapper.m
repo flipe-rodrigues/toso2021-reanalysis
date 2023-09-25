@@ -25,10 +25,6 @@ rt_file = fullfile(data_path,'RT_behavior.mat');
 rts = load(rt_file);
 data.Rts = rts.(sprintf('%s_rats',capitalize(task_str)));
 
-% cluster neurons into ramping & non-ramping neurons using their code
-toso2021_selectRamps_THEIRCODE;
-clear DataB;
-
 %% save settings
 panel_path = fullfile(root_path,'panels',task_str);
 raster_path = fullfile(root_path,'rasters',task_str);
@@ -160,6 +156,10 @@ toso2021_psychometricCurves;
 % ephys
 toso2021_neuronSelection;
 toso2021_parseSessionData;
+
+% cluster neurons into ramping & non-ramping neurons using their code
+toso2021_selectRamps_THEIRCODE;
+
 return;
 toso2021_averageActivity_s2Aligned;
 toso2021_PCA_s2Aligned;
