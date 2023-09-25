@@ -636,8 +636,8 @@ for ii = 1 : size(R,1)
 end
 
 % nested PCA approach
-R = pca(ref_score(:,1:3));
-R = R .* [1,-1,1]';
+% R = pca(ref_score(:,1:3));
+% R = R .* [1,-1,1]';
 
 % iterate through contrast conditions
 for ii = 1 : n_contrasts
