@@ -23,7 +23,7 @@ xxticklabel(ismember(xxtick,1:n_cluster_epochs)) = cellfun(...
     'uniformoutput',false);
 yytick = linspace(0,1,5);
 yyticklabel = num2cell(yytick);
-yyticklabel(~ismember(yytick,[0,.5,1])) = {''};
+yyticklabel(~ismember(yytick,[0,1])) = {''};
 axes(axesopt.default,...
     'plotboxaspectratio',[2.25,1,1],...
     'color','none',...
@@ -40,6 +40,7 @@ ylabel('Proportion of neurons');
 
 % preallocation
 proportion = struct();
+proportion_ud = struct();
 
 % iterate through alignments
 for ee = 1 : n_cluster_epochs
@@ -49,9 +50,19 @@ for ee = 1 : n_cluster_epochs
         (numel(cluster_idcs.(epoch){'ramp'}) + numel(cluster_idcs.(epoch){'nonramp'}));
 end
 
+% iterate through alignments
+for ee = 1 : n_cluster_epochs - 2
+    epoch = cluster_epochs{ee};
+    proportion_ud.(epoch) = [...
+        numel(ramp_idcs.(epoch){'up'}); numel(ramp_idcs.(epoch){'down'})] ./ ...
+        (numel(cluster_idcs.(epoch){'ramp'}) + numel(cluster_idcs.(epoch){'nonramp'}));
+end
+
 % table conversions
 proportion = struct2table(proportion,...
     'rownames',cluster_labels);
+proportion_ud = struct2table(proportion_ud,...
+    'rownames',ramp_idcs.Properties.RowNames);
 
 % plot reference lines
 plot(xlim,[1,1]*.5,':k');
@@ -65,6 +76,22 @@ for ee = 1 : n_cluster_epochs
         xx = xxrange(kk*2-1) + [0,1] * xxoffset * (-1)^(kk == 2) * .75;
         xpatch = [xx,fliplr(xx)];
         ypatch = sort(repmat([0,proportion.(epoch)(kk)],1,2));
+        patch(xpatch,ypatch,ramp_clrs(kk,:),...
+            'facealpha',1,...
+            'edgecolor','k',...
+            'linewidth',1.5);
+    end
+end
+
+% iterate through alignments
+for ee = 1 : n_cluster_epochs - 2
+    epoch = cluster_epochs{ee};
+    plot([1,1]*ee,ylim,':k');
+    xxrange = xxtick(ee*3+(-2:0));
+    for kk = 1 %: n_clusters
+        xx = xxrange(kk*2-1) + [0,1] * xxoffset * (-1)^(kk == 2) * .75;
+        xpatch = [xx,fliplr(xx)];
+        ypatch = sort(repmat([0,proportion_ud.(epoch)('down')],1,2));
         patch(xpatch,ypatch,ramp_clrs(kk,:),...
             'facealpha',1,...
             'edgecolor','k',...

@@ -59,3 +59,26 @@ end
 cluster_idcs = cell2table(cluster_idcs',...
     'variablenames',cluster_epochs,...
     'rownames',cluster_labels);
+
+%%
+
+% preallocation
+ramp_idcs = cell(n_cluster_epochs - 2,n_clusters);
+
+% iterate through epochs
+for ee = 1 : n_cluster_epochs - 2
+    epoch = cluster_epochs{ee};
+
+    % iterate through clusters
+    for kk = 1 : 2
+        rule = AllRamps(:,epoch_idcs.(epoch)(kk)) > 0;
+        their_idcs = preselected_idcs(rule);
+        intersection_flags = ismember(their_idcs,flagged_neurons);
+        ramp_idcs{ee,kk} = their_idcs(intersection_flags);
+    end
+end
+
+% table conversion
+ramp_idcs = cell2table(ramp_idcs',...
+    'variablenames',cluster_epochs(1:end-2),...
+    'rownames',{'up','down'});
