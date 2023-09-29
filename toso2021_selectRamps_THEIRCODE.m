@@ -60,7 +60,7 @@ cluster_idcs = cell2table(cluster_idcs',...
     'variablenames',cluster_epochs,...
     'rownames',cluster_labels);
 
-%%
+%% 
 
 % preallocation
 ramp_idcs = cell(n_cluster_epochs - 2,n_clusters);
