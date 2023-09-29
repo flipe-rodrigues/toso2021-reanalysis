@@ -13,7 +13,7 @@ end
 
 %% tensor settings
 N = 200;     	% neurons
-N_clus = 25;    % neurons per cluster
+N_clus = 30;    % neurons per cluster
 K = 100;        % trials
 S = 100;        % simulations
 P = 4;          % number of partitions with which to assess stereotypy
@@ -70,8 +70,8 @@ gamma_ranges = [...
     [0,100,7]];
 lambda_ranges = [...
     [0,0]; ...
-    [0,tf*2]; ...
-    [0,tf*2]];
+    [0,range(roi)*2]; ...
+    [0,range(roi)*2]];
 M = size(lambda_ranges,1);
 
 % model labels
@@ -130,9 +130,9 @@ for mm = 1 : M
         mus = sort(unifrnd(ti,tf,N,1));
         gammas = clamp(exprnd(gamma_ranges(mm,3),N,1),...
             gamma_ranges(mm,1),gamma_ranges(mm,2));
-        lambdas = clamp(exprnd(1/3*(tf-ti),N,1),...
+        lambdas = clamp(exprnd(1/3*range(roi),N,1),...
             lambda_ranges(mm,1),lambda_ranges(mm,2));
-        sigmas = ones(N,1) * .25 * (tf - ti);
+        sigmas = ones(N,1) * .25 * range(roi);
         
         %% generate fake data
         
@@ -713,7 +713,7 @@ for mm = 1 : M
 end
 
 % update axes
-yymax = ceil(max(ylim)/100) * 100;
+yymax = ceil(max(ylim)/10) * 10;
 yylim = [0,yymax];
 yytick = linspace(yylim(1),yylim(2),2);
 yyticklabel = num2cell(yytick);
