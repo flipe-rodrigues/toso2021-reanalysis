@@ -302,7 +302,7 @@ if want2save
 end
 
 %%
-load('r.mat','r_bumps');
+load('r.mat','r');
 r_ramps = si_time' .* randn(1,size(r,2)) + randn(si_n_bins,size(r,2))*0;
 figure; plot(si_time,r_ramps(:,1:10),'k');
 figure; imagesc(r_ramps');

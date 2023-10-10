@@ -15,7 +15,7 @@ xxoffset = .325;
 xxoffsets = [-1,1] * xxoffset;
 
 % axes initialization
-xxtick = unique((1:n_ramp_epochs)+[-1;0;1]*xxoffset);
+xxtick = unique((1:n_cluster_epochs)+[-1;0;1]*xxoffset);
 xxticklabel = num2cell(xxtick);
 xxticklabel(~ismember(xxtick,1:n_cluster_epochs)) = {''};
 xxticklabel(ismember(xxtick,1:n_cluster_epochs)) = cellfun(...
@@ -51,7 +51,7 @@ for ee = 1 : n_cluster_epochs
 end
 
 % iterate through alignments
-for ee = 1 : n_cluster_epochs - 2
+for ee = 1 : n_cluster_epochs
     epoch = cluster_epochs{ee};
     proportion_ud.(epoch) = [...
         numel(ramp_idcs.(epoch){'up'}); numel(ramp_idcs.(epoch){'down'})] ./ ...
@@ -84,7 +84,7 @@ for ee = 1 : n_cluster_epochs
 end
 
 % iterate through alignments
-for ee = 1 : n_cluster_epochs - 2
+for ee = 1 : n_cluster_epochs
     epoch = cluster_epochs{ee};
     plot([1,1]*ee,ylim,':k');
     xxrange = xxtick(ee*3+(-2:0));
