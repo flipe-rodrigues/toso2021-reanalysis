@@ -93,12 +93,12 @@ s2_weights = s2_weights / sum(s2_weights);
 %% PCA
 
 % compute S1-aligned PCs
-[s1_coeff,~,~,~,s1_exp] = pca(s1_zpsths,...
-    'weights',s1_weights.^0);
+s1_coeff_neuron = pca(zscore(s1_psths,0,1));
+[~,s1_score_time] = pca(zscore(s1_psths,0,2)');
 
 % compute S2-aligned PCs
-[s2_coeff,~,~,~,s2_exp] = pca(s2_zpsths,...
-    'weights',s2_weights.^0);
+s2_coeff_neuron = pca(zscore(s2_psths,0,1));
+[~,s2_score_time] = pca(zscore(s2_psths,0,2)');
 
 %% compute gap statistics
 
@@ -117,41 +117,49 @@ for pc = 1 : max_pc2consider
     progressreport(pc,max_pc2consider,'computing gap statistics');
     
     % evaluate S1 coefficients
-    eval = evalclusters(s1_coeff(:,1:pc),'kmeans','gap',...
+    curr_eval = evalclusters(s1_coeff_neuron(:,1:pc),'kmeans','gap',...
         'referencedistribution','uniform',...
         'klist',1:max_k);
-    s1_eval.gap(pc,:) = eval.CriterionValues;
-    s1_eval.se(pc,:) = eval.SE;
-    s1_eval.k(pc) = eval.OptimalK;
+    s1_eval.gap(pc,:) = curr_eval.CriterionValues;
+    s1_eval.se(pc,:) = curr_eval.SE;
+    s1_eval.k(pc) = curr_eval.OptimalK;
     
     % evaluate S2 coefficients
-    eval = evalclusters(s2_coeff(:,1:pc),'kmeans','gap',...
+    curr_eval = evalclusters(s2_coeff_neuron(:,1:pc),'kmeans','gap',...
         'referencedistribution','uniform',...
         'klist',1:max_k);
-    s2_eval.gap(pc,:) = eval.CriterionValues;
-    s2_eval.se(pc,:) = eval.SE;
-    s2_eval.k(pc) = eval.OptimalK;
+    s2_eval.gap(pc,:) = curr_eval.CriterionValues;
+    s2_eval.se(pc,:) = curr_eval.SE;
+    s2_eval.k(pc) = curr_eval.OptimalK;
 end
 
 %% parse cluster indices & colors
 
 % S1-aligned clusters
-s1_ramp_flags = ismember(flagged_neurons,ramp_idcs.s1);
-s1_nonramp_flags = ismember(flagged_neurons,nonramp_idcs.s1);
-s1_cluster_ids = s1_ramp_flags + s1_nonramp_flags * 2;
+s1_upramp_flags = ismember(flagged_neurons,ramp_idcs.s1{'up'});
+s1_downramp_flags = ismember(flagged_neurons,ramp_idcs.s1{'down'});
+s1_nonramp_flags = ismember(flagged_neurons,ramp_idcs.s1{'non'});
+s1_cluster_ids = [s1_upramp_flags,s1_downramp_flags,s1_nonramp_flags] * (1:3)';
 s1_cluster_flags = s1_cluster_ids > 0;
 s1_cluster_clrs = repmat([1,1,1],n_neurons,1);
 s1_cluster_clrs(s1_cluster_flags,:) = ...
-    ramp_clrs(s1_cluster_ids(s1_cluster_flags),:);
+    rampud_clrs(s1_cluster_ids(s1_cluster_flags),:);
 
 % S2-aligned clusters
-s2_ramp_flags = ismember(flagged_neurons,ramp_idcs.s2);
-s2_nonramp_flags = ismember(flagged_neurons,nonramp_idcs.s2);
-s2_cluster_ids = s2_ramp_flags + s2_nonramp_flags * 2;
+s2_upramp_flags = ismember(flagged_neurons,ramp_idcs.s2{'up'});
+s2_downramp_flags = ismember(flagged_neurons,ramp_idcs.s2{'down'});
+s2_nonramp_flags = ismember(flagged_neurons,ramp_idcs.s2{'non'});
+s2_cluster_ids = [s2_upramp_flags | s2_downramp_flags,s2_nonramp_flags] * (1:2)';
 s2_cluster_flags = s2_cluster_ids > 0;
 s2_cluster_clrs = repmat([1,1,1],n_neurons,1);
 s2_cluster_clrs(s2_cluster_flags,:) = ...
     ramp_clrs(s2_cluster_ids(s2_cluster_flags),:);
+% s2_cluster_edgeclrs = repmat([0,0,1],n_neurons,1);
+% s2_cluster_edgeclrs(s2_upramp_flags,:) = s2_cluster_clrs(s2_upramp_flags,:);
+% s2_cluster_edgeclrs(s2_downramp_flags,:) = s2_cluster_clrs(s2_downramp_flags,:);
+% s2_cluster_edgeclrs(s2_nonramp_flags,:) = s2_cluster_clrs(s2_nonramp_flags,:);
+% s2_cluster_faceclrs = s2_cluster_clrs;
+% s2_cluster_faceclrs(s2_downramp_flags,:) = repmat([0,0,1],sum(s2_downramp_flags),1);
 
 %% S1-aligned tiling
 
@@ -177,7 +185,7 @@ xlabel('Time since S_1 onset (ms)');
 ylabel({'Neuron #','(sorted by S1-aligned PCs)'});
 
 % sort by angular position in PC space
-[s1_theta,~] = cart2pol(s1_coeff(:,1),s1_coeff(:,2));
+[s1_theta,~] = cart2pol(s1_coeff_neuron(:,1),s1_coeff_neuron(:,2));
 [~,s1_theta_idcs] = sortrows(s1_theta);
 s1_theta_idcs = circshift(s1_theta_idcs,150);
 
@@ -188,12 +196,16 @@ clim = [-2,4];
 imagesc(si_roi,[1,n_neurons],s1_zpsths(:,s1_theta_idcs)',clim);
 
 % plot cluster affordances
-plot(0-.025*range(xlim),find(s1_ramp_flags(s1_theta_idcs)),...
-    'color',ramp_clrs(1,:),...
+plot(si_roi(1)-.0375*range(xlim),find(s1_downramp_flags(s1_theta_idcs)),...
+    'color',rampud_clrs(2,:),...
     'marker','.',...
     'markersize',5);
-plot(0-.0125*range(xlim),find(s1_nonramp_flags(s1_theta_idcs)),...
-    'color',ramp_clrs(2,:),...
+plot(si_roi(1)-.025*range(xlim),find(s1_nonramp_flags(s1_theta_idcs)),...
+    'color',rampud_clrs(3,:),...
+    'marker','.',...
+    'markersize',5);
+plot(si_roi(1)-.0125*range(xlim),find(s1_upramp_flags(s1_theta_idcs)),...
+    'color',rampud_clrs(1,:),...
     'marker','.',...
     'markersize',5);
 
@@ -248,7 +260,7 @@ xlabel('Time since S_2 onset (ms)');
 ylabel({'Neuron #','(sorted by S2-aligned PCs)'});
 
 % sort by angular position in PC space
-[s2_theta,~] = cart2pol(s2_coeff(:,1),s2_coeff(:,2));
+[s2_theta,~] = cart2pol(s2_coeff_neuron(:,1),s2_coeff_neuron(:,2));
 [~,s2_theta_idcs] = sortrows(s2_theta);
 s2_theta_idcs = flipud(circshift(s2_theta_idcs,-125));
 
@@ -256,21 +268,25 @@ s2_theta_idcs = flipud(circshift(s2_theta_idcs,-125));
 imagesc(si_roi,[1,n_neurons],s2_zpsths(:,s2_theta_idcs)',clim);
 
 % plot cluster affordances
-plot(0-.025*range(xlim),find(s2_ramp_flags(s2_theta_idcs)),...
-    'color',ramp_clrs(1,:),...
+plot(si_roi(1)-.0375*range(xlim),find(s2_downramp_flags(s2_theta_idcs)),...
+    'color',rampud_clrs(2,:),...
     'marker','.',...
     'markersize',5);
-plot(0-.0125*range(xlim),find(s2_nonramp_flags(s2_theta_idcs)),...
-    'color',ramp_clrs(2,:),...
+plot(si_roi(1)-.025*range(xlim),find(s2_nonramp_flags(s2_theta_idcs)),...
+    'color',rampud_clrs(3,:),...
+    'marker','.',...
+    'markersize',5);
+plot(si_roi(1)-.0125*range(xlim),find(s2_upramp_flags(s2_theta_idcs)),...
+    'color',rampud_clrs(1,:),...
     'marker','.',...
     'markersize',5);
 
 % figure;
 % hold on;
 % histogram(find(s2_ramp_flags(s2_theta_idcs)),30,...
-%     'facecolor',ramp_clrs(1,:),'normalization','pdf')
+%     'facecolor',rampud_clrs(1,:),'normalization','pdf')
 % histogram(find(s2_nonramp_flags(s2_theta_idcs)),30,...
-%     'facecolor',ramp_clrs(2,:),'normalization','pdf')
+%     'facecolor',rampud_clrs(2,:),'normalization','pdf')
 
 % color bar
 clrbar = colorbar;
@@ -299,17 +315,31 @@ if want2save
     print(fig,svg_file,'-dsvg','-painters');
 end
 
-%% S1-aligned PC coefficient scatter
+%% S1-aligned PC neuron-wise coefficient scatter
 fig = figure(figopt,...
-    'name','pc_coefficients2D_s1');
+    'name','pc_neuronwiseCoefficients2D_s1');
 axes(axesopt.default,...
     'clipping','off');
 xlabel('S_{1}-aligned PC 1 coefficient_{1}');
 ylabel('S_{1}-aligned PC 2 coefficient_{2}');
 
 % coefficient scatter
-grapeplot(s1_coeff(:,1),s1_coeff(:,2),...
-    'markerfacecolor',s1_cluster_clrs);
+% grapeplot(s1_coeff_neuron(s1_cluster_flags,1),s1_coeff_neuron(s1_cluster_flags,2),...
+%     'markerfacecolor',s1_cluster_clrs(s1_cluster_flags,:));
+grapeplot(s1_coeff_neuron(s1_nonramp_flags,1),s1_coeff_neuron(s1_nonramp_flags,2),...,...
+    'markeredgecolor',s1_cluster_clrs(s1_nonramp_flags,:),...
+    'markerfacecolor',s1_cluster_clrs(s1_nonramp_flags,:));
+grapeplot(s1_coeff_neuron(s1_upramp_flags,1),s1_coeff_neuron(s1_upramp_flags,2),...
+    'markeredgecolor',s1_cluster_clrs(s1_upramp_flags,:),...
+    'markerfacecolor',s1_cluster_clrs(s1_upramp_flags,:));
+grapeplot(s1_coeff_neuron(s1_downramp_flags,1),s1_coeff_neuron(s1_downramp_flags,2),...
+    'markeredgecolor',s1_cluster_clrs(s1_downramp_flags,:),...
+    'markerfacecolor',[1,1,1]);
+grapeplot(s1_coeff_neuron(s1_upramp_flags&s1_downramp_flags,1),...
+    s1_coeff_neuron(s1_upramp_flags&s1_downramp_flags,2),...
+    'markeredgecolor',[0,0,1],...
+    'markerfacecolor',[0,0,1],...
+    'markersize',1);
 
 % update axis
 xxlim = xlim;
@@ -330,24 +360,76 @@ if want2save
     print(fig,svg_file,'-dsvg','-painters');
 end
 
-%% S2-aligned PC coefficient scatter
+%% S2-aligned PC neuron-wise coefficient scatter
 fig = figure(figopt,...
-    'name','pc_coefficients2D_s2');
+    'name','pc_neuronwiseCoefficients2D_s2');
 axes(axesopt.default,...
     'clipping','off');
-xlabel('S_{2}-aligned PC 1 coefficient_{1}');
-ylabel('S_{2}-aligned PC 2 coefficient_{2}');
+xlabel('Neuron-wise PC 1 coefficient_{1}');
+ylabel('Neuron-wise PC 2 coefficient_{2}');
 
 % coefficient scatter
-grapeplot(s2_coeff(:,1),s2_coeff(:,2),...
-    'markerfacecolor',s2_cluster_clrs);
+% grapeplot(s2_coeff_neuron(s2_cluster_flags,1),s2_coeff_neuron(s2_cluster_flags,2),...
+%     'markerfacecolor',s2_cluster_clrs(s2_cluster_flags,:));
+grapeplot(s2_coeff_neuron(s2_nonramp_flags,1),s2_coeff_neuron(s2_nonramp_flags,2),...,...
+    'markeredgecolor',s2_cluster_clrs(s2_nonramp_flags,:),...
+    'markerfacecolor',s2_cluster_clrs(s2_nonramp_flags,:));
+grapeplot(s2_coeff_neuron(s2_upramp_flags,1),s2_coeff_neuron(s2_upramp_flags,2),...
+    'markeredgecolor',s2_cluster_clrs(s2_upramp_flags,:),...
+    'markerfacecolor',s2_cluster_clrs(s2_upramp_flags,:));
+grapeplot(s2_coeff_neuron(s2_downramp_flags,1),s2_coeff_neuron(s2_downramp_flags,2),...
+    'markeredgecolor',s2_cluster_clrs(s2_downramp_flags,:),...
+    'markerfacecolor',[1,1,1]);
+grapeplot(s2_coeff_neuron(s2_upramp_flags&s2_downramp_flags,1),...
+    s2_coeff_neuron(s2_upramp_flags&s2_downramp_flags,2),...
+    'markeredgecolor',[0,0,1],...
+    'markerfacecolor',[0,0,1],...
+    'markersize',1);
 
-% [~,bah] = sort(s2_theta_idcs);
-% for nn = 1  : n_neurons
-%     text(s2_coeff(nn,1),s2_coeff(nn,2),sprintf('%i',bah(nn)),...
-%         'fontsize',20,...
-%         'color','m');
-% end
+% update axis
+xxlim = xlim;
+yylim = ylim;
+xlim(xxlim + [-1,1] * .05 * range(xxlim));
+ylim(yylim + [-1,1] * .05 * range(yylim));
+set(gca,...
+    'xtick',unique([xxlim,0]),...
+    'ytick',unique([yylim,0]),...
+    'xticklabel',{'','0',''},...
+    'yticklabel',{'','0',''},...
+    'xcolor','k',...
+    'ycolor','k');
+
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
+end
+
+%% S2-aligned PC time-wise score scatter
+fig = figure(figopt,...
+    'name','pc_timewiseScores2D_s2');
+axes(axesopt.default,...
+    'clipping','off');
+xlabel('Time-wise PC 1 score_{1}');
+ylabel('Time-wise PC 2 score_{2}');
+
+% coefficient scatter
+% grapeplot(s2_score_time(s2_cluster_flags,1),s2_score_time(s2_cluster_flags,2),...
+%     'markerfacecolor',s2_cluster_clrs(s2_cluster_flags,:));
+grapeplot(s2_score_time(s2_nonramp_flags,1),s2_score_time(s2_nonramp_flags,2),...,...
+    'markeredgecolor',s2_cluster_clrs(s2_nonramp_flags,:),...
+    'markerfacecolor',s2_cluster_clrs(s2_nonramp_flags,:));
+grapeplot(s2_score_time(s2_upramp_flags,1),s2_score_time(s2_upramp_flags,2),...
+    'markeredgecolor',s2_cluster_clrs(s2_upramp_flags,:),...
+    'markerfacecolor',s2_cluster_clrs(s2_upramp_flags,:));
+grapeplot(s2_score_time(s2_downramp_flags,1),s2_score_time(s2_downramp_flags,2),...
+    'markeredgecolor',s2_cluster_clrs(s2_downramp_flags,:),...
+    'markerfacecolor',[1,1,1]);
+grapeplot(s2_score_time(s2_upramp_flags&s2_downramp_flags,1),...
+    s2_score_time(s2_upramp_flags&s2_downramp_flags,2),...
+    'markeredgecolor',[0,0,1],...
+    'markerfacecolor',[0,0,1],...
+    'markersize',1);
 
 % update axis
 xxlim = xlim;
@@ -501,12 +583,12 @@ W = pca(Z);
 % W = W * U * diag(1 ./ sqrt(diag(S) + tol)) * U';
 % W = W';
 
-eval = evalclusters(W(:,1:2),'kmeans','gap',...
+curr_eval = evalclusters(W(:,1:2),'kmeans','gap',...
     'referencedistribution','uniform',...
     'klist',1:max_k);
-s2_eval2.gap = eval.CriterionValues;
-s2_eval2.se = eval.SE;
-s2_eval2.k = eval.OptimalK;
+s2_eval2.gap = curr_eval.CriterionValues;
+s2_eval2.se = curr_eval.SE;
+s2_eval2.k = curr_eval.OptimalK;
 
 % iterate through number of PCs considered
 errorbar(1:max_k,s2_eval2.gap,s2_eval2.se,...
@@ -529,10 +611,10 @@ set(gca,...
     'yticklabel',{});
 
 %%
-figure; h = gscatter(W(:,1),W(:,2),eval.OptimalY);
-A = nan(si_n_bins,eval.OptimalK);
-for kk = 1 : eval.OptimalK
-    A(:,kk) = nanmean(Z(:,eval.OptimalY==kk),2);
+figure; h = gscatter(W(:,1),W(:,2),curr_eval.OptimalY);
+A = nan(si_n_bins,curr_eval.OptimalK);
+for kk = 1 : curr_eval.OptimalK
+    A(:,kk) = nanmean(Z(:,curr_eval.OptimalY==kk),2);
 end
 Wa = pca(A);
 [theta,~] = cart2pol(Wa(:,1),Wa(:,2));
@@ -541,10 +623,10 @@ theta_idcs = circshift(theta_idcs,sum(theta<0));
 figure; imagesc(A(:,theta_idcs)');
 figure('position',[1.8000 41.8000 182.4000 740.8000],'color','w');
 set(gca,'color','none','ycolor','none','nextplot','add','clipping','off');
-for kk = 1 : eval.OptimalK
+for kk = 1 : curr_eval.OptimalK
     plot(si_time,A(:,theta_idcs(kk))+kk*3,...
         'color',h(theta_idcs(kk)).Color,...
         'linewidth',1.5);
     text(range(xlim)*-.1,kk*3,...
-        sprintf('%i',sum(eval.OptimalY==theta_idcs(kk))));
+        sprintf('%i',sum(curr_eval.OptimalY==theta_idcs(kk))));
 end

@@ -62,15 +62,17 @@ end
 proportion = struct2table(proportion,...
     'rownames',cluster_labels);
 proportion_ud = struct2table(proportion_ud,...
-    'rownames',ramp_idcs.Properties.RowNames);
+    'rownames',ramp_idcs.Properties.RowNames(1:2));
 
 % plot reference lines
-plot(xlim,[1,1]*.5,':k');
+plot(xlim,[1,1]*.5,':k',...
+    'handlevisibility','off');
 
 % iterate through alignments
 for ee = 1 : n_cluster_epochs
     epoch = cluster_epochs{ee};
-    plot([1,1]*ee,ylim,':k');
+    plot([1,1]*ee,ylim,':k',...
+        'handlevisibility','off');
     xxrange = xxtick(ee*3+(-2:0));
     for kk = 1 : n_clusters
         xx = xxrange(kk*2-1) + [0,1] * xxoffset * (-1)^(kk == 2) * .75;
@@ -78,7 +80,7 @@ for ee = 1 : n_cluster_epochs
         ypatch = sort(repmat([0,proportion.(epoch)(kk)],1,2));
         patch(xpatch,ypatch,ramp_clrs(kk,:),...
             'facealpha',1,...
-            'edgecolor','k',...
+            'edgecolor',ramp_clrs(kk,:),...
             'linewidth',1.5);
     end
 end
@@ -86,18 +88,25 @@ end
 % iterate through alignments
 for ee = 1 : n_cluster_epochs
     epoch = cluster_epochs{ee};
-    plot([1,1]*ee,ylim,':k');
+    plot([1,1]*ee,ylim,':k',...
+        'handlevisibility','off');
     xxrange = xxtick(ee*3+(-2:0));
     for kk = 1 %: n_clusters
         xx = xxrange(kk*2-1) + [0,1] * xxoffset * (-1)^(kk == 2) * .75;
         xpatch = [xx,fliplr(xx)];
         ypatch = sort(repmat([0,proportion_ud.(epoch)('down')],1,2));
-        patch(xpatch,ypatch,ramp_clrs(kk,:),...
+        patch(xpatch,ypatch,'w',...
             'facealpha',1,...
-            'edgecolor','k',...
+            'edgecolor',ramp_clrs(kk,:),...
             'linewidth',1.5);
     end
 end
+
+% legend
+legend({'up-ramping','down-ramping','non-ramping'},...
+    'autoupdate','off',...
+    'box','off',...
+    'location','best');
 
 % save figure
 if want2save

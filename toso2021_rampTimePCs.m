@@ -377,7 +377,7 @@ set(gca,...
 figure; h = gscatter(W(:,1),W(:,2),eval.OptimalY);
 A = nan(si_n_bins,eval.OptimalK);
 for kk = 1 : eval.OptimalK
-    A(:,kk) = nanmean(Z(:,eval.OptimalY==kk),2);
+    A(:,kk) = zscore(nanmean(Z(eval.OptimalY==kk,:),1));
 end
 Wa = pca(A);
 [theta,~] = cart2pol(Wa(:,1),Wa(:,2));
