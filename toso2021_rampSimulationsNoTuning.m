@@ -15,7 +15,7 @@ end
 N = 200;     	% neurons
 N_clus = 30;    % neurons per cluster
 K = 100;        % trials
-S = 100;        % simulations
+S = 15;        % simulations
 P = 4;          % number of partitions with which to assess stereotypy
 
 %% temporal smoothing kernel

@@ -149,6 +149,9 @@ for nn = 1 : n_neurons_total
         % compute average spike rates across trials
         epoch_spkrate = nanmean(epoch_spkrates);
         
+        % subtract minimum
+        epoch_spkrate = epoch_spkrate - min(epoch_spkrate);
+        
         % normalize
         epoch_spkrate = epoch_spkrate ./ nansum(epoch_spkrate);
 
@@ -179,7 +182,7 @@ xxticklabel(~ismember(xxtick,1:n_cluster_epochs)) = {''};
 xxticklabel(ismember(xxtick,1:n_cluster_epochs)) = cellfun(...
     @(x)capitalize(strrep(x,'_',' ')),cluster_epochs,...
     'uniformoutput',false);
-yylim = cluster_roi / 2;
+yylim = cluster_roi;% / 2;
 yytick = linspace(yylim(1),yylim(2),5);
 yyticklabel = num2cell(yytick);
 yyticklabel(~ismember(yytick,[yylim,0])) = {''};
@@ -195,7 +198,7 @@ axes(axesopt.default,...
     'yticklabel',yyticklabel,...
     'clipping','off');
 xlabel('Task event');
-ylabel('Response COM (ms)');
+ylabel('Temporal tuning (ms)');
 
 % zero line
 plot(xlim,[0,0],':k');
@@ -203,6 +206,7 @@ plot(xlim,[0,0],':k');
 % preallocation
 distro = struct();
 counts = struct();
+counts_up = struct();
 
 % bin settings
 edges = linspace(yylim(1),yylim(2),30);
@@ -218,11 +222,20 @@ for ee = 1 : n_epochs
         histcounts(fr_tuning.(epoch)(cluster_idcs.(epoch){'nonramp'}),edges)};
 end
 
+% iterate through alignments
+for ee = 1 : n_cluster_epochs
+    epoch = cluster_epochs{ee};
+    counts_up.(epoch) = {...
+        histcounts(fr_tuning.(epoch)(ramp_idcs.(epoch){'up'}),edges)};
+end
+
 % table conversions
 distro = struct2table(distro,...
     'rownames',cluster_labels);
 counts = struct2table(counts,...
     'rownames',cluster_labels);
+counts_up = struct2table(counts_up,...
+    'rownames',ramp_idcs.Properties.RowNames(1));
 
 % iterate through alignments
 for ee = 1 : n_epochs
@@ -233,6 +246,27 @@ for ee = 1 : n_epochs
         cluster = cluster_labels{kk};
         xx = counts.(epoch){cluster} / nansum(counts.(epoch){cluster});
         xx = xx / max(xx) * xxoffset * 1.25 * (-1)^(~iseven(kk)) + ee;
+        xx = xx .* [1;1];
+        xx = [ee; xx(:); ee];
+        yy = edges .* [1;1];
+        xpatch = [[1;1]*ee;xx(:)];
+        ypatch = [edges([end,1])';yy(:)];
+        patch(xpatch,ypatch,ramp_clrs(kk,:),...
+            'edgecolor','none',...
+            'facealpha',1,...
+            'linewidth',1.5);
+    end
+end
+
+% iterate through alignments
+for ee = 1 : n_cluster_epochs - 2
+    epoch = epochs{ee};
+    
+    % iterate through clusters
+    for kk = 1 % n_clusters : -1 : 1
+        xx = counts_up.(epoch){'up'} / nansum(counts.(epoch){'ramp'});
+        xx_ref = counts.(epoch){'ramp'} / nansum(counts.(epoch){'ramp'});
+        xx = xx / max(xx_ref) * xxoffset * 1.25 * (-1)^(~iseven(kk)) + ee;
         xx = xx .* [1;1];
         xx = [ee; xx(:); ee];
         yy = edges .* [1;1];
