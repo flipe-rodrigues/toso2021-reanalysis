@@ -15,7 +15,7 @@ end
 N = 200;     	% neurons
 N_clus = 30;    % neurons per cluster
 K = 100;        % trials
-S = 15;        % simulations
+S = 100;        % simulations
 P = 4;          % number of partitions with which to assess stereotypy
 
 %% temporal smoothing kernel
@@ -514,7 +514,7 @@ ramps2plot_flags = SELECTED_RAMP_FLAGS(:,:,model2plot);
 
 % bin settings
 n_bins = 30;
-mu_bounds = [0,tf];
+mu_bounds = roi;
 gamma_bounds = [0,25];
 lambda_bounds = [0,tf];
 mu_edges = linspace(mu_bounds(1),mu_bounds(2),n_bins);
