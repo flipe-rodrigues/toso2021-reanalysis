@@ -264,7 +264,7 @@ for ee = 1 : n_cluster_epochs - 2
     
     % iterate through clusters
     for kk = 1 % n_clusters : -1 : 1
-        xx = counts_up.(epoch){'up'} / nansum(counts.(epoch){'ramp'});
+        xx = counts_up.(epoch){'down'} / nansum(counts.(epoch){'ramp'});
         xx_ref = counts.(epoch){'ramp'} / nansum(counts.(epoch){'ramp'});
         xx = xx / max(xx_ref) * xxoffset * 1.25 * (-1)^(~iseven(kk)) + ee;
         xx = xx .* [1;1];
