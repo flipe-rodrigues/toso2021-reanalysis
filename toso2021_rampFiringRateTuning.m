@@ -156,7 +156,17 @@ for nn = 1 : n_neurons_total
         epoch_spkrate = epoch_spkrate ./ nansum(epoch_spkrate);
 
         % compute center of mass
-        fr_tuning.(epoch)(nn) = epoch_spkrate * cluster_roi_time';
+        fr_tuning.(epoch)(nn) = epoch_spkrate * cluster_roi_time';        
+%         [~,max_idx] = max(epoch_spkrate);
+%         com_idx = find(cluster_roi_time>epoch_spkrate * cluster_roi_time',1);
+%         if strcmpi(epoch,'s2')
+%             %             figure;
+%             %             plot(cluster_roi_time,epoch_spkrate);
+%             %             hold on;
+%             %             plot(cluster_roi_time(max_idx),epoch_spkrate(max_idx),'o');
+%             %             plot(cluster_roi_time(com_idx),epoch_spkrate(com_idx),'o');
+%         end
+%         fr_tuning.(epoch)(nn) = cluster_roi_time(max_idx);
     end
 end
 
@@ -206,10 +216,10 @@ plot(xlim,[0,0],':k');
 % preallocation
 distro = struct();
 counts = struct();
-counts_up = struct();
+counts_down = struct();
 
 % bin settings
-edges = linspace(yylim(1),yylim(2),30);
+edges = linspace(yylim(1),yylim(2),50);
 
 % iterate through alignments
 for ee = 1 : n_epochs
@@ -225,8 +235,8 @@ end
 % iterate through alignments
 for ee = 1 : n_cluster_epochs
     epoch = cluster_epochs{ee};
-    counts_up.(epoch) = {...
-        histcounts(fr_tuning.(epoch)(ramp_idcs.(epoch){'up'}),edges)};
+    counts_down.(epoch) = {...
+        histcounts(fr_tuning.(epoch)(ramp_idcs.(epoch){'down'}),edges)};
 end
 
 % table conversions
@@ -234,8 +244,8 @@ distro = struct2table(distro,...
     'rownames',cluster_labels);
 counts = struct2table(counts,...
     'rownames',cluster_labels);
-counts_up = struct2table(counts_up,...
-    'rownames',ramp_idcs.Properties.RowNames(1));
+counts_down = struct2table(counts_down,...
+    'rownames',ramp_idcs.Properties.RowNames(2));
 
 % iterate through alignments
 for ee = 1 : n_epochs
@@ -264,7 +274,7 @@ for ee = 1 : n_cluster_epochs - 2
     
     % iterate through clusters
     for kk = 1 % n_clusters : -1 : 1
-        xx = counts_up.(epoch){'down'} / nansum(counts.(epoch){'ramp'});
+        xx = counts_down.(epoch){'down'} / nansum(counts.(epoch){'ramp'});
         xx_ref = counts.(epoch){'ramp'} / nansum(counts.(epoch){'ramp'});
         xx = xx / max(xx_ref) * xxoffset * 1.25 * (-1)^(~iseven(kk)) + ee;
         xx = xx .* [1;1];
@@ -332,7 +342,7 @@ for ee = 1 : n_epochs
 %     pval = kruskalwallis(vertcat(distro.(epoch){:}),...
 %         [ones(size(distro.(epoch){'ramp'}));...
 %         zeros(size(distro.(epoch){'nonramp'}))],'off');
-    pval = pval * n_epochs;
+%     pval = pval * n_epochs;
     if pval < .01
         test_str = '**';
     elseif pval < .05

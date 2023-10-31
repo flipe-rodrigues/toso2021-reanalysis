@@ -130,6 +130,7 @@ ylabel('Firing rate range (Hz)');
 
 % preallocation
 distro = struct();
+counts = struct();
 avg = struct();
 err = struct();
 
@@ -186,15 +187,52 @@ legend({'ramping','non-ramping'},...
     'location','southwest');
 
 % update axes
-yymax = floor(max(ylim)/5) * 5;
+yymax = ceil(max(ylim)/5) * 5;
 yylim = [0,yymax];
 yytick = linspace(yylim(1),yylim(2),4);
 yyticklabel = num2cell(yytick);
-yyticklabel(~ismember(yytick,yylim)) = {''};
+yyticklabel(~ismember(yytick,[0,yylim])) = {''};
 set(gca,...
     'ylim',yylim + [-1,1] * .05 * range(yylim),...
     'ytick',yytick,...
     'yticklabel',yyticklabel);
+
+% bin settings
+edges = linspace(yylim(1),yylim(2),40);
+
+% iterate through alignments
+for ee = 1 : n_epochs
+    epoch = epochs{ee};
+    counts.(epoch) = {...
+        histcounts(stat2plot.(epoch)(cluster_idcs.(epoch){'ramp'}),edges);...
+        histcounts(stat2plot.(epoch)(cluster_idcs.(epoch){'nonramp'}),edges)};
+end
+
+% table conversion
+counts = struct2table(counts,...
+    'rownames',cluster_labels);
+
+% iterate through alignments
+for ee = 1 : n_epochs
+    epoch = epochs{ee};
+    
+    % iterate through clusters
+    for kk = n_clusters : -1 : 1
+        cluster = cluster_labels{kk};
+        xx = counts.(epoch){cluster} / nansum(counts.(epoch){cluster});
+        xx = xx / max(xx) * xxoffset * 2 * (-1)^(~iseven(kk)) + ee;
+        xx = xx .* [1;1];
+        xx = [ee; xx(:); ee];
+        yy = edges .* [1;1];
+        xpatch = [[1;1]*ee;xx(:)];
+        ypatch = [edges([end,1])';yy(:)];
+        p = patch(xpatch,ypatch,ramp_clrs(kk,:),...
+            'edgecolor','none',...
+            'facealpha',1,...
+            'linewidth',1.5);
+        uistack(p,'bottom');
+    end
+end
 
 % zero line
 plot(xlim,[0,0],':k');

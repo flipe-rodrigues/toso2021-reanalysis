@@ -12,10 +12,10 @@ end
 % rng(0);
 
 %% tensor settings
-N = 200;     	% neurons
+N = 300;     	% neurons
 N_clus = 30;    % neurons per cluster
 K = 100;        % trials
-S = 100;        % simulations
+S = 50;        % simulations
 P = 4;          % number of partitions with which to assess stereotypy
 
 %% temporal smoothing kernel
@@ -65,10 +65,12 @@ pval_stereotypy_cutoff = .01;
 
 % model parameters
 gamma_ranges = [...
+    [8.5,8.5,8.5]; ...
     [0,100,7]; ...
     [8.5,8.5,8.5]; ...
     [0,100,7]];
 lambda_ranges = [...
+    [0,0]; ...
     [0,0]; ...
     [0,range(roi)*2]; ...
     [0,range(roi)*2]];
@@ -84,6 +86,7 @@ for mm = 1 : M
         lambda_ranges(mm,1),lambda_ranges(mm,2));
 end
 model_labels = {...
+    '\gamma=\gamma_0\newline\lambda=\lambda_0';...
     '\gamma\sim\newline\lambda=\lambda_0';...
     '\gamma=\gamma_0\newline\lambda\sim';...
     '\gamma\sim\newline\lambda\sim';...
@@ -113,6 +116,11 @@ MEAN_FR = nan(N_clus*2,S,M);
 SELECTED_RAMP_FLAGS = false(N_clus*2,S,M);
 ALL_RAMP_FLAGS = false(N,S,M);
 P_RAMP = nan(S,M);
+
+% analysis metrics
+TUNING = nan(N_clus*2,S,M);
+FR_RANGE = nan(N_clus*2,S,M);
+STEREOTYPY = nan(N_clus*2,S,M);
 
 % all unit indices
 all_idcs = 1 : N;
@@ -145,6 +153,8 @@ for mm = 1 : M
         
         % iterate through neurons
         for nn = 1 : N
+            
+            % iterate through trials
             for kk = 1 : K
                 X(:,nn,kk) = bsl_fr + generativerate(...
                     t,gammas(nn),mus(nn),lambdas(nn),sigmas(nn));
@@ -373,6 +383,33 @@ for mm = 1 : M
         SELECTED_RAMP_FLAGS(:,ss,mm) = ramp_flags(selected_idcs);
         ALL_RAMP_FLAGS(:,ss,mm) = ramp_flags;
         P_RAMP(ss,mm) = nanmean(ramp_flags);
+        
+        %% compute analysis metrics
+        
+        % compute temporal tuning
+        tuning = t * (r ./ nansum(r));
+        
+        % compute firing rate range
+        fr_range = range(r);
+
+        % preallocation
+        stereotypy = nan(N,1);
+        
+        % iterate through neurons
+        for nn = 1 : N
+            
+            % compute stereotypy
+            train_flags = ismember(1:K,randperm(K,K/2));
+            rho = corrcoef(...
+                nanmean(R(:,nn,train_flags),3),...
+                nanmean(R(:,nn,~train_flags),3));
+            stereotypy(nn) = rho(1,2);
+        end
+        
+        % store metrics
+        TUNING(:,ss,mm) = tuning(selected_idcs);
+        FR_RANGE(:,ss,mm) = fr_range(selected_idcs);
+        STEREOTYPY(:,ss,mm) = stereotypy(selected_idcs);
         
         %% skip plotting single-run stuff if it's not the last run
         if ss < S
