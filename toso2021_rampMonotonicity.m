@@ -3,13 +3,13 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
-%% bootstrap settings
-n_boots = 50;
+%% compute Si-aligned monotonicity
 
-%% compute Si-aligned stereotypy
+% monotonicity definition
+monotonicityfun = @(x) abs(sum(sign(diff(x)) ./ (length(x) - 1)));
 
 % preallocation
-fr_stereotypy = struct(...
+monotonicity = struct(...
     's1',nan(n_neurons_total,1),...
     's2',nan(n_neurons_total,1));
 
@@ -59,44 +59,32 @@ for nn = 1 : n_neurons_total
     s2_spkrates(~s2_alignment_flags') = nan;
     s2_spkrates = reshape(...
         s2_spkrates(s2_chunk_flags'),[n_tbins,n_trials])';
-    
-    % preallocation
-    s1_rhos = nan(n_boots,2,2);
-    s2_rhos = nan(n_boots,2,2);
-    
-    % iterate through bootstrap iterations
-    for bb = 1 : n_boots
-        train_flags = ismember(1:n_trials,...
-            randperm(n_trials,floor(n_trials/2)));
-        
-        % compute correlation coefficients
-        s1_rhos(bb,:,:) = corrcoef(...
-            nanmean(s1_spkrates(train_flags,:)),...
-            nanmean(s1_spkrates(~train_flags,:)));
-        s2_rhos(bb,:,:) = corrcoef(...
-            nanmean(s2_spkrates(train_flags,:)),...
-            nanmean(s2_spkrates(~train_flags,:)));
-    end
-    
-    % compute stereotypy coefficient
-    fr_stereotypy.s1(nn) = nanmean(s1_rhos(:,1,2));
-    fr_stereotypy.s2(nn) = nanmean(s2_rhos(:,1,2));
+
+    % compute average spike rates across trials
+    s1_spkrate = mean(s1_spkrates,'omitnan');
+    s2_spkrate = mean(s2_spkrates,'omitnan');
+
+    % compute firing rate statistics
+    monotonicity.s1(nn) = monotonicityfun(s1_spkrate);
+    monotonicity.s2(nn) = monotonicityfun(s2_spkrate);
 end
 
-%% plot firing rate of ramping & non-ramping neurons across task epochs
+%% plot monotonicity of ramping & non-ramping neurons across task epochs
 
 % figure initialization
 fig = figure(figopt,...
     'position',[200 200 560 412.5],...
-    'name','ramp_fr_stereotypy');
+    'name','ramp_monotonicity');
 
 % epoch settings
-epochs = fieldnames(fr_stereotypy);
+epochs = fieldnames(monotonicity);
 n_epochs = numel(epochs);
 
-% axes initialization
+% horizontal offset between clusters
 xxoffset = .25;
 xxoffsets = [-1,1] * xxoffset;
+
+% axes initialization
 xxtick = unique((1:n_epochs)+[-1;0;1]*xxoffset);
 xxticklabel = num2cell(xxtick);
 xxticklabel(~ismember(xxtick,1:n_epochs)) = {''};
@@ -109,13 +97,10 @@ axes(axesopt.default,...
     'xtick',xxtick,...
     'xticklabel',xxticklabel,...
     'ylimspec','tight',...
-    'yaxislocation','right',...
     'clipping','off',...
     'layer','bottom');
 xlabel('Stimulus period');
-ylabel('Stereotypy coefficient',...
-    'rotation',-90,...
-    'verticalalignment','bottom');
+ylabel('Monotonicity');
 
 % preallocation
 distro = struct();
@@ -131,14 +116,14 @@ errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 for ee = 1 : n_epochs
     epoch = epochs{ee};
     distro.(epoch) = {...
-        fr_stereotypy.(epoch)(cluster_idcs.(epoch){'ramp'});...
-        fr_stereotypy.(epoch)(cluster_idcs.(epoch){'nonramp'})};
+        monotonicity.(epoch)(cluster_idcs.(epoch){'ramp'});...
+        monotonicity.(epoch)(cluster_idcs.(epoch){'nonramp'})};
     avg.(epoch) = [...
-        avgfun(fr_stereotypy.(epoch)(cluster_idcs.(epoch){'ramp'}));...
-        avgfun(fr_stereotypy.(epoch)(cluster_idcs.(epoch){'nonramp'}))];
+        avgfun(monotonicity.(epoch)(cluster_idcs.(epoch){'ramp'}));...
+        avgfun(monotonicity.(epoch)(cluster_idcs.(epoch){'nonramp'}))];
     err.(epoch) = [...
-        errfun(fr_stereotypy.(epoch)(cluster_idcs.(epoch){'ramp'}));...
-        errfun(fr_stereotypy.(epoch)(cluster_idcs.(epoch){'nonramp'}))];
+        errfun(monotonicity.(epoch)(cluster_idcs.(epoch){'ramp'}));...
+        errfun(monotonicity.(epoch)(cluster_idcs.(epoch){'nonramp'}))];
 end
 
 % table conversions
@@ -176,8 +161,9 @@ legend({'ramping','non-ramping'},...
     'location','southwest');
 
 % update axes
-yylim = [-1,1];%round(quantile(fr_stereotypy.s2,[0,1])/.5)*.5;
-yytick = linspace(yylim(1),yylim(2),5);
+yymax = 1;ceil(max(ylim)/5) * 5;
+yylim = [0,yymax];
+yytick = linspace(yylim(1),yylim(2),4);
 yyticklabel = num2cell(yytick);
 yyticklabel(~ismember(yytick,[0,yylim])) = {''};
 set(gca,...
@@ -192,8 +178,8 @@ edges = linspace(yylim(1),yylim(2),40);
 for ee = 1 : n_epochs
     epoch = epochs{ee};
     counts.(epoch) = {...
-        histcounts(fr_stereotypy.(epoch)(cluster_idcs.(epoch){'ramp'}),edges);...
-        histcounts(fr_stereotypy.(epoch)(cluster_idcs.(epoch){'nonramp'}),edges)};
+        histcounts(monotonicity.(epoch)(cluster_idcs.(epoch){'ramp'}),edges);...
+        histcounts(monotonicity.(epoch)(cluster_idcs.(epoch){'nonramp'}),edges)};
 end
 
 % table conversion
@@ -230,14 +216,14 @@ for ee = 1 : n_epochs
     epoch = epochs{ee};
     xx = [-1,1] * .5 / 3 + ee;
     yy = [1,1] * max(yylim);
-    plot([1,1]*ee,[min(ylim),1],':k',...
+    plot([1,1]*ee,[min(ylim),yymax],':k',...
         'handlevisibility','off');
     plot(xx,yy,...
         'color','k',...
         'linewidth',1.5,...
         'handlevisibility','off');
     [~,pval] = kstest2(distro.(epoch){'ramp'},distro.(epoch){'nonramp'});
-%     pval = kruskalwallis(vertcat(distro.(epoch){:}),[],'off');
+    %     pval = kruskalwallis(vertcat(distro.(epoch){:}),[],'off');
     pval = pval * n_epochs;
     if pval < .01
         test_str = '**';

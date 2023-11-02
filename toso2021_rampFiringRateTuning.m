@@ -9,7 +9,7 @@ end
 fr_tuning = struct();
 for ee = 1 : n_cluster_epochs
     epoch = cluster_epochs{ee};
-    fr_tuning.(epoch) = nan(n_neurons,1);
+    fr_tuning.(epoch) = nan(n_neurons_total,1);
 end
 
 % iterate through neurons
@@ -219,7 +219,7 @@ counts = struct();
 counts_down = struct();
 
 % bin settings
-edges = linspace(yylim(1),yylim(2),50);
+edges = linspace(yylim(1),yylim(2),30);
 
 % iterate through alignments
 for ee = 1 : n_epochs
