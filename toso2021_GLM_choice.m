@@ -56,7 +56,7 @@ axes(axesopt.default,...
     'plotboxaspectratio',[1,1,1]);
 title(sprintf('%s>%s~Binomial(\\phi(\\betaX))',s2_lbl,s1_lbl));
 xlabel('Regressor');
-ylabel('Weight');
+ylabel('Coefficient');
 
 % iterate through coefficients
 for bb = 1 : n_coefficients

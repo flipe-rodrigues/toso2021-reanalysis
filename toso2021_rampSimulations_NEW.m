@@ -69,9 +69,9 @@ pval_stereotypy_cutoff = .01;
 % model parameters
 gamma_ranges = [...
     [8.5,8.5,8.5]; ...
-    [0,100,5]; ...
+    [0,100,4]; ...
     [8.5,8.5,8.5]; ...
-    [0,100,5]];
+    [0,100,4]];
 lambda_ranges = [...
     [0,0]; ...
     [0,0]; ...
@@ -307,9 +307,9 @@ for mm = 1 : M
         tensor_non = cat(3,...
             nanmean(R(roi_flags,~ramp_flags,train_flags),3),...
             nanmean(R(roi_flags,~ramp_flags,~train_flags),3));
-        tensor_all = cat(3,...
-            nanmean(R(roi_flags,:,train_flags),3),...
-            nanmean(R(roi_flags,:,~train_flags),3));
+%         tensor_all = cat(3,...
+%             nanmean(R(roi_flags,:,train_flags),3),...
+%             nanmean(R(roi_flags,:,~train_flags),3));
         
         % enforce equal numbers of neurons on both clusters
         n_ramp = sum(ramp_flags);
@@ -324,7 +324,7 @@ for mm = 1 : M
             all_non_idcs(selected_non_idcs)]);
         tensor_ramp = tensor_ramp(:,selected_ramp_idcs,:);
         tensor_non = tensor_non(:,selected_non_idcs,:);
-        tensor_all = tensor_all(:,selected_idcs(1:N),:);
+%         tensor_all = tensor_all(:,selected_idcs(1:N_clus),:);
         
         % decoding options
         opt = struct();
@@ -340,83 +340,83 @@ for mm = 1 : M
         % preallocation
         P_tR_ramp = naivebayestimedecoder(tensor_ramp,opt);
         P_tR_non = naivebayestimedecoder(tensor_non,opt);
-        P_tR_all = naivebayestimedecoder(tensor_all,opt);
+%         P_tR_all = naivebayestimedecoder(tensor_all,opt);
         
         %% compute decoding statistics
         
         % preallocation
         mu_ramp = nan(T_roi,1);
         mu_non = nan(T_roi,1);
-        mu_all = nan(T_roi,1);
+%         mu_all = nan(T_roi,1);
         sd_ramp = nan(T_roi,1);
         sd_non = nan(T_roi,1);
-        sd_all = nan(T_roi,1);
+%         sd_all = nan(T_roi,1);
         
         % iterate through time points
         for tt = 1 : T_roi
             mu_ramp(tt) = P_tR_ramp(tt,:) * t_roi';
             mu_non(tt) = P_tR_non(tt,:) * t_roi';
-            mu_all(tt) = P_tR_all(tt,:) * t_roi';
+%             mu_all(tt) = P_tR_all(tt,:) * t_roi';
             sd_ramp(tt) = sqrt(P_tR_ramp(tt,:) * (mu_ramp(tt) - t_roi') .^ 2);
             sd_non(tt) = sqrt(P_tR_non(tt,:) * (mu_non(tt) - t_roi') .^ 2);
-            sd_all(tt) = sqrt(P_tR_all(tt,:) * (mu_all(tt) - t_roi') .^ 2);
+%             sd_all(tt) = sqrt(P_tR_all(tt,:) * (mu_all(tt) - t_roi') .^ 2);
         end
         
         % compute posterior median
         median_flags_ramp = [false(T_roi,1),diff(cumsum(P_tR_ramp,2) > .5,1,2) == 1];
         median_flags_non = [false(T_roi,1),diff(cumsum(P_tR_non,2) > .5,1,2) == 1];
-        median_flags_all = [false(T_roi,1),diff(cumsum(P_tR_all,2) > .5,1,2) == 1];
+%         median_flags_all = [false(T_roi,1),diff(cumsum(P_tR_all,2) > .5,1,2) == 1];
         [~,median_idcs_ramp] = max(median_flags_ramp,[],2);
         [~,median_idcs_non] = max(median_flags_non,[],2);
-        [~,median_idcs_all] = max(median_flags_all,[],2);
+%         [~,median_idcs_all] = max(median_flags_all,[],2);
         med_ramp = t_roi(median_idcs_ramp);
         med_non = t_roi(median_idcs_non);
-        med_all = t_roi(median_idcs_all);
+%         med_all = t_roi(median_idcs_all);
         
         % compute posterior IQR
         q25_flags_ramp = [false(T_roi,1),diff(cumsum(P_tR_ramp,2) > .25,1,2) == 1];
         q75_flags_ramp = [false(T_roi,1),diff(cumsum(P_tR_ramp,2) > .75,1,2) == 1];
         q25_flags_non = [false(T_roi,1),diff(cumsum(P_tR_non,2) > .25,1,2) == 1];
         q75_flags_non = [false(T_roi,1),diff(cumsum(P_tR_non,2) > .75,1,2) == 1];
-        q25_flags_all = [false(T_roi,1),diff(cumsum(P_tR_all,2) > .25,1,2) == 1];
-        q75_flags_all = [false(T_roi,1),diff(cumsum(P_tR_all,2) > .75,1,2) == 1];
+%         q25_flags_all = [false(T_roi,1),diff(cumsum(P_tR_all,2) > .25,1,2) == 1];
+%         q75_flags_all = [false(T_roi,1),diff(cumsum(P_tR_all,2) > .75,1,2) == 1];
         [~,q25_idcs_ramp] = max(q25_flags_ramp,[],2);
         [~,q75_idcs_ramp] = max(q75_flags_ramp,[],2);
         [~,q25_idcs_non] = max(q25_flags_non,[],2);
         [~,q75_idcs_non] = max(q75_flags_non,[],2);
-        [~,q25_idcs_all] = max(q25_flags_all,[],2);
-        [~,q75_idcs_all] = max(q75_flags_all,[],2);
+%         [~,q25_idcs_all] = max(q25_flags_all,[],2);
+%         [~,q75_idcs_all] = max(q75_flags_all,[],2);
         iqr_ramp = t_roi(q75_idcs_ramp) - t_roi(q25_idcs_ramp);
         iqr_non = t_roi(q75_idcs_non) - t_roi(q25_idcs_non);
-        iqr_all = t_roi(q75_idcs_all) - t_roi(q25_idcs_all);
+%         iqr_all = t_roi(q75_idcs_all) - t_roi(q25_idcs_all);
         
         % compute MAP
         [~,mode_idcs_ramp] = max(P_tR_ramp,[],2);
         [~,mode_idcs_non] = max(P_tR_non,[],2);
-        [~,mode_idcs_all] = max(P_tR_all,[],2);
+%         [~,mode_idcs_all] = max(P_tR_all,[],2);
         map_ramp = t_roi(mode_idcs_ramp);
         map_non = t_roi(mode_idcs_non);
-        map_all = t_roi(mode_idcs_all);
+%         map_all = t_roi(mode_idcs_all);
         
         %% store current simulation
         P_TR_RAMP(:,:,ss,mm) = P_tR_ramp;
         P_TR_NON(:,:,ss,mm) = P_tR_non;
-        P_TR_ALL(:,:,ss,mm) = P_tR_all;
+%         P_TR_ALL(:,:,ss,mm) = P_tR_all;
         MAP_ramp(:,ss,mm) = map_ramp;
         MAP_non(:,ss,mm) = map_non;
-        MAP_all(:,ss,mm) = map_all;
+%         MAP_all(:,ss,mm) = map_all;
         MU_ramp(:,ss,mm) = mu_ramp;
         MU_non(:,ss,mm) = mu_non;
-        MU_all(:,ss,mm) = mu_all;
+%         MU_all(:,ss,mm) = mu_all;
         MED_ramp(:,ss,mm) = med_ramp;
         MED_non(:,ss,mm) = med_non;
-        MED_all(:,ss,mm) = med_all;
+%         MED_all(:,ss,mm) = med_all;
         SD_ramp(:,ss,mm) = sd_ramp;
         SD_non(:,ss,mm) = sd_non;
-        SD_all(:,ss,mm) = sd_all;
+%         SD_all(:,ss,mm) = sd_all;
         IQR_ramp(:,ss,mm) = iqr_ramp;
         IQR_non(:,ss,mm) = iqr_non;
-        IQR_all(:,ss,mm) = iqr_all;
+%         IQR_all(:,ss,mm) = iqr_all;
         MUS(:,ss,mm) = mus(selected_idcs);
         SIGMAS(:,ss,mm) = sigmas(selected_idcs);
         GAMMAS(:,ss,mm) = gammas(selected_idcs);
@@ -429,7 +429,7 @@ for mm = 1 : M
         %% compute analysis metrics
         
         % compute temporal tuning
-        tuning = t * (r ./ nansum(r));
+        tuning = t * ((r - nanmin(r)) ./ nansum(r - nanmin(r)));
         
         % compute firing rate range
         fr_range = range(r);
@@ -523,7 +523,7 @@ for mm = 1 : M
             'numbertitle','off',...
             'windowstyle','docked');
         n_rows = 1;
-        n_cols = 3;
+        n_cols = 2;
         sps = gobjects(n_rows,n_cols);
         for rr = 1 : n_rows
             for cc = 1 : n_cols
@@ -558,10 +558,10 @@ for mm = 1 : M
         plot(sps(2),xlim(sps(2)),ylim(sps(2)),'--w');
         
         % all posteriors
-        title(sps(3),sprintf('All neurons (%i/%i)',N_clus,N));
-        imagesc(sps(3),[ti,tf],[ti,tf],P_tR_all',clim);
-        plot(sps(3),xlim(sps(3)),ylim(sps(3)),'-k');
-        plot(sps(3),xlim(sps(3)),ylim(sps(3)),'--w');
+%         title(sps(3),sprintf('All neurons (%i/%i)',N_clus,N));
+%         imagesc(sps(3),[ti,tf],[ti,tf],P_tR_all',clim);
+%         plot(sps(3),xlim(sps(3)),ylim(sps(3)),'-k');
+%         plot(sps(3),xlim(sps(3)),ylim(sps(3)),'--w');
     end
 end
 
@@ -601,7 +601,7 @@ n_metrics2plot = numel(metrics2plot_labels);
 
 % figure initialization
 fig = figure(figopt,...
-    'position',[200,200,560/2,415],...
+    'position',[200,200,560,415],...
     'name','ramp_parameter_distributions');
 
 % axes initialization
@@ -612,6 +612,7 @@ for ii = 1 : n_sps
     ylabel(sps(ii),'PDF');
 end
 set(sps,axesopt.default,...
+    'plotboxaspectratio',[2.75,1,1],...
     'ticklength',axesopt.default.ticklength,...
     'xlimspec','tight',...
     'ylimspec','tight',...
@@ -798,7 +799,7 @@ xlabel('Parameter range');
 ylabel('Error (ms)');
 
 % offset between ramps and non-ramps
-xoffsets = [-1,0,1] * .15;
+xoffsets = [-1,1] * .15;
 
 % choice of accuracy function
 accuracyfun = @(x,d) nanmean((x-t_roi').^2,d);
@@ -811,20 +812,20 @@ errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 % preallocation
 ramp_sims = nan(T_roi,M);
 non_sims = nan(T_roi,M);
-all_sims = nan(T_roi,M);
+% all_sims = nan(T_roi,M);
 
 % iterate through models
 for mm = 1 : M
     ramp_sims(:,mm) = accuracyfun(pthat_ramp(:,:,mm),2);
     non_sims(:,mm) = accuracyfun(pthat_non(:,:,mm),2);
-    all_sims(:,mm) = accuracyfun(pthat_all(:,:,mm),2);
+%     all_sims(:,mm) = accuracyfun(pthat_all(:,:,mm),2);
     ramp_avg = avgfun(ramp_sims(:,mm));
     non_avg = avgfun(non_sims(:,mm));
-    all_avg = avgfun(all_sims(:,mm));
+%     all_avg = avgfun(all_sims(:,mm));
     ramp_err = errfun(ramp_sims(:,mm));
     non_err = errfun(non_sims(:,mm));
-    all_err = errfun(all_sims(:,mm));
-    plot(mm+xoffsets,[ramp_avg,non_avg,all_avg],...
+%     all_err = errfun(all_sims(:,mm));
+    plot(mm+xoffsets,[ramp_avg,non_avg],...,all_avg],...
         'color','k',...
         'linewidth',1.5);
     errorbar(mm+xoffsets(1),ramp_avg,...
@@ -845,15 +846,15 @@ for mm = 1 : M
         'markerfacecolor',ramp_clrs(2,:),...
         'linewidth',1.5,...
         'capsize',0);
-    errorbar(mm+xoffsets(3),all_avg,...
-        all_err(1),all_err(2),...
-        'color','k',...
-        'marker','o',...
-        'markersize',7.5,...
-        'markeredgecolor','k',...
-        'markerfacecolor','w',...
-        'linewidth',1.5,...
-        'capsize',0);
+%     errorbar(mm+xoffsets(3),all_avg,...
+%         all_err(1),all_err(2),...
+%         'color','k',...
+%         'marker','o',...
+%         'markersize',7.5,...
+%         'markeredgecolor','k',...
+%         'markerfacecolor','w',...
+%         'linewidth',1.5,...
+%         'capsize',0);
 end
 
 % update axes
@@ -876,7 +877,8 @@ for mm = 1 : M
         'linewidth',1.5,...
         'handlevisibility','off');
     [~,pval] = kstest2(ramp_sims(:,mm),non_sims(:,mm));
-%     pval = kruskalwallis([ramp_sims(:,mm),non_sims(:,mm)],[],'off');
+    pval = kruskalwallis([ramp_sims(:,mm),non_sims(:,mm)],[],'off');
+    pval = pval * M;
     if pval < .01
         test_str = '**';
     elseif pval < .05
@@ -924,7 +926,7 @@ xlabel('Parameter range');
 ylabel('SD (ms)');
 
 % offset between ramps and non-ramps
-xoffsets = [-1,0,1] * .15;
+xoffsets = [-1,1] * .15;
 
 % choice of average and error functions
 avgfun = @(x) nanmedian(x);
@@ -933,20 +935,20 @@ errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 % preallocation
 ramp_sims = nan(T_roi,M);
 non_sims = nan(T_roi,M);
-all_sims = nan(T_roi,M);
+% all_sims = nan(T_roi,M);
 
 % iterate through models
 for mm = 1 : M
     ramp_sims(:,mm) = nanmean(errhat_ramp(:,:,mm),2);
     non_sims(:,mm) = nanmean(errhat_non(:,:,mm),2);
-    all_sims(:,mm) = nanmean(errhat_all(:,:,mm),2);
+%     all_sims(:,mm) = nanmean(errhat_all(:,:,mm),2);
     ramp_avg = avgfun(ramp_sims(:,mm));
     non_avg = avgfun(non_sims(:,mm));
-    all_avg = avgfun(all_sims(:,mm));
+%     all_avg = avgfun(all_sims(:,mm));
     ramp_err = errfun(ramp_sims(:,mm));
     non_err = errfun(non_sims(:,mm));
-    all_err = errfun(all_sims(:,mm));
-    plot(mm+xoffsets,[ramp_avg,non_avg,all_avg],...
+%     all_err = errfun(all_sims(:,mm));
+    plot(mm+xoffsets,[ramp_avg,non_avg],...,all_avg],...
         'color','k',...
         'linewidth',1.5);
     errorbar(mm+xoffsets(1),ramp_avg,...
@@ -967,15 +969,15 @@ for mm = 1 : M
         'markerfacecolor',ramp_clrs(2,:),...
         'linewidth',1.5,...
         'capsize',0);
-    errorbar(mm+xoffsets(3),all_avg,...
-        all_err(1),all_err(2),...
-        'color','k',...
-        'marker','o',...
-        'markersize',7.5,...
-        'markeredgecolor','k',...
-        'markerfacecolor','w',...
-        'linewidth',1.5,...
-        'capsize',0);
+%     errorbar(mm+xoffsets(3),all_avg,...
+%         all_err(1),all_err(2),...
+%         'color','k',...
+%         'marker','o',...
+%         'markersize',7.5,...
+%         'markeredgecolor','k',...
+%         'markerfacecolor','w',...
+%         'linewidth',1.5,...
+%         'capsize',0);
 end
 
 % update axes
@@ -998,7 +1000,8 @@ for mm = 1 : M
         'linewidth',1.5,...
         'handlevisibility','off');
     [~,pval] = kstest2(ramp_sims(:,mm),non_sims(:,mm));
-%     pval = kruskalwallis([ramp_sims(:,mm),non_sims(:,mm)],[],'off');
+    pval = kruskalwallis([ramp_sims(:,mm),non_sims(:,mm)],[],'off');
+    pval = pval * M;
     if pval < .01
         test_str = '**';
     elseif pval < .05
@@ -1117,13 +1120,13 @@ patch(xpatch,ypatch,ramp_clrs(1,:),...
     'edgecolor','none');
 
 % all posteriors
-all_avg = nanmean(pthat_all(:,:,M),2);
-all_err = [1,1] .* nanmean(errhat_all(:,:,M),2);
-xpatch = [t_roi,fliplr(t_roi)];
-ypatch = [all_avg-all_err(:,1);flipud(all_avg+all_err(:,2))];
-patch(xpatch,ypatch,'w',...
-    'facealpha',1,...
-    'edgecolor','none');
+% all_avg = nanmean(pthat_all(:,:,M),2);
+% all_err = [1,1] .* nanmean(errhat_all(:,:,M),2);
+% xpatch = [t_roi,fliplr(t_roi)];
+% ypatch = [all_avg-all_err(:,1);flipud(all_avg+all_err(:,2))];
+% patch(xpatch,ypatch,'w',...
+%     'facealpha',1,...
+%     'edgecolor','none');
 
 % plot averages
 plot(t_roi,non_avg,...
@@ -1132,9 +1135,9 @@ plot(t_roi,non_avg,...
 plot(t_roi,ramp_avg,...
     'color',([1,1,1]+ramp_clrs(1,:))/2,...
     'linewidth',1.5);
-plot(t_roi,all_avg,...
-    'color',[1,1,1],...
-    'linewidth',1.5);
+% plot(t_roi,all_avg,...
+%     'color',[1,1,1],...
+%     'linewidth',1.5);
 
 % save figure
 if want2save
