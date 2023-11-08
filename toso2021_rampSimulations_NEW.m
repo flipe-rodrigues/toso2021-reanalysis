@@ -15,8 +15,8 @@ close all
 % rng(0);
 
 %% tensor settings
-N = 300;     	% neurons
-N_clus = 30;    % neurons per cluster
+N = 1e3;        % neurons
+N_clus = 150;   % neurons per cluster
 K = 100;        % trials
 S = 100;        % simulations
 P = 4;          % number of partitions with which to assess stereotypy
@@ -75,8 +75,8 @@ gamma_ranges = [...
 lambda_ranges = [...
     [0,0]; ...
     [0,0]; ...
-    [0,range(roi)*2]; ...
-    [0,range(roi)*2]];
+    [0,range(roi)]; ...
+    [0,range(roi)]];
 % gamma_ranges = [...
 %     [8.5,8.5,8.5]; ...
 %     [0,100,7]; ...
@@ -165,11 +165,11 @@ for mm = 1 : M
         X = nan(T,N,K);
         R = nan(T,N,K);
         
-        % baseline firing rate
-        bsl_fr = 1;
-        
         % iterate through neurons
         for nn = 1 : N
+                    
+            % baseline firing rate
+            bsl_fr = datasample(fr.min,1);
             
             % iterate through trials
             for kk = 1 : K
@@ -575,7 +575,7 @@ ramps2plot_flags = SELECTED_RAMP_FLAGS(:,:,model2plot);
 params2plot = struct();
 
 % assignment
-% params2plot.mu = MUS(:,:,model2plot);
+params2plot.mu = MUS(:,:,model2plot);
 params2plot.gamma = GAMMAS(:,:,model2plot);
 params2plot.lambda = LAMBDAS(:,:,model2plot);
 
@@ -589,7 +589,7 @@ n_params2plot = numel(params2plot_labels);
 metrics2plot = struct();
 
 % assignment
-% metrics2plot.tuning = TUNING(:,:,model2plot);
+metrics2plot.tuning = TUNING(:,:,model2plot);
 metrics2plot.frrange = FR_RANGE(:,:,model2plot);
 metrics2plot.stereotypy = STEREOTYPY(:,:,model2plot);
 
@@ -618,9 +618,13 @@ set(sps,axesopt.default,...
     'ylimspec','tight',...
     'ytick',0,...
     'clipping','off');
-% xlabel(sps(1),'\mu (ms)');
-xlabel(sps(1),'\gamma');
-xlabel(sps(2),'\lambda (ms)');
+xlabel(sps(1),'\mu (ms)');
+xlabel(sps(2),'\gamma');
+xlabel(sps(3),'\lambda (ms)');
+
+% preallocation
+bounds = struct();
+edges = struct();
 
 % bin settings
 n_bins = 30;
@@ -634,12 +638,24 @@ for ii = 1 : n_params2plot
 
     % compute parameter distributions
     edges.(param) = linspace(bounds.(param)(1),bounds.(param)(2),n_bins);
+    counts_all = histcounts(...
+        params2plot.(param),edges.(param));
     counts_non = histcounts(...
         params2plot.(param)(~ramps2plot_flags),edges.(param));
     counts_ramp = histcounts(...
         params2plot.(param)(ramps2plot_flags),edges.(param));
     
     % plot distribution
+    histogram(sps(ii),...
+        'binedges',edges.(param),...
+        'bincounts',counts_all,...
+        'facecolor','w',...
+        'edgecolor','none',...
+        'facealpha',1,...
+        'linewidth',1.5);
+    stairs(sps(ii),edges.(param),[counts_all,0],...
+        'color','k',...
+        'linewidth',1.5);
     histogram(sps(ii),...
         'binedges',edges.(param),...
         'bincounts',counts_non,...
@@ -695,14 +711,19 @@ for ii = 1 : n_sps
     ylabel(sps(ii),'PDF');
 end
 set(sps,axesopt.default,...
+    'plotboxaspectratio',[2.75,1,1],...
     'ticklength',axesopt.default.ticklength,...
     'xlimspec','tight',...
     'ylimspec','tight',...
     'ytick',0,...
     'clipping','off');
-% xlabel(sps(1),'Temporal tuning (ms)');
-xlabel(sps(1),'Firing rate range (Hz)');
-xlabel(sps(2),'Stereotypy coefficient');
+xlabel(sps(1),'Temporal tuning (ms)');
+xlabel(sps(2),'Firing rate range (Hz)');
+xlabel(sps(3),'Stereotypy coefficient');
+
+% preallocation
+bounds = struct();
+edges = struct();
 
 % bin settings
 n_bins = 30;
@@ -716,12 +737,24 @@ for ii = 1 : n_metrics2plot
 
     % compute metric distributions
     edges.(metric) = linspace(bounds.(metric)(1),bounds.(metric)(2),n_bins);
+    counts_all = histcounts(...
+        metrics2plot.(metric),edges.(metric));
     counts_non = histcounts(...
         metrics2plot.(metric)(~ramps2plot_flags),edges.(metric));
     counts_ramp = histcounts(...
         metrics2plot.(metric)(ramps2plot_flags),edges.(metric));
     
     % plot distribution
+    histogram(sps(ii),...
+        'binedges',edges.(metric),...
+        'bincounts',counts_all,...
+        'facecolor','w',...
+        'edgecolor','none',...
+        'facealpha',1,...
+        'linewidth',1.5);
+    stairs(sps(ii),edges.(metric),[counts_all,0],...
+        'color','k',...
+        'linewidth',1.5);
     histogram(sps(ii),...
         'binedges',edges.(metric),...
         'bincounts',counts_non,...
@@ -802,7 +835,6 @@ ylabel('Error (ms)');
 xoffsets = [-1,1] * .15;
 
 % choice of accuracy function
-accuracyfun = @(x,d) nanmean((x-t_roi').^2,d);
 accuracyfun = @(x,d) nanmean(abs(x-t_roi'),d);
 
 % choice of average and error functions
@@ -810,15 +842,15 @@ avgfun = @(x) nanmedian(x);
 errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 
 % preallocation
-ramp_sims = nan(T_roi,M);
-non_sims = nan(T_roi,M);
-% all_sims = nan(T_roi,M);
+ramp_sims = nan(S,M);
+non_sims = nan(S,M);
+% all_sims = nan(S,M);
 
 % iterate through models
 for mm = 1 : M
-    ramp_sims(:,mm) = accuracyfun(pthat_ramp(:,:,mm),2);
-    non_sims(:,mm) = accuracyfun(pthat_non(:,:,mm),2);
-%     all_sims(:,mm) = accuracyfun(pthat_all(:,:,mm),2);
+    ramp_sims(:,mm) = accuracyfun(pthat_ramp(:,:,mm),1);
+    non_sims(:,mm) = accuracyfun(pthat_non(:,:,mm),1);
+%     all_sims(:,mm) = accuracyfun(pthat_all(:,:,mm),1);
     ramp_avg = avgfun(ramp_sims(:,mm));
     non_avg = avgfun(non_sims(:,mm));
 %     all_avg = avgfun(all_sims(:,mm));
@@ -933,15 +965,15 @@ avgfun = @(x) nanmedian(x);
 errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 
 % preallocation
-ramp_sims = nan(T_roi,M);
-non_sims = nan(T_roi,M);
-% all_sims = nan(T_roi,M);
+ramp_sims = nan(S,M);
+non_sims = nan(S,M);
+% all_sims = nan(S,M);
 
 % iterate through models
 for mm = 1 : M
-    ramp_sims(:,mm) = nanmean(errhat_ramp(:,:,mm),2);
-    non_sims(:,mm) = nanmean(errhat_non(:,:,mm),2);
-%     all_sims(:,mm) = nanmean(errhat_all(:,:,mm),2);
+    ramp_sims(:,mm) = nanmean(errhat_ramp(:,:,mm),1);
+    non_sims(:,mm) = nanmean(errhat_non(:,:,mm),1);
+%     all_sims(:,mm) = nanmean(errhat_all(:,:,mm),1);
     ramp_avg = avgfun(ramp_sims(:,mm));
     non_avg = avgfun(non_sims(:,mm));
 %     all_avg = avgfun(all_sims(:,mm));
@@ -1094,16 +1126,16 @@ axes(axesopt.default,...
     'ylim',roi,...
     'xtick',roi,...
     'ytick',roi,...
-    'xdir','normal',...
-    'ydir','normal',...
-    'nextplot','add',...
     'clipping','off');
 xlabel('Time (ms) X_i');
 ylabel('Decoded time (ms) X_i');
 
+% choice of average function
+avgfun = @(x,d) nanmean(x,d);
+
 % non-ramping posteriors
-non_avg = nanmean(pthat_non(:,:,M),2);
-non_err = [1,1] .* nanmean(errhat_non(:,:,M),2);
+non_avg = avgfun(pthat_non(:,:,M),2);
+non_err = [1,1] .* avgfun(errhat_non(:,:,M),2);
 xpatch = [t_roi,fliplr(t_roi)];
 ypatch = [non_avg-non_err(:,1);flipud(non_avg+non_err(:,2))];
 patch(xpatch,ypatch,ramp_clrs(2,:),...
@@ -1111,8 +1143,8 @@ patch(xpatch,ypatch,ramp_clrs(2,:),...
     'edgecolor','none');
 
 % ramping posteriors
-ramp_avg = nanmean(pthat_ramp(:,:,M),2);
-ramp_err = [1,1] .* nanmean(errhat_ramp(:,:,M),2);
+ramp_avg = avgfun(pthat_ramp(:,:,M),2);
+ramp_err = [1,1] .* avgfun(errhat_ramp(:,:,M),2);
 xpatch = [t_roi,fliplr(t_roi)];
 ypatch = [ramp_avg-ramp_err(:,1);flipud(ramp_avg+ramp_err(:,2))];
 patch(xpatch,ypatch,ramp_clrs(1,:),...
@@ -1138,6 +1170,36 @@ plot(t_roi,ramp_avg,...
 % plot(t_roi,all_avg,...
 %     'color',[1,1,1],...
 %     'linewidth',1.5);
+
+% inset with example run
+axes(axesopt.default,...
+    axesopt.inset.nw,...
+    'xaxislocation','bottom',...
+    'xlim',roi,...
+    'ylim',roi,...
+    'xtick',roi,...
+    'ytick',roi);
+
+% draw example
+eg_idx = randi(S);
+eg_clr = [1,1,1] * .75;
+
+% example non-ramping posteriors
+non_avg_eg = pthat_non(:,eg_idx,M);
+non_err_eg = [1,1] .* errhat_non(:,eg_idx,M);
+xpatch = [t_roi,fliplr(t_roi)];
+ypatch = [non_avg_eg-non_err_eg(:,1);flipud(non_avg_eg+non_err_eg(:,2))];
+patch(xpatch,ypatch,eg_clr,...
+    'facealpha',1,...
+    'edgecolor','none');
+
+% plot example average
+plot(t_roi,non_avg_eg,...
+    'color',([1,1,1]+eg_clr)/2,...
+    'linewidth',1.5);
+
+% plot reference line
+plot(t_roi,t_roi,'--k');
 
 % save figure
 if want2save

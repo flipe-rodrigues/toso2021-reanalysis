@@ -9,9 +9,15 @@ n_boots = 50;
 %% compute Si-aligned stereotypy
 
 % preallocation
-fr_stereotypy = struct(...
+fr_correlation = struct(...
     's1',nan(n_neurons_total,1),...
     's2',nan(n_neurons_total,1));
+fr_entropy = struct(...
+    's1',nan(n_neurons_total,1),...
+    's2',nan(n_neurons_total,1));
+
+% entropy function handle
+entropyfun = @(p) -nansum(p .* log2(p));
 
 % iterate through neurons
 for nn = 1 : n_neurons_total
@@ -79,9 +85,48 @@ for nn = 1 : n_neurons_total
     end
     
     % compute stereotypy coefficient
-    fr_stereotypy.s1(nn) = nanmean(s1_rhos(:,1,2));
-    fr_stereotypy.s2(nn) = nanmean(s2_rhos(:,1,2));
+    fr_correlation.s1(nn) = nanmean(s1_rhos(:,1,2));
+    fr_correlation.s2(nn) = nanmean(s2_rhos(:,1,2));
+    
+%     % preallocation
+%     s1_rhos = nan(n_trials,2,2);
+%     s2_rhos = nan(n_trials,2,2);
+%     
+%     % iterate through trials
+%     for tt = 1 : n_trials
+% 
+%         % compute correlation coefficients
+%         nan_flags = isnan(s1_spkrates(tt,:));
+%         s1_rhos(tt,:,:) = corrcoef(s1_spkrates(tt,~nan_flags),...
+%             nanmean(s1_spkrates((1:n_trials)~=tt,~nan_flags)));
+%         nan_flags = isnan(s2_spkrates(tt,:));
+%         s2_rhos(tt,:,:) = corrcoef(s2_spkrates(tt,~nan_flags),...
+%             nanmean(s2_spkrates((1:n_trials)~=tt,~nan_flags)));
+%     end
+
+    % preallocation
+    s1_entropy = nan(n_tbins,1);
+    s2_entropy = nan(n_tbins,1);
+    
+    % iterate through time points
+    for tt = 1 : n_tbins
+        s1_pdf = histcounts(s1_spkrates(:,tt),30,...
+            'normalization','pdf');
+        s1_pdf(s1_pdf == 0) = nan;
+        s1_entropy(tt) = entropyfun(s1_pdf);
+        s2_pdf = histcounts(s2_spkrates(:,tt),30,...
+            'normalization','pdf');
+        s2_pdf(s2_pdf == 0) = nan;
+        s2_entropy(tt) = entropyfun(s2_pdf);
+    end
+
+    % compute stereotypy coefficient
+    fr_entropy.s1(nn) = 1 ./ nanmean(s1_entropy);
+    fr_entropy.s2(nn) = 1 ./ nanmean(s2_entropy);
 end
+
+%% statistic selection
+stat2plot = fr_correlation;
 
 %% plot firing rate of ramping & non-ramping neurons across task epochs
 
@@ -91,7 +136,7 @@ fig = figure(figopt,...
     'name','ramp_fr_stereotypy');
 
 % epoch settings
-epochs = fieldnames(fr_stereotypy);
+epochs = fieldnames(stat2plot);
 n_epochs = numel(epochs);
 
 % axes initialization
@@ -131,14 +176,14 @@ errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 for ee = 1 : n_epochs
     epoch = epochs{ee};
     distro.(epoch) = {...
-        fr_stereotypy.(epoch)(cluster_idcs.(epoch){'ramp'});...
-        fr_stereotypy.(epoch)(cluster_idcs.(epoch){'nonramp'})};
+        stat2plot.(epoch)(cluster_idcs.(epoch){'ramp'});...
+        stat2plot.(epoch)(cluster_idcs.(epoch){'nonramp'})};
     avg.(epoch) = [...
-        avgfun(fr_stereotypy.(epoch)(cluster_idcs.(epoch){'ramp'}));...
-        avgfun(fr_stereotypy.(epoch)(cluster_idcs.(epoch){'nonramp'}))];
+        avgfun(stat2plot.(epoch)(cluster_idcs.(epoch){'ramp'}));...
+        avgfun(stat2plot.(epoch)(cluster_idcs.(epoch){'nonramp'}))];
     err.(epoch) = [...
-        errfun(fr_stereotypy.(epoch)(cluster_idcs.(epoch){'ramp'}));...
-        errfun(fr_stereotypy.(epoch)(cluster_idcs.(epoch){'nonramp'}))];
+        errfun(stat2plot.(epoch)(cluster_idcs.(epoch){'ramp'}));...
+        errfun(stat2plot.(epoch)(cluster_idcs.(epoch){'nonramp'}))];
 end
 
 % table conversions
@@ -176,7 +221,8 @@ legend({'ramping','non-ramping'},...
     'location','southwest');
 
 % update axes
-yylim = [-1,1];%round(quantile(fr_stereotypy.s2,[0,1])/.5)*.5;
+yylim = [-1,1];
+% yylim = round(quantile(stat2plot.s2,[0,1])/.5)*.5;
 yytick = linspace(yylim(1),yylim(2),5);
 yyticklabel = num2cell(yytick);
 yyticklabel(~ismember(yytick,[0,yylim])) = {''};
@@ -192,8 +238,8 @@ edges = linspace(yylim(1),yylim(2),40);
 for ee = 1 : n_epochs
     epoch = epochs{ee};
     counts.(epoch) = {...
-        histcounts(fr_stereotypy.(epoch)(cluster_idcs.(epoch){'ramp'}),edges);...
-        histcounts(fr_stereotypy.(epoch)(cluster_idcs.(epoch){'nonramp'}),edges)};
+        histcounts(stat2plot.(epoch)(cluster_idcs.(epoch){'ramp'}),edges);...
+        histcounts(stat2plot.(epoch)(cluster_idcs.(epoch){'nonramp'}),edges)};
 end
 
 % table conversion
@@ -237,7 +283,6 @@ for ee = 1 : n_epochs
         'linewidth',1.5,...
         'handlevisibility','off');
     [~,pval] = kstest2(distro.(epoch){'ramp'},distro.(epoch){'nonramp'});
-%     pval = kruskalwallis(vertcat(distro.(epoch){:}),[],'off');
     pval = pval * n_epochs;
     if pval < .01
         test_str = '**';

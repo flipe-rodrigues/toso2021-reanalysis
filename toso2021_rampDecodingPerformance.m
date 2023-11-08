@@ -5,7 +5,7 @@ if ~exist('data','var')
 end
 
 %% bootstrap settings
-n_boots = 10;
+n_boots = 100;
 
 %% temporal smoothing kernel
 gauss_kernel = gausskernel('sig',50,'binwidth',psthbin);
@@ -203,9 +203,8 @@ set(sps,...
     'ytick',unique([[ti,tf]';[ti,tf]';0;t_set]));
 linkaxes(sps);
 
-% choice of average & error functions
+% choice of average function
 avgfun = @(x,d)nanmean(x,d);
-errfun = @(x,d)nanstd(x,0,d);
 
 clims = quantile(P_tR,[0,.999],'all')';
 
@@ -246,9 +245,8 @@ set(sps,...
     'ytick',unique([[ti,tf]';[ti,tf]';0;t_set]));
 linkaxes(sps);
 
-% choice of average & error functions
+% choice of average function
 avgfun = @(x,d)nanmean(x,d);
-errfun = @(x,d)nanstd(x,0,d);
 
 % iterate through epochs
 for ee = 1 : n_epochs
@@ -268,7 +266,6 @@ for ee = 1 : n_epochs
     for kk = 1 : n_clusters
         pthat_avg = squeeze(avgfun(P_tR_mu(:,ee,kk,:),4));
         pthat_err = squeeze(avgfun(P_tR_sd(:,ee,kk,:),4));
-        nanmean(pthat_err)
         plot(sps(ee),t,pthat_avg,...
             'color',ramp_clrs(kk,:),...
             'linewidth',1.5);
