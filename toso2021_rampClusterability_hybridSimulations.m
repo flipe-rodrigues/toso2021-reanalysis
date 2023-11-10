@@ -297,7 +297,7 @@ ylabel({'Real neuron / simulated ramp #','(sorted by PCs)'});
 
 % sort by angular position in PC space
 [~,theta_idcs] = sortrows(thetas);
-sorted_idcs = (circshift(theta_idcs,-125));
+sorted_idcs = flipud(circshift(theta_idcs,-125));
 
 % color limits
 clim = [-2,4];
