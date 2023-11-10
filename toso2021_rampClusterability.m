@@ -114,7 +114,7 @@ s2_cluster_clrs(s2_cluster_flags,:) = ...
 % s2_cluster_faceclrs = s2_cluster_clrs;
 % s2_cluster_faceclrs(s2_downramp_flags,:) = repmat([0,0,1],sum(s2_downramp_flags),1);
 
-%% compute Si-aligned weights
+%% compute Si-aligned observation weights
 time_mat = repmat(si_time,n_total_trials,1);
 s1_weights = sum(time_mat(valid_flags,:) <= t1(valid_flags));
 s1_weights = s1_weights / sum(s1_weights);
