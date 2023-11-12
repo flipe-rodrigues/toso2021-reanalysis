@@ -354,6 +354,19 @@ for ee = 1 : n_epochs
         'verticalalignment','bottom');
 end
 
+% iterate through alignments
+fprintf('\n');
+for ee = 1 : n_epochs
+    epoch = epochs{ee};
+    [~,pval] = kstest2(distro.(epoch){'ramp'},distro.(epoch){'nonramp'});
+%     pval = kruskalwallis(...
+%         vertcat(distro.(epoch){'ramp'},distro.(epoch){'nonramp'}),...
+%         vertcat(ones(size(distro.(epoch){'ramp'})),...
+%         zeros(size(distro.(epoch){'nonramp'}))),'on');
+%     pval = pval * n_epochs;
+    fprintf('%s: %.2f\n',epoch,pval);
+end
+
 % save figure
 if want2save
     svg_file = fullfile(panel_path,[fig.Name,'.svg']);

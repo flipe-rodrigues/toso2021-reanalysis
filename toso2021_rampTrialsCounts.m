@@ -3,24 +3,10 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
-%% compute Si-aligned firing rate statistics
+%% compute Si-aligned trial counts
 
 % preallocation
-fr_mu = struct(...
-    's1',nan(n_neurons_total,1),...
-    's2',nan(n_neurons_total,1));
-fr_min = struct(...
-    's1',nan(n_neurons,1),...
-    's2',nan(n_neurons,1));
-fr_range = struct(...
-    's1',nan(n_neurons_total,1),...
-    's2',nan(n_neurons_total,1));
-fr_dynrange = struct(...
-    's1',nan(n_neurons_total,1),...
-    's2',nan(n_neurons_total,1));
-fr_fano = struct(...
-    's1',nan(n_neurons_total,1),...
-    's2',nan(n_neurons_total,1));
+trial_counts = nan(n_neurons_total,1);
 
 % iterate through neurons
 for nn = 1 : n_neurons_total
@@ -29,81 +15,24 @@ for nn = 1 : n_neurons_total
     spike_flags = ...
         valid_flags & ...
         neuron_flags;
-    if sum(spike_flags) == 0 || ~ismember(nn,flagged_neurons)
+    n_trials = sum(spike_flags);
+    if n_trials == 0 || ~ismember(nn,flagged_neurons)
         continue;
     end
     
-    % fetch spike counts & compute spike rates
-    spike_rates = data.SDF(spike_flags,:);
-    n_trials = size(spike_rates,1);
-    
-    % S1-aligned spike rates
-    s1_alignment = ...
-        pre_init_padding + ...
-        pre_s1_delay(spike_flags);
-    s1_alignment_flags = ...
-        padded_time >= s1_alignment & ...
-        padded_time < s1_alignment + t1(spike_flags);
-    s1_chunk_flags = ...
-        padded_time >= s1_alignment & ...
-        padded_time < s1_alignment + t_set(end);
-    s1_spkrates = spike_rates';
-    s1_spkrates(~s1_alignment_flags') = nan;
-    s1_spkrates = reshape(...
-        s1_spkrates(s1_chunk_flags'),[n_tbins,n_trials])';
-    
-    % S2-aligned spike rates
-    s2_alignment = ...
-        pre_init_padding + ...
-        pre_s1_delay(spike_flags) + ...
-        t1(spike_flags) + ...
-        isi;
-    s2_alignment_flags = ...
-        padded_time >= s2_alignment & ...
-        padded_time < s2_alignment + t2(spike_flags);
-    s2_chunk_flags = ...
-        padded_time >= s2_alignment & ...
-        padded_time < s2_alignment + t_set(end);
-    s2_spkrates = spike_rates';
-    s2_spkrates(~s2_alignment_flags') = nan;
-    s2_spkrates = reshape(...
-        s2_spkrates(s2_chunk_flags'),[n_tbins,n_trials])';
-
-    % compute average spike rates across trials
-    s1_spkrate = mean(s1_spkrates,'omitnan');
-    s2_spkrate = mean(s2_spkrates,'omitnan');
-    
-    % compute observations weights
-    s1_weights = sum(~isnan(s1_spkrates));
-    s2_weights = sum(~isnan(s1_spkrates));
-    s1_weights = s1_weights ./ nansum(s1_weights);
-    s2_weights = s2_weights ./ nansum(s2_weights);
-
-    % compute firing rate statistics
-    fr_mu.s1(nn) = s1_spkrate * s1_weights';
-    fr_mu.s2(nn) = s2_spkrate * s2_weights';
-    fr_min.s1(nn) = min(s1_spkrate);
-    fr_min.s2(nn) = min(s2_spkrate);
-    fr_range.s1(nn) = range(s1_spkrate);
-    fr_range.s2(nn) = range(s2_spkrate);
-    fr_dynrange.s1(nn) = max(s1_spkrate) / min(s1_spkrate);
-    fr_dynrange.s2(nn) = max(s2_spkrate) / min(s2_spkrate);
-    fr_fano.s1(nn) = var(s1_spkrate) / mean(s1_spkrate);
-    fr_fano.s2(nn) = var(s2_spkrate) / mean(s2_spkrate);
+    % store trials counts for the current neuron
+    trial_counts(nn) = n_trials;
 end
-
-%% statistic selection
-stat2plot = fr_range;
 
 %% plot firing rate of ramping & non-ramping neurons across task epochs
 
 % figure initialization
 fig = figure(figopt,...
     'position',[200 200 560 412.5],...
-    'name','ramp_fr_range');
+    'name','ramp_trial_counts');
 
 % epoch settings
-epochs = fieldnames(stat2plot);
+epochs = {'s1','s2'};
 n_epochs = numel(epochs);
 
 % horizontal offset between clusters
@@ -127,7 +56,7 @@ axes(axesopt.default,...
     'clipping','off',...
     'layer','bottom');
 xlabel('Stimulus period');
-ylabel('Firing rate range (Hz)',...
+ylabel('Trial count',...
     'rotation',-90,...
     'verticalalignment','bottom');
 
@@ -145,14 +74,14 @@ errfun = @(x) quantile(x,[.25,.75]) - nanmedian(x);
 for ee = 1 : n_epochs
     epoch = epochs{ee};
     distro.(epoch) = {...
-        stat2plot.(epoch)(cluster_idcs.(epoch){'ramp'});...
-        stat2plot.(epoch)(cluster_idcs.(epoch){'nonramp'})};
+        trial_counts(cluster_idcs.(epoch){'ramp'});...
+        trial_counts(cluster_idcs.(epoch){'nonramp'})};
     avg.(epoch) = [...
-        avgfun(stat2plot.(epoch)(cluster_idcs.(epoch){'ramp'}));...
-        avgfun(stat2plot.(epoch)(cluster_idcs.(epoch){'nonramp'}))];
+        avgfun(trial_counts(cluster_idcs.(epoch){'ramp'}));...
+        avgfun(trial_counts(cluster_idcs.(epoch){'nonramp'}))];
     err.(epoch) = [...
-        errfun(stat2plot.(epoch)(cluster_idcs.(epoch){'ramp'}));...
-        errfun(stat2plot.(epoch)(cluster_idcs.(epoch){'nonramp'}))];
+        errfun(trial_counts(cluster_idcs.(epoch){'ramp'}));...
+        errfun(trial_counts(cluster_idcs.(epoch){'nonramp'}))];
 end
 
 % table conversions
@@ -190,7 +119,7 @@ legend({'ramping','non-ramping'},...
     'location','southwest');
 
 % update axes
-yymax = ceil(max(ylim)/5) * 5;
+yymax = max(trial_counts);
 yylim = [0,yymax];
 yytick = linspace(yylim(1),yylim(2),4);
 yyticklabel = num2cell(yytick);
@@ -207,8 +136,8 @@ edges = linspace(yylim(1),yylim(2),40);
 for ee = 1 : n_epochs
     epoch = epochs{ee};
     counts.(epoch) = {...
-        histcounts(stat2plot.(epoch)(cluster_idcs.(epoch){'ramp'}),edges);...
-        histcounts(stat2plot.(epoch)(cluster_idcs.(epoch){'nonramp'}),edges)};
+        histcounts(trial_counts(cluster_idcs.(epoch){'ramp'}),edges);...
+        histcounts(trial_counts(cluster_idcs.(epoch){'nonramp'}),edges)};
 end
 
 % table conversion

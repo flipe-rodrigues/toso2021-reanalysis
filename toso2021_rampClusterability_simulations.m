@@ -226,7 +226,7 @@ ylabel({'Simulated neuron #','(sorted by PCs)'});
 % sort by angular position in PC space
 [~,theta_idcs] = sortrows(thetas);
 % theta_idcs = (circshift(theta_idcs,75));
-sorted_idcs = (circshift(theta_idcs,115));
+sorted_idcs = flipud(circshift(theta_idcs,-125));
 
 % color limits
 clim = [-2,4];

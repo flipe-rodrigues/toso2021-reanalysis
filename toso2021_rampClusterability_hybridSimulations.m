@@ -31,12 +31,6 @@ t_padded = linspace(ti_padded,tf_padded,T_padded);
 dur_padded = (tf_padded - ti_padded) / t_units;
 dt = diff(t(1:2));
 
-%% simulation settings
-if ~exist('proportion','var')
-    toso2021_rampProportions;
-end
-ramp_proportion = proportion.s2('ramp');
-
 %% simulate spike rates
 
 % preallocation
@@ -82,7 +76,7 @@ for nn = 1 : n_neurons
     fr_range = range(spkrate);
     
     % check if the current neuron will come from data or simulation
-    if rand > ramp_proportion
+    if ismember(flagged_neurons(nn),cluster_idcs.s2{'nonramp'})
         
         % compute mean spike density function
         r(:,nn) = spkrate;
@@ -117,7 +111,7 @@ for nn = 1 : n_neurons
             spk_counts = histcounts(spk_times,'binedges',t_padded);
             R(:,kk) = conv(spk_counts/(dt/t_units),gauss_kernel.pdf,'valid');
             
-            % time flags
+            % simulate variable stimulus durations
             time_flags = t <= t2_trial(kk);
             R(~time_flags,kk) = nan;
         end
@@ -193,7 +187,7 @@ r2 = nan(n_neurons,1);
 
 % iterate through neurons
 for nn = 1 : n_neurons
-    mdl = fitlm(x,z(:,nn));
+    mdl = fitlm(t,z(:,nn));
     slopes(nn) = mdl.Coefficients.Estimate(2);
     r2(nn) = mdl.Rsquared.Ordinary;
 end
@@ -215,7 +209,6 @@ end
 clusterability = struct();
 
 % assignment
-% clusterability.dissimilarity = dissimilarity;
 clusterability.thetas = (thetas);
 clusterability.rhos = rhos;
 
@@ -297,7 +290,17 @@ ylabel({'Real neuron / simulated ramp #','(sorted by PCs)'});
 
 % sort by angular position in PC space
 [~,theta_idcs] = sortrows(thetas);
-sorted_idcs = flipud(circshift(theta_idcs,-125));
+theta_idcs = circshift(theta_idcs,-125);
+betas = [(1:N)',ones(N,1)] \ rhos(theta_idcs);
+if betas(1) < 0
+    theta_idcs = flipud(theta_idcs);
+end
+
+% sort by correlation coefficient
+[~,rho_idcs] = sortrows(rhos);
+
+% pick sorting criteria
+sorted_idcs = theta_idcs;
 
 % color limits
 clim = [-2,4];
@@ -387,10 +390,6 @@ imagesc(...
     ybounds+[1,-1]*diff(yedges(1:2))/2,P);
 
 % coefficient scatter
-% grapeplot(pca_neuron_coeff(:,1),pca_neuron_coeff(:,2),...
-%     'markersize',3,...
-%     'markeredgecolor',[0,0,0],...
-%     'markerfacecolor',[1,1,1]);
 grapeplot(pca_neuron_coeff(nonramp_flags,1),pca_neuron_coeff(nonramp_flags,2),...
     'markersize',3,...
     'markeredgecolor',cluster_clrs(nonramp_flags,:),...
@@ -538,7 +537,6 @@ set(sps,axesopt.default,...
 % xlabel(sps(2),'\rho_{response, time}');
 xlabel(sps(1),'|\theta(PC 1, PC 2)|');
 xlabel(sps(2),'\rho(response, time)');
-% xlabel(sps(3),'Pairwise distance of PC coefficients');
 
 % bin settings
 n_bins = 30;
@@ -598,10 +596,6 @@ set(sps(2),...
     'xlim',bounds.(clusterability_metrics{2}),...
     'xtick',sort([0,bounds.(clusterability_metrics{2})]),...
     'xticklabel',num2cell(round(sort([0,bounds.(clusterability_metrics{2})]),2)));
-% set(sps(3),...
-%     'xlim',bounds.dissimilarity,...
-%     'xtick',bounds.dissimilarity,...
-%     'xticklabel',num2cell(round(bounds.dissimilarity,2)));
 
 % save figure
 if want2save
@@ -632,10 +626,8 @@ set(sps,axesopt.default,...
     'clipping','on');
 set(sps(1),'ylim',[0,max(counts.(clusterability_metrics{1}))]);
 set(sps(2),'ylim',[0,max(counts.(clusterability_metrics{2}))]);
-% set(sps(3),'ylim',[0,max(counts.dissimilarity)]);
 xlabel(sps(1),'|\theta(PC 1, PC 2)|');
 xlabel(sps(2),'\rho(response, time)');
-% xlabel(sps(3),'Pairwise distance of PC coefficients');
 
 % iterate through clusterability metrics
 for mm = 1 : n_metrics
@@ -690,7 +682,7 @@ for mm = 1 : n_metrics
             test_str = 'n.s.';
             font_size = axesopt.default.fontsize;
         end
-        text(sps(mm),.5,.95-kk*.05,test_str,...
+        text(sps(mm),.5,.9-kk*.1,test_str,...
             'color',simramp_clrs(kk,:),...
             'fontsize',font_size,...
             'horizontalalignment','center',...
@@ -708,10 +700,6 @@ set(sps(2),...
     'xlim',bounds.(clusterability_metrics{2}),...
     'xtick',sort([0,bounds.(clusterability_metrics{2})]),...
     'xticklabel',num2cell(round(sort([0,bounds.(clusterability_metrics{2})]),2)));
-% set(sps(3),...
-%     'xlim',bounds.dissimilarity,...
-%     'xtick',bounds.dissimilarity,...
-%     'xticklabel',num2cell(round(bounds.dissimilarity,2)));
 
 % save figure
 if want2save

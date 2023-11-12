@@ -15,20 +15,22 @@ close all
 % rng(0);
 
 %% tensor settings
-N = 500;        % neurons
-N_clus = 50;    % neurons per cluster
-K = 100;        % trials
-S = 10;        % simulations
+N = 1e3;        % neurons
+N_clus = 100;	% neurons per cluster
+K = 300;        % trials
+S = 5;          % simulations
 P = 4;          % number of partitions with which to assess stereotypy
 
 %% temporal smoothing kernel
 gauss_kernel = gausskernel('sig',50,'binwidth',psthbin);
 
 %% ROI settings
-roi = [0,1000];
+roi = [0,t_set(end)];
+roi_decoding = [0,t_set(end-2)];
 roi_onset = [-500,500] + roi(1);
 roi_offset = [-500,500] + roi(2);
 T_roi = range(roi);
+T_roi_decoding = range(roi_decoding);
 
 %% time settings
 ti = roi_onset(1);
@@ -39,12 +41,16 @@ T = (tf - ti) / psthbin;
 T_padded = (tf_padded - ti_padded) / psthbin;
 t = linspace(ti,tf,T);
 t_roi = linspace(roi(1),roi(2),T_roi);
+t_roi_decoding = linspace(roi_decoding(1),roi_decoding(2),T_roi_decoding);
 t_padded = linspace(ti_padded,tf_padded,T_padded);
 t_units = 1e3;
 dt = diff(t(1:2));
 roi_flags = ...
     t >= roi(1) & ...
     t <= roi(2);
+roi_decoding_flags = ...
+    t >= roi_decoding(1) & ...
+    t <= roi_decoding(2);
 roi_onset_flags = ...
     t >= roi_onset(1) & ...
     t <= roi_onset(2);
@@ -57,7 +63,8 @@ roi_offset_flags = ...
 % "monotonocity" criteria
 rho_monotonocity_cutoff = .5;
 % beta_monotonocity_cutoff = .05;     % what they say they do in the methods
-beta_monotonocity_cutoff = .004;	% what's in their code
+% beta_monotonocity_cutoff = .004;	% what's in their code
+beta_monotonocity_cutoff = .003;
 pval_monotonocity_cutoff = .05;
 
 % stereotypy criteria
@@ -68,25 +75,15 @@ pval_stereotypy_cutoff = .01;
 
 % model parameters
 gamma_ranges = [...
-    [5,5,5]; ...
-    [0,100,10/3]; ...
-    [5,5,5]; ...
-    [0,100,10/3]];
+    [1,1,1]*3; ...
+    [1,1,1]*3; ...
+    [0,100,3]; ...
+    [0,100,3]];
 lambda_ranges = [...
-    [0,0]; ...
-    [0,0]; ...
-    [0,range(roi)*2]; ...
-    [0,range(roi)*2]];
-% gamma_ranges = [...
-%     [8.5,8.5,8.5]; ...
-%     [0,100,7]; ...
-%     [8.5,8.5,8.5]; ...
-%     [0,100,7]];
-% lambda_ranges = [...
-%     [0,0]; ...
-%     [0,0]; ...
-%     [0,range(roi)*2]; ...
-%     [0,range(roi)*2]];
+    [0,0,0]; ...
+    [0,range(roi)*2,range(roi)*.1]; ...
+    [0,0,0]; ...
+    [0,range(roi)*2,range(roi)*.1]];
 M = size(lambda_ranges,1);
 
 % model labels
@@ -99,34 +96,34 @@ for mm = 1 : M
         lambda_ranges(mm,1),lambda_ranges(mm,2));
 end
 model_labels = {...
-    '\gamma=\gamma_0\newline\lambda=\lambda_0';...
-    '\gamma\sim\newline\lambda=\lambda_0';...
-    '\gamma=\gamma_0\newline\lambda\sim';...
-    '\gamma\sim\newline\lambda\sim';...
+    '\lambda=\lambda_0\newline\gamma=\gamma_0';...
+    '\lambda\sim\newline\gamma=\gamma_0';...
+    '\lambda=\lambda_0\newline\gamma\sim';...
+    '\lambda\sim\newline\gamma\sim';...
     };
 disp(model_labels);
 
 %% model simulations
 
 % preallocation
-P_TR_RAMP = nan(T_roi,T_roi,S,M);
-P_TR_NON = nan(T_roi,T_roi,S,M);
-P_TR_ALL = nan(T_roi,T_roi,S,M);
-MAP_ramp = nan(T_roi,S,M);
-MAP_non = nan(T_roi,S,M);
-MAP_all = nan(T_roi,S,M);
-MU_ramp = nan(T_roi,S,M);
-MU_non = nan(T_roi,S,M);
-MU_all = nan(T_roi,S,M);
-MED_ramp = nan(T_roi,S,M);
-MED_non = nan(T_roi,S,M);
-MED_all = nan(T_roi,S,M);
-SD_ramp = nan(T_roi,S,M);
-SD_non = nan(T_roi,S,M);
-SD_all = nan(T_roi,S,M);
-IQR_ramp = nan(T_roi,S,M);
-IQR_non = nan(T_roi,S,M);
-IQR_all = nan(T_roi,S,M);
+P_TR_RAMP = nan(T_roi_decoding,T_roi_decoding,S,M);
+P_TR_NON = nan(T_roi_decoding,T_roi_decoding,S,M);
+P_TR_ALL = nan(T_roi_decoding,T_roi_decoding,S,M);
+MAP_ramp = nan(T_roi_decoding,S,M);
+MAP_non = nan(T_roi_decoding,S,M);
+MAP_all = nan(T_roi_decoding,S,M);
+MU_ramp = nan(T_roi_decoding,S,M);
+MU_non = nan(T_roi_decoding,S,M);
+MU_all = nan(T_roi_decoding,S,M);
+MED_ramp = nan(T_roi_decoding,S,M);
+MED_non = nan(T_roi_decoding,S,M);
+MED_all = nan(T_roi_decoding,S,M);
+SD_ramp = nan(T_roi_decoding,S,M);
+SD_non = nan(T_roi_decoding,S,M);
+SD_all = nan(T_roi_decoding,S,M);
+IQR_ramp = nan(T_roi_decoding,S,M);
+IQR_non = nan(T_roi_decoding,S,M);
+IQR_all = nan(T_roi_decoding,S,M);
 MUS = nan(N_clus*2,S,M);
 SIGMAS = nan(N_clus*2,S,M);
 GAMMAS = nan(N_clus*2,S,M);
@@ -157,7 +154,7 @@ for mm = 1 : M
             exprnd(gamma_ranges(mm,3),N,1),...
             gamma_ranges(mm,1),gamma_ranges(mm,2));
         lambdas = clamp(...
-            exprnd(.1 * range(roi),N,1) + exprnd(.1 * range(roi),N,1),...
+            exprnd(lambda_ranges(mm,3),N,1),...
             lambda_ranges(mm,1),lambda_ranges(mm,2));
         sigmas = ones(N,1) * .25 * range(roi);
         
@@ -169,9 +166,15 @@ for mm = 1 : M
         
         % iterate through neurons
         for nn = 1 : N
-                    
+%             neuron_flags = data.NeuronNumb == flagged_neurons(nn);
+%             trial_flags = ...
+%                 valid_flags & ...
+%                 neuron_flags;
+%             n_trials = sum(trial_flags);
+            
             % baseline firing rate
-            bsl_fr = datasample(fr.min,1);
+            bsl_fr = datasample(fr_min.s2(flagged_neurons),1);
+%             bsl_fr = fr_min.s2(flagged_neurons(nn));
             
             % iterate through trials
             for kk = 1 : K
@@ -184,6 +187,12 @@ for mm = 1 : M
                 spk_times = ts * t_units + ti_padded;
                 spk_counts = histcounts(spk_times,'binedges',t_padded);
                 R(:,nn,kk) = conv(spk_counts/(dt/t_units),gauss_kernel.pdf,'valid');
+                
+                % simulate variable stimulus durations
+                time_flags = ...
+                    t <= datasample(t2(valid_flags),1) | ...
+                    t >= roi(end);
+                R(~time_flags,nn,kk) = nan;
             end
         end
         
@@ -304,11 +313,11 @@ for mm = 1 : M
         %% naive bayes decoder
         train_flags = ismember(1:K,randperm(K,round(K/2)));
         tensor_ramp = cat(3,...
-            nanmean(R(roi_flags,ramp_flags,train_flags),3),...
-            nanmean(R(roi_flags,ramp_flags,~train_flags),3));
+            nanmean(R(roi_decoding_flags,ramp_flags,train_flags),3),...
+            nanmean(R(roi_decoding_flags,ramp_flags,~train_flags),3));
         tensor_non = cat(3,...
-            nanmean(R(roi_flags,~ramp_flags,train_flags),3),...
-            nanmean(R(roi_flags,~ramp_flags,~train_flags),3));
+            nanmean(R(roi_decoding_flags,~ramp_flags,train_flags),3),...
+            nanmean(R(roi_decoding_flags,~ramp_flags,~train_flags),3));
 %         tensor_all = cat(3,...
 %             nanmean(R(roi_flags,:,train_flags),3),...
 %             nanmean(R(roi_flags,:,~train_flags),3));
@@ -331,7 +340,7 @@ for mm = 1 : M
         % decoding options
         opt = struct();
         opt.n_xpoints = 100;
-        opt.time = t_roi;
+        opt.time = t_roi_decoding;
         opt.train.trial_idcs = 1;
         opt.train.n_trials = numel(opt.train.trial_idcs);
         opt.test.trial_idcs = 2;
@@ -347,58 +356,58 @@ for mm = 1 : M
         %% compute decoding statistics
         
         % preallocation
-        mu_ramp = nan(T_roi,1);
-        mu_non = nan(T_roi,1);
-%         mu_all = nan(T_roi,1);
-        sd_ramp = nan(T_roi,1);
-        sd_non = nan(T_roi,1);
-%         sd_all = nan(T_roi,1);
+        mu_ramp = nan(T_roi_decoding,1);
+        mu_non = nan(T_roi_decoding,1);
+%         mu_all = nan(T_roi_decoding,1);
+        sd_ramp = nan(T_roi_decoding,1);
+        sd_non = nan(T_roi_decoding,1);
+%         sd_all = nan(T_roi_decoding,1);
         
         % iterate through time points
-        for tt = 1 : T_roi
-            mu_ramp(tt) = P_tR_ramp(tt,:) * t_roi';
-            mu_non(tt) = P_tR_non(tt,:) * t_roi';
-%             mu_all(tt) = P_tR_all(tt,:) * t_roi';
-            sd_ramp(tt) = sqrt(P_tR_ramp(tt,:) * (mu_ramp(tt) - t_roi') .^ 2);
-            sd_non(tt) = sqrt(P_tR_non(tt,:) * (mu_non(tt) - t_roi') .^ 2);
-%             sd_all(tt) = sqrt(P_tR_all(tt,:) * (mu_all(tt) - t_roi') .^ 2);
+        for tt = 1 : T_roi_decoding
+            mu_ramp(tt) = P_tR_ramp(tt,:) * t_roi_decoding';
+            mu_non(tt) = P_tR_non(tt,:) * t_roi_decoding';
+%             mu_all(tt) = P_tR_all(tt,:) * t_roi_decoding';
+            sd_ramp(tt) = sqrt(P_tR_ramp(tt,:) * (mu_ramp(tt) - t_roi_decoding') .^ 2);
+            sd_non(tt) = sqrt(P_tR_non(tt,:) * (mu_non(tt) - t_roi_decoding') .^ 2);
+%             sd_all(tt) = sqrt(P_tR_all(tt,:) * (mu_all(tt) - t_roi_decoding') .^ 2);
         end
         
         % compute posterior median
-        median_flags_ramp = [false(T_roi,1),diff(cumsum(P_tR_ramp,2) > .5,1,2) == 1];
-        median_flags_non = [false(T_roi,1),diff(cumsum(P_tR_non,2) > .5,1,2) == 1];
-%         median_flags_all = [false(T_roi,1),diff(cumsum(P_tR_all,2) > .5,1,2) == 1];
+        median_flags_ramp = [false(T_roi_decoding,1),diff(cumsum(P_tR_ramp,2) > .5,1,2) == 1];
+        median_flags_non = [false(T_roi_decoding,1),diff(cumsum(P_tR_non,2) > .5,1,2) == 1];
+%         median_flags_all = [false(T_roi_decoding,1),diff(cumsum(P_tR_all,2) > .5,1,2) == 1];
         [~,median_idcs_ramp] = max(median_flags_ramp,[],2);
         [~,median_idcs_non] = max(median_flags_non,[],2);
 %         [~,median_idcs_all] = max(median_flags_all,[],2);
-        med_ramp = t_roi(median_idcs_ramp);
-        med_non = t_roi(median_idcs_non);
-%         med_all = t_roi(median_idcs_all);
+        med_ramp = t_roi_decoding(median_idcs_ramp);
+        med_non = t_roi_decoding(median_idcs_non);
+%         med_all = t_roi_decoding(median_idcs_all);
         
         % compute posterior IQR
-        q25_flags_ramp = [false(T_roi,1),diff(cumsum(P_tR_ramp,2) > .25,1,2) == 1];
-        q75_flags_ramp = [false(T_roi,1),diff(cumsum(P_tR_ramp,2) > .75,1,2) == 1];
-        q25_flags_non = [false(T_roi,1),diff(cumsum(P_tR_non,2) > .25,1,2) == 1];
-        q75_flags_non = [false(T_roi,1),diff(cumsum(P_tR_non,2) > .75,1,2) == 1];
-%         q25_flags_all = [false(T_roi,1),diff(cumsum(P_tR_all,2) > .25,1,2) == 1];
-%         q75_flags_all = [false(T_roi,1),diff(cumsum(P_tR_all,2) > .75,1,2) == 1];
+        q25_flags_ramp = [false(T_roi_decoding,1),diff(cumsum(P_tR_ramp,2) > .25,1,2) == 1];
+        q75_flags_ramp = [false(T_roi_decoding,1),diff(cumsum(P_tR_ramp,2) > .75,1,2) == 1];
+        q25_flags_non = [false(T_roi_decoding,1),diff(cumsum(P_tR_non,2) > .25,1,2) == 1];
+        q75_flags_non = [false(T_roi_decoding,1),diff(cumsum(P_tR_non,2) > .75,1,2) == 1];
+%         q25_flags_all = [false(T_roi_decoding,1),diff(cumsum(P_tR_all,2) > .25,1,2) == 1];
+%         q75_flags_all = [false(T_roi_decoding,1),diff(cumsum(P_tR_all,2) > .75,1,2) == 1];
         [~,q25_idcs_ramp] = max(q25_flags_ramp,[],2);
         [~,q75_idcs_ramp] = max(q75_flags_ramp,[],2);
         [~,q25_idcs_non] = max(q25_flags_non,[],2);
         [~,q75_idcs_non] = max(q75_flags_non,[],2);
 %         [~,q25_idcs_all] = max(q25_flags_all,[],2);
 %         [~,q75_idcs_all] = max(q75_flags_all,[],2);
-        iqr_ramp = t_roi(q75_idcs_ramp) - t_roi(q25_idcs_ramp);
-        iqr_non = t_roi(q75_idcs_non) - t_roi(q25_idcs_non);
-%         iqr_all = t_roi(q75_idcs_all) - t_roi(q25_idcs_all);
+        iqr_ramp = t_roi_decoding(q75_idcs_ramp) - t_roi_decoding(q25_idcs_ramp);
+        iqr_non = t_roi_decoding(q75_idcs_non) - t_roi_decoding(q25_idcs_non);
+%         iqr_all = t_roi_decoding(q75_idcs_all) - t_roi_decoding(q25_idcs_all);
         
         % compute MAP
         [~,mode_idcs_ramp] = max(P_tR_ramp,[],2);
         [~,mode_idcs_non] = max(P_tR_non,[],2);
 %         [~,mode_idcs_all] = max(P_tR_all,[],2);
-        map_ramp = t_roi(mode_idcs_ramp);
-        map_non = t_roi(mode_idcs_non);
-%         map_all = t_roi(mode_idcs_all);
+        map_ramp = t_roi_decoding(mode_idcs_ramp);
+        map_non = t_roi_decoding(mode_idcs_non);
+%         map_all = t_roi_decoding(mode_idcs_all);
         
         %% store current simulation
         P_TR_RAMP(:,:,ss,mm) = P_tR_ramp;
@@ -499,7 +508,9 @@ for mm = 1 : M
         title(sps(3),'Non-ramps');
         
         % normalization
-        z = zscore(r);
+        mus = nanmean(r);
+        sigs = nanstd(r);
+        z = (r - mus) ./ sigs;
 
         % color limits
         r_clim = [min(r,[],'all'),max(r,[],'all')];
@@ -536,8 +547,8 @@ for mm = 1 : M
             end
         end
         set(sps,...
-            'xlim',[ti,tf],...
-            'ylim',[ti,tf],...
+            'xlim',roi_decoding,...
+            'ylim',roi_decoding,...
             'xdir','normal',...
             'ydir','normal',...
             'nextplot','add',...
@@ -549,19 +560,19 @@ for mm = 1 : M
         
         % ramping posteriors
         title(sps(1),sprintf('Ramping neurons (%i/%i)',sum(ramp_flags),N));
-        imagesc(sps(1),[ti,tf],[ti,tf],P_tR_ramp',clim);
+        imagesc(sps(1),roi_decoding,roi_decoding,P_tR_ramp',clim);
         plot(sps(1),xlim(sps(1)),ylim(sps(1)),'-k');
         plot(sps(1),xlim(sps(1)),ylim(sps(1)),'--w');
         
         % non-ramping posteriors
         title(sps(2),sprintf('Non-ramping neurons (%i/%i)',sum(~ramp_flags),N));
-        imagesc(sps(2),[ti,tf],[ti,tf],P_tR_non',clim);
+        imagesc(sps(2),roi_decoding,roi_decoding,P_tR_non',clim);
         plot(sps(2),xlim(sps(2)),ylim(sps(2)),'-k');
         plot(sps(2),xlim(sps(2)),ylim(sps(2)),'--w');
         
         % all posteriors
 %         title(sps(3),sprintf('All neurons (%i/%i)',N_clus,N));
-%         imagesc(sps(3),[ti,tf],[ti,tf],P_tR_all',clim);
+%         imagesc(sps(3),roi_decoding,roi_decoding,P_tR_all',clim);
 %         plot(sps(3),xlim(sps(3)),ylim(sps(3)),'-k');
 %         plot(sps(3),xlim(sps(3)),ylim(sps(3)),'--w');
     end
@@ -603,7 +614,7 @@ n_metrics2plot = numel(metrics2plot_labels);
 
 % figure initialization
 fig = figure(figopt,...
-    'position',[200,200,560,415],...
+    'position',[200,200,560,450],...
     'name','ramp_parameter_distributions');
 
 % axes initialization
@@ -614,7 +625,7 @@ for ii = 1 : n_sps
     ylabel(sps(ii),'PDF');
 end
 set(sps,axesopt.default,...
-    'plotboxaspectratio',[2.5,1,1],...
+    'plotboxaspectratio',[5,1,1],...
     'ticklength',axesopt.default.ticklength,...
     'xlimspec','tight',...
     'ylimspec','tight',...
@@ -692,6 +703,22 @@ for ii = 1 : n_params2plot
         'xtick',bounds.(param));
 end
 
+% update temporal tuning axes
+set(sps(1),...
+    'xlim',bounds.mu,...
+    'xtick',unique([roi_onset,roi,roi_offset,t_set']));
+
+% within-epoch unimodality assessment of temporal tuning
+rois = [roi_onset; roi; roi_offset];
+n_rois = size(rois,1);
+for rr = 1 : n_rois
+    roi_mus = params2plot.mu(ramps2plot_flags);
+    mu_flags = ...
+        roi_mus >= rois(rr,1) & ...
+        roi_mus < rois(rr,2);
+    [~,pval] = diptest(roi_mus(mu_flags));
+end
+
 % save figure
 if want2save
     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
@@ -702,7 +729,7 @@ end
 
 % figure initialization
 fig = figure(figopt,...
-    'position',[200,200,560/2,415],...
+    'position',[200,200,560,450],...
     'name','ramp_metric_distributions');
 
 % axes initialization
@@ -713,7 +740,7 @@ for ii = 1 : n_sps
     ylabel(sps(ii),'PDF');
 end
 set(sps,axesopt.default,...
-    'plotboxaspectratio',[2.5,1,1],...
+    'plotboxaspectratio',[5,1,1],...
     'ticklength',axesopt.default.ticklength,...
     'xlimspec','tight',...
     'ylimspec','tight',...
@@ -791,6 +818,11 @@ for ii = 1 : n_metrics2plot
         'xtick',bounds.(metric));
 end
 
+% update temporal tuning axes
+set(sps(1),...
+    'xlim',bounds.tuning,...
+    'xtick',unique([roi_onset,roi,roi_offset,t_set']));
+
 % save figure
 if want2save
     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
@@ -837,7 +869,7 @@ ylabel('Error (ms)');
 xoffsets = [-1,1] * .15;
 
 % choice of accuracy function
-accuracyfun = @(x,d) nanmean(abs(x-t_roi'),d);
+accuracyfun = @(x,d) nanmean(abs(x-t_roi_decoding'),d);
 
 % choice of average and error functions
 avgfun = @(x) nanmedian(x);
@@ -1077,8 +1109,8 @@ for mm = 1 : M
     end
     set(sps,...
         axesopt.default,...
-        'xlim',roi,...
-        'ylim',roi,...
+        'xlim',roi_decoding,...
+        'ylim',roi_decoding,...
         'xdir','normal',...
         'ydir','normal',...
         'nextplot','add',...
@@ -1088,24 +1120,24 @@ for mm = 1 : M
     % ramping posteriors
     title(sps(1),sprintf('Ramping neurons (%.0f%%)',nanmean(P_RAMP(:,mm))*100));
     errorbar(sps(1),...
-        t_roi,nanmean(pthat_ramp(:,:,mm),2),...
+        t_roi_decoding,nanmean(pthat_ramp(:,:,mm),2),...
         nanmean(errhat_ramp(:,:,mm),2),...
         'color',ramp_clrs(1,:),...
         'linewidth',.1,...
         'capsize',0);
-    plot(sps(1),t_roi,nanmean(pthat_ramp(:,:,mm),2),...
+    plot(sps(1),t_roi_decoding,nanmean(pthat_ramp(:,:,mm),2),...
         'color','w',...
         'linewidth',1.5);
 
     % non-ramping posteriors
     title(sps(2),sprintf('Non-ramping neurons (%.0f%%)',(1-nanmean(P_RAMP(:,mm)))*100));
     errorbar(sps(2),...
-        t_roi,nanmean(pthat_non(:,:,mm),2),...
+        t_roi_decoding,nanmean(pthat_non(:,:,mm),2),...
         nanmean(errhat_non(:,:,mm),2),...
         'color',ramp_clrs(2,:),...
         'linewidth',.1,...
         'capsize',0);
-    plot(sps(2),t_roi,nanmean(pthat_non(:,:,mm),2),...
+    plot(sps(2),t_roi_decoding,nanmean(pthat_non(:,:,mm),2),...
         'color','w',...
         'linewidth',1.5);
 
@@ -1124,10 +1156,10 @@ fig = figure(figopt,...
 
 % axes initialization
 axes(axesopt.default,...
-    'xlim',roi,...
-    'ylim',roi,...
-    'xtick',roi,...
-    'ytick',roi,...
+    'xlim',roi_decoding,...
+    'ylim',roi_decoding,...
+    'xtick',unique([roi_decoding,t_set']),...
+    'ytick',unique([roi_decoding,t_set']),...
     'clipping','off');
 xlabel('Time (ms) X_i');
 ylabel('Decoded time (ms) X_i');
@@ -1138,7 +1170,7 @@ avgfun = @(x,d) nanmean(x,d);
 % non-ramping posteriors
 non_avg = avgfun(pthat_non(:,:,M),2);
 non_err = [1,1] .* avgfun(errhat_non(:,:,M),2);
-xpatch = [t_roi,fliplr(t_roi)];
+xpatch = [t_roi_decoding,fliplr(t_roi_decoding)];
 ypatch = [non_avg-non_err(:,1);flipud(non_avg+non_err(:,2))];
 patch(xpatch,ypatch,ramp_clrs(2,:),...
     'facealpha',1,...
@@ -1147,7 +1179,7 @@ patch(xpatch,ypatch,ramp_clrs(2,:),...
 % ramping posteriors
 ramp_avg = avgfun(pthat_ramp(:,:,M),2);
 ramp_err = [1,1] .* avgfun(errhat_ramp(:,:,M),2);
-xpatch = [t_roi,fliplr(t_roi)];
+xpatch = [t_roi_decoding,fliplr(t_roi_decoding)];
 ypatch = [ramp_avg-ramp_err(:,1);flipud(ramp_avg+ramp_err(:,2))];
 patch(xpatch,ypatch,ramp_clrs(1,:),...
     'facealpha',1,...
@@ -1156,20 +1188,20 @@ patch(xpatch,ypatch,ramp_clrs(1,:),...
 % all posteriors
 % all_avg = nanmean(pthat_all(:,:,M),2);
 % all_err = [1,1] .* nanmean(errhat_all(:,:,M),2);
-% xpatch = [t_roi,fliplr(t_roi)];
+% xpatch = [t_roi_decoding,fliplr(t_roi_decoding)];
 % ypatch = [all_avg-all_err(:,1);flipud(all_avg+all_err(:,2))];
 % patch(xpatch,ypatch,'w',...
 %     'facealpha',1,...
 %     'edgecolor','none');
 
 % plot averages
-plot(t_roi,non_avg,...
+plot(t_roi_decoding,non_avg,...
     'color',([1,1,1]+ramp_clrs(2,:))/2,...
     'linewidth',1.5);
-plot(t_roi,ramp_avg,...
+plot(t_roi_decoding,ramp_avg,...
     'color',([1,1,1]+ramp_clrs(1,:))/2,...
     'linewidth',1.5);
-% plot(t_roi,all_avg,...
+% plot(t_roi_decoding,all_avg,...
 %     'color',[1,1,1],...
 %     'linewidth',1.5);
 
@@ -1177,10 +1209,10 @@ plot(t_roi,ramp_avg,...
 axes(axesopt.default,...
     axesopt.inset.nw,...
     'xaxislocation','bottom',...
-    'xlim',roi,...
-    'ylim',roi,...
-    'xtick',roi,...
-    'ytick',roi);
+    'xlim',roi_decoding,...
+    'ylim',roi_decoding,...
+    'xtick',roi_decoding,...
+    'ytick',roi_decoding);
 
 % draw example
 eg_idx = randi(S);
@@ -1189,19 +1221,19 @@ eg_clr = [1,1,1] * .75;
 % example non-ramping posteriors
 non_avg_eg = pthat_non(:,eg_idx,M);
 non_err_eg = [1,1] .* errhat_non(:,eg_idx,M);
-xpatch = [t_roi,fliplr(t_roi)];
+xpatch = [t_roi_decoding,fliplr(t_roi_decoding)];
 ypatch = [non_avg_eg-non_err_eg(:,1);flipud(non_avg_eg+non_err_eg(:,2))];
 patch(xpatch,ypatch,eg_clr,...
     'facealpha',1,...
     'edgecolor','none');
 
 % plot example average
-plot(t_roi,non_avg_eg,...
+plot(t_roi_decoding,non_avg_eg,...
     'color',([1,1,1]+eg_clr)/2,...
     'linewidth',1.5);
 
 % plot reference line
-plot(t_roi,t_roi,'--k');
+plot(t_roi_decoding,t_roi_decoding,'--k');
 
 % save figure
 if want2save

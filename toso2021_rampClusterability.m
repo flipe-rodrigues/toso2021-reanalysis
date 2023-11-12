@@ -187,14 +187,32 @@ s2_r2 = nan(n_neurons,1);
 for nn = 1 : n_neurons
     
     % S1-aligned linear regression
-    s1_mdl = fitlm(x,s1_zpsths(:,nn));
+    s1_mdl = fitlm(si_time,s1_zpsths(:,nn));
     s1_slopes(nn) = s1_mdl.Coefficients.Estimate(2);
     s1_r2(nn) = s1_mdl.Rsquared.Ordinary;
     
     % S2-aligned linear regression
-    s2_mdl = fitlm(x,s2_zpsths(:,nn));
+    s2_mdl = fitlm(si_time,s2_zpsths(:,nn));
     s2_slopes(nn) = s2_mdl.Coefficients.Estimate(2);
     s2_r2(nn) = s2_mdl.Rsquared.Ordinary;
+end
+
+%% pearson's correlation coefficient
+
+% preallocation
+s1_rhos = nan(n_neurons,1);
+s2_rhos = nan(n_neurons,1);
+
+% iterate through neurons
+for nn = 1 : n_neurons
+    
+    % S1-aligned correlation coefficient
+    s1_rho = corrcoef(si_time,s1_zpsths(:,nn));
+    s1_rhos(nn) = s1_rho(1,2);
+    
+    % S2-aligned correlation coefficient
+    s2_rho = corrcoef(si_time,s2_zpsths(:,nn));
+    s2_rhos(nn) = s2_rho(1,2);
 end
 
 %% clusterability metrics structure
@@ -204,14 +222,12 @@ s1_clusterability = struct();
 s2_clusterability = struct();
 
 % assignment of S1-aligned clusterability metrics
-% s1_clusterability.dissimilarity = s1_dissimilarity;
 s1_clusterability.thetas = s1_thetas;
-s1_clusterability.slopes = s1_slopes;
+s1_clusterability.rhos = s1_rhos;
 
 % assignment of S2-aligned clusterability metrics
-% s2_clusterability.dissimilarity = s2_dissimilarity;
 s2_clusterability.thetas = s2_thetas;
-s2_clusterability.slopes = s2_slopes;
+s2_clusterability.rhos = s2_rhos;
 
 % parse clusterability metrics
 clusterability_metrics = fieldnames(s2_clusterability);
@@ -228,8 +244,23 @@ for mm = 1 : n_metrics
     metric = clusterability_metrics{mm};
     
     % store dip test p-values
-    [~,s1_diptestpval.(metric)] = diptest(s1_clusterability.(metric));
-    [~,s2_diptestpval.(metric)] = diptest(s2_clusterability.(metric));
+    [~,s1_diptestpval.(metric).all] = diptest(s1_clusterability.(metric));
+    [~,s2_diptestpval.(metric).all] = diptest(s2_clusterability.(metric));
+    
+    % iterate through clusters
+    for kk = 1 : n_clusters
+        cluster = cluster_labels{kk};
+        s1_cluster_flags = ...
+            ismember(flagged_neurons,cluster_idcs.s1{cluster});
+        s2_cluster_flags = ...
+            ismember(flagged_neurons,cluster_idcs.s2{cluster});
+        
+        % store dip test p-values
+        [~,s1_diptestpval.(metric).(cluster)] = ...
+            diptest(s1_clusterability.(metric)(s2_cluster_flags));
+        [~,s2_diptestpval.(metric).(cluster)] = ...
+            diptest(s2_clusterability.(metric)(s2_cluster_flags));
+    end
 end
 
 %% compute gap statistics
@@ -758,19 +789,25 @@ set(sps,axesopt.default,...
     'ylimspec','tight',...
     'ytick',0,...
     'clipping','on');
-xlabel(sps(1),'Polar angle of PC coefficients');
-xlabel(sps(2),'Linear regression slopes');
-% xlabel(sps(3),'Pairwise distance of PC coefficients');
+% xlabel(sps(1),'|\theta_{PC 1, PC 2}|');
+% xlabel(sps(2),'\rho_{response, time}');
+xlabel(sps(1),'|\theta(PC 1, PC 2)|');
+xlabel(sps(2),'\rho(response, time)');
 
 % bin settings
 n_bins = 30;
+bounds = struct();
+edges = struct();
+counts = struct();
+bounds.thetas = [-pi,pi];
+bounds.slopes = quantile(slopes,[0,1]);
+bounds.rhos = [-1,1];
 
 % iterate through clusterability metrics
 for mm = 1 : n_metrics
     metric = clusterability_metrics{mm};
     
     % compute distributions of clusterability metric
-    bounds.(metric) = quantile(s2_clusterability.(metric),[0,1]);
     edges.(metric) = linspace(bounds.(metric)(1),bounds.(metric)(2),n_bins);
 	counts.(metric) = histcounts(s2_clusterability.(metric),edges.(metric));
     
@@ -787,7 +824,7 @@ for mm = 1 : n_metrics
         'linewidth',1.5);
     
     % affordances for statistical tests
-    pval = s2_diptestpval.(metric);
+    pval = s2_diptestpval.(metric).all;
     if pval < .01
         test_str = '**';
         font_size = 16;
@@ -808,17 +845,13 @@ end
 
 % update axes
 set(sps(1),...
-    'xlim',bounds.thetas,...
-    'xtick',sort([0,bounds.thetas]),...
+    'xlim',bounds.(clusterability_metrics{1}),...
+    'xtick',unique([0,bounds.(clusterability_metrics{1})]),...
     'xticklabel',{'-\pi','0','\pi'});
 set(sps(2),...
-    'xlim',bounds.slopes,...
-    'xtick',sort([0,bounds.slopes]),...
-    'xticklabel',num2cell(round(sort([0,bounds.slopes]),2)));
-% set(sps(3),...
-%     'xlim',bounds.dissimilarity,...
-%     'xtick',bounds.dissimilarity,...
-%     'xticklabel',num2cell(round(bounds.dissimilarity,2)));
+    'xlim',bounds.(clusterability_metrics{2}),...
+    'xtick',sort([0,bounds.(clusterability_metrics{2})]),...
+    'xticklabel',num2cell(round(sort([0,bounds.(clusterability_metrics{2})]),2)));
 
 % save figure
 if want2save
@@ -847,12 +880,10 @@ set(sps,axesopt.default,...
     'ylimspec','tight',...
     'ytick',0,...
     'clipping','on');
-set(sps(1),'ylim',[0,max(counts.thetas)]);
-set(sps(2),'ylim',[0,max(counts.slopes)]);
-% set(sps(3),'ylim',[0,max(counts.dissimilarity)]);
-xlabel(sps(1),'Polar angle of PC coefficients');
-xlabel(sps(2),'Linear regression slopes');
-% xlabel(sps(3),'Pairwise distance of PC coefficients');
+set(sps(1),'ylim',[0,max(counts.(clusterability_metrics{1}))]);
+set(sps(2),'ylim',[0,max(counts.(clusterability_metrics{2}))]);
+xlabel(sps(1),'|\theta(PC 1, PC 2)|');
+xlabel(sps(2),'\rho(response, time)');
 
 % iterate through clusterability metrics
 for mm = 1 : n_metrics
@@ -891,39 +922,40 @@ for mm = 1 : n_metrics
         'color','k',...
         'linewidth',1.5);
     
-    % affordances for statistical tests
-    pval = s2_diptestpval.(metric);
-    if pval < .01
-        test_str = '**';
-        font_size = 16;
-    elseif pval < .05
-        test_str = '*';
-        font_size = 16;
-    else
-        test_str = 'n.s.';
-        font_size = axesopt.default.fontsize;
+    % iterate through clusters
+    for kk = 1 : n_clusters
+        cluster = cluster_labels{kk};
+        
+        % affordances for statistical tests
+        pval = s2_diptestpval.(metric).(cluster);
+        if pval < .01
+            test_str = '**';
+            font_size = 16;
+        elseif pval < .05
+            test_str = '*';
+            font_size = 16;
+        else
+            test_str = 'n.s.';
+            font_size = axesopt.default.fontsize;
+        end
+        text(sps(mm),.5,.9-kk*.1,test_str,...
+            'color',ramp_clrs(kk,:),...
+            'fontsize',font_size,...
+            'horizontalalignment','center',...
+            'verticalalignment','bottom',...
+            'units','normalized');
     end
-    text(sps(mm),.5,.95,test_str,...
-        'color','k',...
-        'fontsize',font_size,...
-        'horizontalalignment','center',...
-        'verticalalignment','bottom',...
-        'units','normalized');
 end
 
 % update axes
 set(sps(1),...
-    'xlim',bounds.thetas,...
-    'xtick',sort([0,bounds.thetas]),...
+    'xlim',bounds.(clusterability_metrics{1}),...
+    'xtick',unique([0,bounds.(clusterability_metrics{1})]),...
     'xticklabel',{'-\pi','0','\pi'});
 set(sps(2),...
-    'xlim',bounds.slopes,...
-    'xtick',sort([0,bounds.slopes]),...
-    'xticklabel',num2cell(round(sort([0,bounds.slopes]),2)));
-% set(sps(3),...
-%     'xlim',bounds.dissimilarity,...
-%     'xtick',bounds.dissimilarity,...
-%     'xticklabel',num2cell(round(bounds.dissimilarity,2)));
+    'xlim',bounds.(clusterability_metrics{2}),...
+    'xtick',sort([0,bounds.(clusterability_metrics{2})]),...
+    'xticklabel',num2cell(round(sort([0,bounds.(clusterability_metrics{2})]),2)));
 
 % save figure
 if want2save
@@ -1054,6 +1086,7 @@ cluster_ids = kmeans(s2_pca_neuron_coeff(:,1:2),3);
 silhouette(s2_pca_time_score(:,1:2),cluster_ids);
 
 %%
+return;
 max_k = 15;
 fig = figure(figopt,...
     'name','pc_coefficients_gap_s2');
