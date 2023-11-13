@@ -82,11 +82,21 @@ toso2021_performance_Di;
 toso2021_GLM_choice;
 toso2021_psychometricCurves;
 
-%% figures 3-5 (and S2)
-
-
-return;
+%% figures 3-5
 toso2021_averageActivity_s2Aligned;
 toso2021_PCA_s2Aligned;
-toso2021_neurometricCurves;
-toso2021_naiveBayesDecoder;
+% toso2021_neurometricCurves;
+% toso2021_naiveBayesDecoder;
+
+%% figure 6
+
+
+%% figure 7
+
+
+%% figure S1
+toso2021_samplingScheme;
+
+%% figure S2
+toso2021_averageActivity_s1Aligned;
+toso2021_PCA_s1Aligned;

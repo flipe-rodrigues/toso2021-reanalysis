@@ -22,17 +22,8 @@ subject_flags = ismember(subjects,subject_set);
 %% construct s2-aligned psths
 
 % preallocation
-zscore_weights = nan(roi2plot_n_bins,n_neurons);
 ref_psths = nan(roi2plot_n_bins,n_neurons);
 s2_psths = nan(roi2plot_n_bins,n_neurons,n_contrasts);
-
-% clamping
-if strcmpi(contrast_str,'i1')
-    clamp_flags = i2 == i_set(i2_mode_idx);
-elseif strcmpi(contrast_str,'i2')
-    clamp_flags = i1 == i_set(i1_mode_idx);
-end
-clamp_flags = choice == choice_set(end);
 
 % iterate through neurons
 for nn = 1 : n_neurons
@@ -49,14 +40,7 @@ for nn = 1 : n_neurons
     % fetch spike counts & compute spike rates
     ref_spike_rates = data.SDF(ref_spike_flags,:);
     ref_n_trials = size(ref_spike_rates,1);
-    
-%     % S1-aligned spike rates
-%     ref_alignment = ...
-%         pre_init_padding + ...
-%         pre_s1_delay(ref_spike_flags);
-%     ref_alignment_flags = ...
-%         padded_time >= ref_alignment + roi2plot_padded(1) & ...
-%         padded_time < ref_alignment + t1(ref_spike_flags);
+
     % S2-aligned spike rates
     ref_alignment = ...
         pre_init_padding + ...
@@ -74,9 +58,6 @@ for nn = 1 : n_neurons
     ref_spkrates = reshape(...
         ref_spkrates(ref_chunk_flags'),[roi2plot_n_bins,ref_n_trials])';
     
-    % compute observations weights
-    zscore_weights(:,nn) = sum(~isnan(ref_spkrates));
-    
     % compute mean spike density function
     ref_psths(:,nn) = nanmean(ref_spkrates,1);
     
@@ -87,7 +68,6 @@ for nn = 1 : n_neurons
             valid_flags & ...
             subject_flags & ...
             neuron_flags & ...
-            ...clamp_flags & ...
             contrast_flags;
         
         % fetch spike counts & compute spike rates
@@ -130,24 +110,6 @@ end
 %% normalization
 mus = nanmean(ref_psths(roi2use_flags,:),1);
 sigs = nanstd(ref_psths(roi2use_flags,:),0,1);
-% mus = nanmean(s2_psths(roi2use_flags,:,:),[1,3]);
-% sigs = nanstd(s2_psths(roi2use_flags,:,:),0,[1,3]);
-
-% normalize observation weights
-% zscore_weights = zscore_weights ./ sum(zscore_weights);
-%
-% % preallocation
-% mus = nan(1,n_selected_neurons);
-% sigs = nan(1,n_selected_neurons);
-%
-% % iterate through neurons
-% for nn = 1 : n_selected_neurons
-%     nan_flags = isnan(ref_psths(:,nn));
-%     x = ref_psths(~nan_flags,nn);
-%     p = zscore_weights(~nan_flags,nn);
-%     mus(nn) = x' * p;
-%     sigs(nn) = sqrt(sum(p .* (x - mus(nn)) .^ 2));
-% end
 
 % z-scoring
 ref_zpsths = (ref_psths - mus) ./ sigs;
@@ -155,63 +117,18 @@ s2_zpsths = (s2_psths - mus) ./ sigs;
 
 %% PCA
 
-% concatenate psths across conditions
-s2_concat_all = nan(roi2use_n_bins*n_contrasts,n_selected_neurons);
-s2_concat_extr = nan(roi2use_n_bins*(n_contrasts-1),n_selected_neurons);
-s2_concat_mode = nan(roi2use_n_bins,n_selected_neurons);
-s2_concat_diff = nan(roi2use_n_bins,n_selected_neurons);
-for nn = 1 : n_selected_neurons
-    nn_zpsths_all = s2_zpsths(roi2use_flags,nn,:);
-    nn_zpsths_extr = s2_zpsths(roi2use_flags,nn,(1:n_contrasts)~=contrast_mode_idx);
-    nn_zpsths_mode = s2_zpsths(roi2use_flags,nn,contrast_mode_idx);
-    nn_zpsths_diff = ...
-        s2_zpsths(roi2use_flags,nn,end) - s2_zpsths(roi2use_flags,nn,1);
-    s2_concat_all(:,nn) = nn_zpsths_all(:);
-    s2_concat_extr(:,nn) = nn_zpsths_extr(:);
-    s2_concat_mode(:,nn) = nn_zpsths_mode(:);
-    s2_concat_diff(:,nn) = nn_zpsths_diff(:);
-end
-
-% training settings
-% pca_design = s2_concat_all;
-%   'all'   ->  vanilla PCA
-%   'extr'  ->  pseudo-demixed PCA
-%   'mode'  ->  robust PCA
-pca_design = ref_zpsths(roi2use_flags,:,:);
-
 % compute observation weights
 time_mat = repmat(roi2use(1) + psthbin : psthbin : roi2use(2),...
     sum(valid_flags),1);
 pca_weights = sum(time_mat <= t2(valid_flags));
 pca_weights = pca_weights / max(pca_weights);
-% weights = ones(size(pca_design,1),1);
-% for ii = 1 : n_contrasts
-%     contrast_flags = contrasts == contrast_set(ii);
-%     time_mat = repmat(roi2use(1) + psthbin : psthbin : roi2use(2),...
-%         sum(contrast_flags),1);
-%     concat_idcs = (1 : roi2use_n_bins) + roi2use_n_bins * (ii - 1);
-%     weights(concat_idcs) = sum(time_mat <= t2(contrast_flags));
-% end
-% weights = repmat(weights,1,size(pca_design,1)/numel(weights));
-% weights(weights == 0) = nan;
 
 % PCA
-[coeff,~,~,~,exp_pca] = pca(pca_design,...
+coeff = pca(ref_zpsths(roi2use_flags,:,:),...
     'weights',pca_weights);
 sign_flips = [1,1,1];
 coeff(:,1:3) = coeff(:,1:3) .* sign_flips;
 ref_score = ref_zpsths * coeff;
-% coeff_choice = coeff;
-% coeff = coeff_choice;
-
-% reorder PCs by variance explained
-% lat_pca = nanvar(s2_concat_all * coeff)';
-% exp_pca = lat_pca / sum(nanvar(s2_concat_all)) * 100;
-% lat_pca = nanvar(pca_design * coeff)';
-% exp_pca = lat_pca / sum(nanvar(pca_design)) * 100;
-% [~,pca_idcs] = sort(lat_pca,'descend');
-% coeff = coeff(:,pca_idcs);
-% exp_pca = lat_pca(pca_idcs) / sum(nanvar(s2_concat_all)) * 100;
 
 % preallocation
 s2_score = nan(roi2plot_n_bins,n_selected_neurons,n_contrasts);
@@ -257,8 +174,6 @@ exp_pca = lat_pca ./ sum(lat_pca) * 100;
 
 %% 3D trajectories in PC space
 fig = figure(figopt,...
-    ...'position',[400,150,700,620],...
-    'position',[100,150,460,480],...
     'name',sprintf('pc_trajectories3D_s2_%s',contrast_str));
 set(gca,...
     axesopt.default,...
@@ -347,9 +262,9 @@ xlim(xlim + [-1,1] * spacer * range(xlim));
 ylim(ylim + [-1,1] * spacer * range(ylim));
 zlim(zlim + [-1,1] * spacer * range(zlim));
 set(gca,...
-    'xtick',[],...xlim,...
-    'ytick',[],...ylim,...
-    'ztick',[],...zlim,...
+    'xtick',[],...
+    'ytick',[],...
+    'ztick',[],...
     'xticklabel',{},...
     'yticklabel',{},...
     'zticklabel',{},...
@@ -359,24 +274,19 @@ set(gca,...
 
 % plot 2D wall projections
 lims = [xlim; ylim; zlim];
-% lims(1,:) = fliplr(lims(1,:));
 lims(2,:) = fliplr(lims(2,:));
-% lims(3,:) = fliplr(lims(3,:));
 
 % plot cube edges
 cube_clr = [1,1,1] * .85 * 0;
 cube_edges = gobjects(3,1);
 cube_edges(1) = plot3([1,1].*lims(1,:),[1,1].*lims(2,1),[1,1].*lims(3,1),...
     'linestyle',':',...
-    ...'linewidth',1,...
     'color',cube_clr);
 cube_edges(2) = plot3([1,1].*lims(1,1),[1,1].*lims(2,:),[1,1].*lims(3,1),...
     'linestyle',':',...
-    ...'linewidth',1,...
     'color',cube_clr);
 cube_edges(3) = plot3([1,1].*lims(1,1),[1,1].*lims(2,1),[1,1].*lims(3,:),...
     'linestyle',':',...
-    ...'linewidth',1,...
     'color',cube_clr);
 
 % plot pair-wise projections
@@ -385,14 +295,6 @@ for jj = 1 : 3
     wall_ref_score(:,jj,:) = lims(jj,1);
     wall_ii_score = s2_score(:,1:3,:);
     wall_ii_score(:,jj,:) = lims(jj,1);
-    
-    % plot reference trajectory
-    %     plot3(wall_ref_score(:,1),...
-    %         wall_ref_score(:,2),...
-    %         wall_ref_score(:,3),...
-    %         'color',[1,1,1]*4/5,...
-    %         'linestyle','-',...
-    %         'linewidth',1.5);
     
     % iterate through contrasts
     for ii = 1 : n_contrasts
@@ -475,7 +377,7 @@ end
 
 % figure initialization
 fig = figure(figopt,...
-    'position',[35,130,966,860],...
+    'position',[250,1,966,860],...
     'name',sprintf('pc_projections_s2_%s',contrast_str));
 n_pcs2plot = 6;
 sps = gobjects(n_pcs2plot,1);
@@ -483,7 +385,6 @@ for pc = 1 : n_pcs2plot
     sp_idx = pc * 2 - 1 - (pc > n_pcs2plot / 2) * (n_pcs2plot - 1);
     sps(pc) = subplot(n_pcs2plot/2,2,sp_idx);
     xlabel(sps(pc),'Time since S_2 onset (ms)');
-    %     ylabel(sps(pc),sprintf('PC %i\n%.1f%% variance',pc,exp_pca(pc)));
     ylabel(sps(pc),sprintf('PC %i',pc));
 end
 xxtick = unique([roi2plot';0;t_set]);
@@ -635,10 +536,6 @@ for ii = 1 : size(R,1)
     R = R * rotfuns{ii}(thetas(ii));
 end
 
-% nested PCA approach
-% R = pca(ref_score(:,1:3));
-% R = R .* [1,-1,1]';
-
 % iterate through contrast conditions
 for ii = 1 : n_contrasts
     
@@ -705,7 +602,7 @@ for ii = 1 : n_contrasts
     mu_xpatch = S(1,:,ii);
     mu_ypatch = S(2,:,ii);
     mu_ypatch(end) = nan;
-    mu_apatch = surviving_trial_counts; % (~nan_flags);
+    mu_apatch = surviving_trial_counts;
     mu_apatch = mu_apatch ./ max(mu_apatch) .* ...
         range(alphabounds_mu) + alphabounds_mu(1);
     if fadeifnoisy
@@ -734,7 +631,6 @@ for ii = 1 : n_contrasts
         [roi2plot_time(2:end),nan] > 0;
     p(ii) = plot(S(1,onset_flags,ii),...
         S(2,onset_flags,ii),...
-        ...S(3,onset_flags,ii),...
         'linewidth',linewidth,...
         'marker','o',...
         'markersize',markersize,...
@@ -766,7 +662,6 @@ for ii = 1 : n_contrasts
         if ii == contrast_mode_idx
             h = plot(squeeze(S(1,offset_flags,:)),...
                 squeeze(S(2,offset_flags,:)),...
-                ...squeeze(S(3,offset_flags,:)),...
                 'linewidth',linewidth*2/3,...
                 'linestyle',':',...
                 'color',[contrast_clrs(contrast_mode_idx,:),alpha_levels(tt)]);
@@ -778,30 +673,13 @@ end
 % ui restacking
 uistack(p,'top');
 
-% update axis
-% axis tight;
-% xxlim = xlim;
-% yylim = ylim;
-% spacer = .05;
-% xlim(xlim + [-1,1] * spacer * range(xlim));
-% ylim(ylim + [-1,1] * spacer * range(ylim));
-% set(gca,...
-%     'xtick',unique([xxlim,0]),...
-%     'ytick',unique([yylim,0]),...
-%     'xticklabel',{'','0',''},...
-%     'yticklabel',{'','0',''},...
-%     'xcolor','k',...
-%     'ycolor','k');
-
 % iterate through dimensions
 B_clrs = [1,0,0; 0,1,0; 0,0,1];
-% B_clrs = colorlerp([0,0,0; 1,1,1],5)
 for ii = 1 : size(B,1)
     
     % plot basis
     plot(B(1,:,ii),...
         B(2,:,ii),...
-        ...B(3,:,ii),...
         'color',B_clrs(ii,:),...
         'linewidth',1.5,...
         'linestyle','-');

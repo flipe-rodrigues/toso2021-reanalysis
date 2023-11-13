@@ -22,21 +22,11 @@ roi2use_flags = ...
 zscore_weights = nan(roi2plot_n_bins,n_neurons);
 ref_psths = nan(roi2plot_n_bins,n_neurons);
 psths = nan(roi2plot_n_bins,n_neurons,n_contrasts);
-% R = nan(n_neurons,n_contrasts);
 
 %% subject selection
 subject_flags = ismember(subjects,subject_set);
 
 %% construct s2-aligned psths
-
-% clamping
-if strcmpi(contrast_str,'i1')
-    clamp_flags = i2 == i_set(i2_mode_idx);
-elseif strcmpi(contrast_str,'i2')
-    clamp_flags = i1 == i_set(i1_mode_idx);
-end
-clamp_flags = choice == choice_set(end);
-% bw = nan(n_neurons,n_contrasts);
 
 % iterate through neurons
 for nn = 1 : n_neurons
@@ -54,11 +44,7 @@ for nn = 1 : n_neurons
     ref_spike_counts = data.FR(ref_spike_flags,:);
     ref_spike_rates = data.SDF(ref_spike_flags,:);
     ref_n_trials = size(ref_spike_counts,1);
-    
-    % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-%     ref_spike_rates = downsamplecounts(ref_spike_counts,min(t_set));
-    % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    
+
     % S2-aligned spike rates
     ref_alignment = ...
         pre_init_padding + ...
@@ -89,7 +75,6 @@ for nn = 1 : n_neurons
             valid_flags & ...
             subject_flags & ...
             neuron_flags & ...
-            ...clamp_flags & ...
             contrast_flags;
         if sum(spike_flags) == 0
             continue;
@@ -100,14 +85,6 @@ for nn = 1 : n_neurons
         spike_rates = data.SDF(spike_flags,:);
         n_trials = size(spike_counts,1);
 
-        % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-%         spike_rates = downsamplecounts(spike_counts,min(t_set));
-        % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        
-        time_mat = repmat(padded_time,n_trials,1);
-        spike_times = time_mat(spike_counts >= 1);
-%         [~,~,bw(nn,ii)] = ksdensity(sort(spike_times(:)));
-        
         % S2-aligned spike rates
         alignment_onset = ...
             pre_init_padding + ...
@@ -127,97 +104,20 @@ for nn = 1 : n_neurons
 
         % compute mean spike density function
         psths(:,nn,ii) = nanmean(spkrates,1);
-%         R(nn,ii) = nanmean(spkrates(:,time>=-334&time<=0),[1,2]);
     end
 end
 
 %% normalization
 mus = nanmean(ref_psths(roi2use_flags,:),1);
 sigs = nanstd(ref_psths(roi2use_flags,:),0,1);
-% mus = nanmean(psths,[1,3]);
-% sigs = nanstd(psths,0,[1,3]);
-
-% normalize observation weights
-% zscore_weights = zscore_weights ./ sum(zscore_weights);
-% 
-% % preallocation
-% mus = nan(1,n_neurons);
-% sigs = nan(1,n_neurons);
-% 
-% % iterate through neurons
-% for nn = 1 : n_neurons
-%     nan_flags = isnan(ref_psths(:,nn));
-%     x = ref_psths(~nan_flags,nn);
-%     p = zscore_weights(~nan_flags,nn);
-%     mus(nn) = x' * p;
-%     sigs(nn) = sqrt(sum(p .* (x - mus(nn)) .^ 2));
-% end
 
 % z-scoring
 zpsths = (psths - mus) ./ sigs;
-
-%%
-% unfolded_zpsths = reshape(permute(zpsths,[1,3,2]),n_bins*n_contrasts,n_neurons);
-% unfolded_zpsths = nan(n_bins*n_contrasts,n_neurons);
-% for ii = 1 : n_contrasts
-%     idcs = (1 : n_bins) + (ii - 1) * n_bins;
-%     unfolded_zpsths(idcs,:) = psths(:,:,ii);
-% end
-% whos unfolded_zpsths
-% coeff = pca(unfolded_zpsths);
-% [theta,~] = cart2pol(coeff(:,1),coeff(:,2));
-% [~,theta_idcs] = sortrows(theta);
-% theta_idcs = circshift(flipud(theta_idcs),125);
-% figure; imagesc(unfolded_zpsths(:,theta_idcs)');
-% 
-% hold on;
-% yyaxis right;
-% mu = (nanmean((unfolded_zpsths),2));%*n_neurons+n_neurons/2;
-% for ii = 1 : n_contrasts
-%     idcs = (1 : n_bins) + (ii - 1) * n_bins;
-% %     idcs = (1 : sum(time<=0)) + (ii - 1) * n_bins;
-%     plot(idcs,mu(idcs),...
-%         'linewidth',3,...
-%         'linestyle','-',...
-%         'marker','none',...
-%         'color','w');
-%     plot(idcs,mu(idcs),...
-%         'linewidth',2,...
-%         'linestyle','-',...
-%         'marker','none',...
-%         'color',contrast_clrs(ii,:));
-% end
-% % hold on;
-% % plot((nanmean(unfolded_zpsths,2))*n_neurons+n_neurons/2,...
-% %     'color','k',...
-% %     'linewidth',1.5);
-% 
-% figure;
-% hold on;
-% for ii = 1 : n_contrasts
-%     idcs = (1 : n_bins) + (ii - 1) * n_bins;
-%     plot(time,nanmean(unfolded_zpsths(idcs,:),2),...
-%         'linewidth',1,...
-%         'color',contrast_clrs(ii,:));
-%     plot(0,nanmean(R(:,ii)),...
-%         'marker','.',...
-%         'markersize',25,...
-%         'color',contrast_clrs(ii,:));
-% end
-% 
-% figure;
-% hold on;
-% for ii = 1 : n_contrasts
-%     plot(time,nanmean(zpsths(:,:,ii),2),...
-%         'linewidth',1,...
-%         'color',contrast_clrs(ii,:));
-% end
 
 %% plot overall modulation
 
 % figure initialization
 fig = figure(figopt,...
-    ...'position',[325,635,435,385],...
     'name',['average_activity_s2_',contrast_str]);
 
 % axes initialization
@@ -225,7 +125,6 @@ xxtick = unique([0;roi2plot';t_set]);
 xxticklabel = num2cell(xxtick);
 xxticklabel(xxtick > 0 & xxtick < t_set(end)) = {''};
 axes(axesopt.default,...
-    ...'plotboxaspectratio',[2.25,1,1],...
     'clipping','off',...
     'xlim',roi2plot + [-1,1] * .05 * range(roi2plot),...
     'xtick',xxtick,...
@@ -356,31 +255,6 @@ for ii = 1 : n_contrasts
     end
 end
 
-% plot response windows used to compute DA responses
-% ymax = max(yticks);
-% post_period = [0,t_set(t2_mode_idx)];
-% pre_period = sort(-post_period);
-% patch([pre_period,fliplr(pre_period)],...
-%     [-1,-1,1,1]*range(ylim)*.01+ymax,'w',...
-%     'edgecolor','k',...
-%     'facealpha',1,...
-%     'linewidth',1);
-% patch([post_period,fliplr(post_period)],...
-%     [-1,-1,1,1]*range(ylim)*.01+ymax,'k',...
-%     'edgecolor','k',...
-%     'facealpha',1,...
-%     'linewidth',1);
-% text(mean(pre_period),ymax*1.05,'pre',...
-%     'fontsize',axesopt.default.fontsize*.9,...
-%     'color','k',...
-%     'horizontalalignment','center',...
-%     'verticalalignment','bottom');
-% text(mean(post_period),ymax*1.05,'post',...
-%     'fontsize',axesopt.default.fontsize*.9,...
-%     'color','k',...
-%     'horizontalalignment','center',...
-%     'verticalalignment','bottom');
-
 % ui restacking
 uistack([mu_gobjs(isgraphics(mu_gobjs)); ...
     sem_gobjs(isgraphics(sem_gobjs))],'bottom');
@@ -410,13 +284,4 @@ legend([p1,p2],{'S_2 onset','S_2 offset'},...
 if want2save
     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
-end
-
-%%
-return;
-figure; hold on;
-for ii = 1 : n_contrasts
-    histogram(bw(:,ii),...
-        'facecolor',contrast_clrs(ii,:),...
-        'facealpha',.5);
 end
