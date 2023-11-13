@@ -79,7 +79,7 @@ toso2021_generalizationMatrix_Si;
 toso2021_generalizationMatrix_Di;
 toso2021_performance_Si;
 toso2021_performance_Di;
-toso2021_GLM_choice;
+toso2021_choiceGLM;
 toso2021_psychometricCurves;
 
 %% figures 3-5
@@ -90,7 +90,7 @@ toso2021_neurometricCurves_s2Aligned;
 toso2021_naiveBayesDecoder_avg_s2Aligned;
 
 %% figure 6
-
+toso2021_spikeCountsGLM_allEpochs; % needs to be split in 2 (data & sims)
 
 %% figure 7
 
