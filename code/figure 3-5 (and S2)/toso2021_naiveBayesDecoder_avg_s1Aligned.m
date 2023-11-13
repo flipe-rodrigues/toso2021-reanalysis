@@ -339,41 +339,6 @@ for rr = 1 : n_runs
     toc
 end
 
-%% plot likelihoods
-if false
-    figure;
-    set(gca,...
-        axesopt.default,...,...
-        'xlim',roi,...
-        'xtick',sort([0;t_set]));
-    xlabel('Time since T_1 (ms)');
-    ylabel('Firing rate (Hz)');
-    
-    % iterate through units
-    for nn = 1 : n_neurons
-        cla;
-        r_bounds = neurons(nn).x_bounds;
-        r_bw = neurons(nn).x_bw;
-        if range(r_bounds) == 0
-            continue;
-        end
-        ylim(r_bounds);
-        title(sprintf('neuron: %i, bw: %.2f',nn,r_bw));
-        p_Rt = squeeze(P_Rt(:,nn,:));
-        nan_flags = isnan(p_Rt);
-        if sum(abs(diff(any(nan_flags,2)))) > 1
-            fprintf('\tcheck neuron %i!\n',nn);
-        end
-        p_Rt(nan_flags) = max(p_Rt(:));
-        imagesc(xlim,r_bounds,p_Rt');
-        for ii = 1 : n_t
-            plot([1,1]*t_set(ii),ylim,'--w');
-        end
-        drawnow;
-        pause(.1);
-    end
-end
-
 %% choice of average function
 avgfun = @(x,d)nanmean(x,d);
 errfun = @(x,d)nanstd(x,0,d);
@@ -397,6 +362,7 @@ set(sps,...
     'ytick',unique([roi';roi_ylim';0;t_set]));
 linkaxes(sps);
 
+% color limits
 clims = quantile(P_tR,[0,.999],'all')';
 
 % iterate through contrast conditions
@@ -416,9 +382,9 @@ fig = figure(...
     'numbertitle','off');
 axes(...
     axesopt.default,...
-    'xlim',roi_xlim,...+[-1,1]*.05*range(roi2plot),...
+    'xlim',roi_xlim,...
     'xtick',unique([roi';roi_xlim';0;t_set]),...
-    'ylim',roi_ylim,...+[-1,1]*.05*range(roi2plot),...
+    'ylim',roi_ylim,...
     'ytick',unique([roi';roi_ylim';0;t_set]),...
     'xticklabelrotation',0,...
     'yticklabelrotation',0);
@@ -427,13 +393,6 @@ ylabel('Decoded time since S_1 onset (ms)');
 
 % convert from tensor to rgb
 P_tR_avg = squeeze(avgfun(P_tR,4));
-% P_tR_avg(roi_time < roi_time(1) | roi_time > roi2plot(2),:,:) = nan;
-% P_tR_avg(:,roi_time < roi_time(1) | roi_time > roi2plot(2),:) = nan;
-% P_tR_avg(isnan(P_tR_avg)) = 0;
-% P_tR_avg = log(P_tR_avg);
-
-% P_tR_avg = min(P_tR_avg,quantile(P_tR_avg,.9975,[1,2]));
-
 P = tensor2rgb(permute(P_tR_avg,[2,1,3]),contrast_clrs);
 imagesc(roi,roi,P);
 
@@ -486,39 +445,6 @@ for ii = 1 : n_contrasts
         'linewidth',1.5);
 end
 
-% inset with extreme posterior subtractions
-% axes(...
-%     axesopt.inset.se,...
-%     axesopt.default,...
-% 	'xlim',roi_xlim,...roi2plot,...+[-1,1]*.05*range(roi2plot),...
-%     'xtick',unique([roi';roi_xlim';0;t_set]),...
-%     'ylim',roi_ylim,...+[-1,1]*.05*range(roi2plot),...
-%     'ytick',unique([roi';roi_ylim';0;t_set]),...
-%     'box','on',...
-%     'colormap',colorlerp(...
-%     [contrast_clrs(1,:);[1,1,1];contrast_clrs(end,:)],2^8));
-% % title('$p(t|\textbf{r})-p(t|\textbf{r})$',...
-% %     'interpreter','latex');
-% title('P(t|R) - P(t|R)');
-% ylabel('\DeltaP(t|R)',...
-%     'rotation',-90,...
-%     'verticalalignment','bottom');
-% 
-% % posterior subtraction
-% p_contrast_min = avgfun(P_tR(:,:,1,:),4);
-% p_contrast_max = avgfun(P_tR(:,:,end,:),4);
-% p_contrast_min = p_contrast_min - min(p_contrast_min,[],[1,2]);
-% p_contrast_max = p_contrast_max - min(p_contrast_max,[],[1,2]);
-% p_diff = p_contrast_max - p_contrast_min;
-% imagesc(roi,roi,p_diff',[-1,1] * n_t / n_tbins * 5);
-% 
-% % plot identity line
-% plot([roi2plot(1),t_set(end)],[roi2plot(1),t_set(end)],':k');
-% 
-% % zero lines
-% plot(xlim,[1,1]*0,':k');
-% plot([1,1]*0,ylim,':k');
-
 % inset with contrast-split MAPs
 axes(...
     axesopt.inset.se,...
@@ -529,7 +455,7 @@ axes(...
     'xtick',unique([roi';roi2plot';0;t_set]),...
     'ylim',[0,roi_ylim(2)],...
     'ytick',unique([roi';roi2plot';0;t_set]));
-% title('M.A.P.');
+title('M.A.P.');
 
 % iterate through contrast conditions
 for ii = 1 : n_contrasts
@@ -541,13 +467,6 @@ for ii = 1 : n_contrasts
         'color',contrast_clrs(ii,:),...
         'linewidth',1.5);
 end
-
-% % zero lines
-% plot([1,1]*0,ylim,':k');
-% plot(xlim,[1,1]*0,':k');
-% 
-% % plot identity line
-% plot([roi2plot(1),t_set(end)],[roi2plot(1),t_set(end)],':k');
 
 % save figure
 if want2save
@@ -562,9 +481,9 @@ fig = figure(...
     'numbertitle','off');
 axes(...
     axesopt.default,...
-    'xlim',roi_xlim,...+[-1,1]*.05*range(roi2plot),...
+    'xlim',roi_xlim,...
     'xtick',unique([roi';roi_xlim';0;t_set]),...
-    'ylim',roi_ylim,...+[-1,1]*.05*range(roi2plot),...
+    'ylim',roi_ylim,...
     'ytick',unique([roi';roi_ylim';0;t_set]),...
     'xticklabelrotation',0,...
     'yticklabelrotation',0);

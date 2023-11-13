@@ -74,13 +74,12 @@ fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
 %% run settings
-n_runs = 100;
+n_runs = 10;
 
 %% subject selection
 subject_flags = ismember(subjects,subject_set);
 
 %% condition weights
-% this should be moved to the intersect conditions function !!!!!!!!!!!!!!!
 
 % iterate through training conditions
 for kk = 1 : conditions.train.n
@@ -120,15 +119,10 @@ end
 conditions.test.weights = ...
     conditions.test.weights/ max(conditions.test.weights);
 
-%%
-% conditions.train.weights = ones(conditions.train.n,1) / 2;
-% conditions.test.weights = ones(conditions.test.n,1) / 2;
-
 %% concatenation settings
 n_concats_max = 2^9;
 n_concats_train = round(conditions.train.weights * n_concats_max);
 n_concats_test = round(conditions.test.weights * n_concats_max);
-% n_concats_total = n_concats_max * (conditions.train.n + conditions.test.n);
 n_concats_total = sum([n_concats_train; n_concats_test]);
 
 %% neurometric curve settings
@@ -352,27 +346,12 @@ for rr = 1 : n_runs
     
     % linear discriminant analysis
     X = concat_spkcounts(:,train_flags)';
-    
-    threshold = median(s1(valid_flags));
-    %     y = concat_stimuli(train_flags) > threshold;
-    
     y = concat_s2(train_flags) > concat_s1(train_flags);
-    
-    %     ambiguous_flags = concat_stimuli(train_flags) == threshold;
-    %     y(ambiguous_flags) = rand(sum(ambiguous_flags),1) > .5;
-    
-%     y = concat_choices(train_flags);
-    
-    % %     y = concat_stimuli(train_flags) * w2 + concat_s1(train_flags) * w1 > 200;
-    % %     y = concat_stimuli(train_flags) > + concat_s1(train_flags);
-    % weighted combination
-    % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     within_class_var = cell2mat(...
         arrayfun(@(x)nanvar(X(y==x,:)),unique(y),...
         'uniformoutput',false));
     invalid_flags = ...
         any(within_class_var == 0 | isnan(within_class_var));
-    %     X = zscore(X);
     lda_mdl = fitcdiscr(X(:,~invalid_flags),y,...
         'discrimtype','linear');
     
@@ -410,23 +389,6 @@ end
 
 %% visualize population state at S2 offset
 X = concat_spkcounts(~invalid_flags,:)';
-% X = [concat_spkrates(~invalid_flags,concat_s2 > concat_s1),...
-%     concat_spkrates(~invalid_flags,concat_s2 < concat_s1)]';
-
-% % preallocation
-% X = nan(sum(~invalid_flags),n_concats*n_s_pairs);
-%
-% % iterate through stimulus pairs
-% for ii = 1 : n_s_pairs
-%     s1_flags = concat_s1 == s_pairset(ii,1);
-%     s2_flags = concat_s2 == s_pairset(ii,2);
-%     concat_flags = ...
-%         train_flags & ...
-%         s1_flags & ...
-%         s2_flags;
-%     X(:,concat_flags) = concat_spkrates(~invalid_flags,concat_flags);
-% end
-% X = X';
 
 % normalization
 Z = zscore(X);
@@ -449,48 +411,6 @@ xlabel(sprintf('%s\n%.1f%% variance','PC 1',explained(1)),...
     'horizontalalignment','center');
 ylabel(sprintf('%s\n%.1f%% variance','PC 2',explained(2)),...
     'horizontalalignment','center');
-
-% % iterate through stimulus pairs
-% for ii = 1 : n_s_pairs
-%     s1_flags = concat_s1 == s_pairset(ii,1);
-%     s2_flags = concat_s2 == s_pairset(ii,2);
-%     concat_flags = ...
-%         train_flags & ...
-%         s1_flags & ...
-%         s2_flags;
-%
-%     % plot state space projections
-%     plot3(score(concat_flags,1),...
-%         score(concat_flags,2),...
-%         score(concat_flags,3),...
-%         'linestyle','none',...
-%         'linewidth',1.5,...
-%         'marker','o',...
-%         'markersize',6,...
-%         'markerfacecolor','none',...
-%         'markeredgecolor','k');
-% end
-%
-% % iterate through stimulus pairs
-% for ii = 1 : n_s_pairs
-%     s1_flags = concat_s1 == s_pairset(ii,1);
-%     s2_flags = concat_s2 == s_pairset(ii,2);
-%     concat_flags = ...
-%         train_flags & ...
-%         s1_flags & ...
-%         s2_flags;
-%
-%     % plot state space projections
-%     plot3(score(concat_flags,1),...
-%         score(concat_flags,2),...
-%         score(concat_flags,3),...
-%         'linestyle','none',...
-%         'linewidth',1.5,...
-%         'marker','o',...
-%         'markersize',6-1.5,...
-%         'markerfacecolor' ,s2_clrs(s_pairset(ii,2)==s_set,:),...
-%         'markeredgecolor','none');
-% end
 
 % iterate through stimuli
 for ii = 1 : n_stimuli
@@ -532,12 +452,8 @@ end
 xlim(xlim + [-1,1] * .05 * range(xlim));
 ylim(ylim + [-1,1] * .05 * range(ylim));
 
-%
-% lda_reduced_mdl = fitcdiscr(score(:,1:2),y,...
-%     'discrimtype','linear');
-betas = lda_mdl.Coeffs(2,1).Linear' * coeff(:,1:2);
-
 % plot decision boundary
+betas = lda_mdl.Coeffs(2,1).Linear' * coeff(:,1:2);
 x = linspace(min(xlim),max(xlim),1e3);
 y = betas(1) + betas(2) * x;
 plot(x,y,'--k',...
@@ -575,6 +491,9 @@ binedges = linspace(min(score)*.95,max(score)*1.05,n_bins+1);
 prevcounts = zeros(1,n_bins);
 s2lessthans1_counts = zeros(1,n_bins);
 s2greaterthans1_counts = zeros(1,n_bins);
+
+%
+threshold = nanmedian(stimuli(valid_flags));
 
 % iterate through stimuli
 for ii = 1 : n_stimuli
@@ -634,7 +553,7 @@ neurocurve_pools = struct();
 % psychometric fit settings
 psyopt.fit = struct();
 psyopt.fit.expType = 'YesNo';
-psyopt.fit.sigmoidName = 'rgumbel'; % 'logistic';
+psyopt.fit.sigmoidName = 'rgumbel';
 psyopt.fit.estimateType = 'MAP';
 psyopt.fit.confP = [.95,.9,.68];
 psyopt.fit.borders = [0,1; 0,1; 0,.25; 0,.25; 0,0];
@@ -642,8 +561,6 @@ psyopt.fit.fixedPars = [nan,nan,nan,nan,0];
 psyopt.fit.stepN = [100,100,40,40,20];
 
 % average & error function selection
-avgfun = @(x,d) nanmedian(x,d);
-errfun = @(x,d) abs(quantile(x,[.25,.75],d) - nanmedian(x,d));
 avgfun = @(x,d) nansum(x,d);
 errfun = @(x,d) std(x,0,d) / 1 .* [1,1];
 
@@ -652,7 +569,7 @@ for kk = 1 : n_contrasts
     
     % pool neural choices across runs
     neurocurve_pools(kk).x = unique(neurocurves(kk).x);
-    neurocurve_pools(kk).y = avgfun(neurocurves(kk).y,2); % sum(neurocurves(kk).y,2);
+    neurocurve_pools(kk).y = avgfun(neurocurves(kk).y,2);
     neurocurve_pools(kk).n = avgfun(neurocurves(kk).n,2);
     neurocurve_pools(kk).err = ....
         errfun(neurocurves(kk).y ./ neurocurves(kk).n,2);
@@ -703,10 +620,7 @@ plot(xlim,[1,1]*.5,':k');
 
 % iterate through contrasts
 for kk = 1 : n_contrasts
-    %     if sum(neurocurve_pools(kk).n ~= 0) < 2
-    %         continue;
-    %     end
-    
+
     % plot psychometric curve
     psyopt.plot.datafaceclr = contrast_clrs(kk,:);
     psyopt.plot.overallvisibility = 'off';

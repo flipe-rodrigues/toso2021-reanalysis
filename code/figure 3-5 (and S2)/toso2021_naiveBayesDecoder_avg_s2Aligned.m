@@ -106,7 +106,7 @@ fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
 %% run settings
-n_runs = 100;
+n_runs = 10;
 
 %% subject selection
 subject_flags = ismember(subjects,subject_set);
@@ -119,7 +119,7 @@ roi = [-500,t_set(end)];
 roi2plot = [-240,t_set(t2_mode_idx+1)];
 roi_n_bins = range(roi) / psthbin;
 roi_time = linspace(roi(1),roi(2),roi_n_bins);
-roi_xlim = [-240,t_set(t2_mode_idx+1)]; % [-350,t_set(t2_mode_idx+2)];
+roi_xlim = [-240,t_set(t2_mode_idx+1)];
 roi_ylim = [-240,t_set(t2_mode_idx+1)];
 
 %% slice settings
@@ -196,8 +196,6 @@ for rr = 1 : n_runs
                 padded_time >= alignment + roi(1) & ...
                 padded_time < alignment + roi(2);
             aligned_spkrates = spike_rates';
-%             aligned_spkrates = ...
-%                 conv2(gauss_kernel.pdf,1,aligned_spkrates,'same');
             aligned_spkrates(~alignment_flags') = nan;
             aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
                 [roi_n_bins,n_flagged_trials])';
@@ -252,37 +250,11 @@ for rr = 1 : n_runs
             r = aligned_spkrates(rand_idcs,:);
             r_mu = nanmean(r);
             nan_flags = isnan(r_mu);
-
-%             mdl_spline = fit(...
-%                 roi_time(~nan_flags)',r_mu(~nan_flags)','smoothingspline',...
-%                 'smoothingparam',1e-6);
-%             r_spline = max(1e-3,mdl_spline(roi_time));
-%             r_spline(nan_flags) = nan;
-%             
-%             t_mat = repmat(roi_time,n_concats_max,1)';
-%             r_mat = r';
-%             r_vec = r_mat(~isnan(r_mat));
-%             t_vec = t_mat(~isnan(r_mat));
-%             mdl_poly = fit(t_vec,r_vec,'poly9');
-%             r_poly = max(realmin,mdl_poly(roi_time));
-%             r_poly(nan_flags) = nan;
-            
-%             r_gauss = nanconv2(r_mu,1,gauss_kernel.pdf);
-%             r_gauss(nan_flags) = nan;
             
             r_gauss = conv2(1,gauss_kernel.pdf,r_mu,'valid');
             r_gauss = padarray(r_gauss,[0,floor(gauss_kernel.nbins/2)],nan,'pre');
             r_gauss = padarray(r_gauss,[0,ceil(gauss_kernel.nbins/2)-1],nan,'post');
             r_gauss(nan_flags) = nan;
-            
-%             figure('position',[119.4000 53.8000 560 712.8000]);
-%             subplot(3,1,[1,2]);
-%             imagesc(roi_time,[],r);
-%             subplot(3,1,3); hold on;
-%             plot(roi_time,r_mu);
-%             plot(roi_time,r_poly);
-% %             plot(roi_time,r_spline);
-%             plot(roi_time,r_gauss,'k');
             
             R(:,nn,kk) = r_gauss;
         end
@@ -328,8 +300,6 @@ for rr = 1 : n_runs
                 padded_time >= alignment + roi(1) & ...
                 padded_time < alignment + roi(2);
             aligned_spkrates = spike_rates';
-%             aligned_spkrates = ...
-%                 conv2(gauss_kernel.pdf,1,aligned_spkrates,'same');
             aligned_spkrates(~alignment_flags') = nan;
             aligned_spkrates = reshape(aligned_spkrates(chunk_flags'),...
                 [roi_n_bins,n_flagged_trials])';
@@ -347,52 +317,15 @@ for rr = 1 : n_runs
             r_mu = nanmean(r);
             nan_flags = isnan(r_mu);
             
-%             mdl_spline = fit(...
-%                 roi_time(~nan_flags)',r_mu(~nan_flags)','smoothingspline',...
-%                 'smoothingparam',1e-6);
-%             r_spline = max(1e-3,mdl_spline(roi_time));
-%             r_spline(nan_flags) = nan;
-            
-%             t_mat = repmat(roi_time,n_concats_max,1)';
-%             r_mat = r';
-%             r_vec = r_mat(~isnan(r_mat));
-%             t_vec = t_mat(~isnan(r_mat));
-%             mdl_poly = fit(t_vec,r_vec,'poly9');
-%             r_poly = max(realmin,mdl_poly(roi_time));
-%             r_poly(nan_flags) = nan;
-            
-%             r_gauss = nanconv2(r_mu,1,gauss_kernel.pdf);
-%             r_gauss(nan_flags) = nan;
-            
             r_gauss = conv2(1,gauss_kernel.pdf,r_mu,'valid');
             r_gauss = padarray(r_gauss,[0,floor(gauss_kernel.nbins/2)],nan,'pre');
             r_gauss = padarray(r_gauss,[0,ceil(gauss_kernel.nbins/2)-1],nan,'post');
             r_gauss(nan_flags) = nan;
             
-%             figure('position',[119.4000 53.8000 560 712.8000]);
-%             subplot(3,1,[1,2]);
-%             imagesc(roi_time,[],r);
-%             subplot(3,1,3); hold on;
-%             plot(roi_time,r_mu);
-%             plot(roi_time,r_poly);
-% %             plot(roi_time,r_spline);
-%             plot(roi_time,r_gauss,'--k');
-            
             R(:,nn,kk+conditions.train.n) = r_gauss;
         end
     end
-    
-    %%
-%     figure;
-%     for nn2 = 1 : n_neurons
-%         plot(roi_time,R(:,nn2,1))
-%         title(sprintf('%i',nn2));
-%         pause(.01);
-%         if any(isnan(squeeze(R(:,nn2,1))))
-%             nn2
-%         end
-%     end
-    
+
     %% naive bayes decoder
     nbdopt = struct();
     nbdopt.n_xpoints = 100;
@@ -408,41 +341,6 @@ for rr = 1 : n_runs
     [P_tR(:,:,:,rr),P_Rt,pthat,neurons] = naivebayestimedecoder(R,nbdopt);
     map(:,:,rr) = pthat.mode;
     toc
-end
-
-%% plot likelihoods
-if false
-    figure;
-    set(gca,...
-        axesopt.default,...,...
-        'xlim',roi,...
-        'xtick',sort([0;t_set]));
-    xlabel('Time since T_2 (ms)');
-    ylabel('Firing rate (Hz)');
-    
-    % iterate through units
-    for nn = 1 : n_neurons
-        cla;
-        r_bounds = neurons(nn).x_bounds;
-        r_bw = neurons(nn).x_bw;
-        if range(r_bounds) == 0
-            continue;
-        end
-        ylim(r_bounds);
-        title(sprintf('neuron: %i, bw: %.2f',nn,r_bw));
-        p_Rt = squeeze(P_Rt(:,nn,:));
-        nan_flags = isnan(p_Rt);
-        if sum(abs(diff(any(nan_flags,2)))) > 1
-            fprintf('\tcheck neuron %i!\n',nn);
-        end
-        p_Rt(nan_flags) = max(p_Rt(:));
-        imagesc(xlim,r_bounds,p_Rt');
-        for ii = 1 : n_t
-            plot([1,1]*t_set(ii),ylim,'--w');
-        end
-        drawnow;
-        pause(.1);
-    end
 end
 
 %% choice of average function
@@ -468,6 +366,7 @@ set(sps,...
     'ytick',unique([roi';roi_ylim';0;t_set]));
 linkaxes(sps);
 
+% color limits
 clims = quantile(P_tR,[0,.999],'all')';
 
 % iterate through contrast conditions
@@ -487,9 +386,9 @@ fig = figure(...
     'numbertitle','off');
 axes(...
     axesopt.default,...
-    'xlim',roi_xlim,...+[-1,1]*.05*range(roi2plot),...
+    'xlim',roi_xlim,...
     'xtick',unique([roi';roi_xlim';0;t_set]),...
-    'ylim',roi_ylim,...+[-1,1]*.05*range(roi2plot),...
+    'ylim',roi_ylim,...
     'ytick',unique([roi';roi_ylim';0;t_set]),...
     'xticklabelrotation',0,...
     'yticklabelrotation',0);
@@ -498,13 +397,6 @@ ylabel('Decoded time since S_2 onset (ms)');
 
 % convert from tensor to rgb
 P_tR_avg = squeeze(avgfun(P_tR,4));
-% P_tR_avg(roi_time < roi_time(1) | roi_time > roi2plot(2),:,:) = nan;
-% P_tR_avg(:,roi_time < roi_time(1) | roi_time > roi2plot(2),:) = nan;
-% P_tR_avg(isnan(P_tR_avg)) = 0;
-% P_tR_avg = log(P_tR_avg);
-
-% P_tR_avg = min(P_tR_avg,quantile(P_tR_avg,.9975,[1,2]));
-
 P = tensor2rgb(permute(P_tR_avg,[2,1,3]),contrast_clrs);
 imagesc(roi,roi,P);
 
@@ -557,39 +449,6 @@ for ii = 1 : n_contrasts
         'linewidth',1.5);
 end
 
-% inset with extreme posterior subtractions
-% axes(...
-%     axesopt.inset.se,...
-%     axesopt.default,...
-% 	'xlim',roi_xlim,...roi2plot,...+[-1,1]*.05*range(roi2plot),...
-%     'xtick',unique([roi';roi_xlim';0;t_set]),...
-%     'ylim',roi_ylim,...+[-1,1]*.05*range(roi2plot),...
-%     'ytick',unique([roi';roi_ylim';0;t_set]),...
-%     'box','on',...
-%     'colormap',colorlerp(...
-%     [contrast_clrs(1,:);[1,1,1];contrast_clrs(end,:)],2^8));
-% % title('$p(t|\textbf{r})-p(t|\textbf{r})$',...
-% %     'interpreter','latex');
-% title('P(t|R) - P(t|R)');
-% ylabel('\DeltaP(t|R)',...
-%     'rotation',-90,...
-%     'verticalalignment','bottom');
-% 
-% % posterior subtraction
-% p_contrast_min = avgfun(P_tR(:,:,1,:),4);
-% p_contrast_max = avgfun(P_tR(:,:,end,:),4);
-% p_contrast_min = p_contrast_min - min(p_contrast_min,[],[1,2]);
-% p_contrast_max = p_contrast_max - min(p_contrast_max,[],[1,2]);
-% p_diff = p_contrast_max - p_contrast_min;
-% imagesc(roi,roi,p_diff',[-1,1] * n_t / n_tbins * 5);
-% 
-% % plot identity line
-% plot([roi2plot(1),t_set(end)],[roi2plot(1),t_set(end)],':k');
-% 
-% % zero lines
-% plot(xlim,[1,1]*0,':k');
-% plot([1,1]*0,ylim,':k');
-
 % inset with contrast-split MAPs
 axes(...
     axesopt.inset.se,...
@@ -600,7 +459,7 @@ axes(...
     'xtick',unique([roi';roi2plot';0;t_set]),...
     'ylim',[0,roi_ylim(2)],...
     'ytick',unique([roi';roi2plot';0;t_set]));
-% title('M.A.P.');
+title('M.A.P.');
 
 % iterate through contrast conditions
 for ii = 1 : n_contrasts
@@ -612,13 +471,6 @@ for ii = 1 : n_contrasts
         'color',contrast_clrs(ii,:),...
         'linewidth',1.5);
 end
-
-% % zero lines
-% plot([1,1]*0,ylim,':k');
-% plot(xlim,[1,1]*0,':k');
-% 
-% % plot identity line
-% plot([roi2plot(1),t_set(end)],[roi2plot(1),t_set(end)],':k');
 
 % save figure
 if want2save
@@ -633,9 +485,9 @@ fig = figure(...
     'numbertitle','off');
 axes(...
     axesopt.default,...
-    'xlim',roi_xlim,...+[-1,1]*.05*range(roi2plot),...
+    'xlim',roi_xlim,...
     'xtick',unique([roi';roi_xlim';0;t_set]),...
-    'ylim',roi_ylim,...+[-1,1]*.05*range(roi2plot),...
+    'ylim',roi_ylim,...
     'ytick',unique([roi';roi_ylim';0;t_set]),...
     'xticklabelrotation',0,...
     'yticklabelrotation',0);

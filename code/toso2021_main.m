@@ -84,9 +84,10 @@ toso2021_psychometricCurves;
 
 %% figures 3-5
 toso2021_averageActivity_s2Aligned;
+toso2021_rasters_s2Aligned_i1_t1_i2_choice;
 toso2021_PCA_s2Aligned;
-% toso2021_neurometricCurves;
-% toso2021_naiveBayesDecoder;
+toso2021_neurometricCurves_s2Aligned;
+toso2021_naiveBayesDecoder_avg_s2Aligned;
 
 %% figure 6
 
@@ -99,4 +100,7 @@ toso2021_samplingScheme;
 
 %% figure S2
 toso2021_averageActivity_s1Aligned;
+toso2021_rasters_s1Aligned_i1_t1_i2_choice;
 toso2021_PCA_s1Aligned;
+toso2021_neurometricCurves_s1Aligned;
+toso2021_naiveBayesDecoder_avg_s1Aligned;
