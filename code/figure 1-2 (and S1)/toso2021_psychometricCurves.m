@@ -7,15 +7,8 @@ end
 w_norm = sum(abs(beta_s1) + abs(beta_s2));
 w1 = beta_s1 / w_norm;
 w2 = beta_s2 / w_norm;
-% w1 = beta_s1;
-% w2 = beta_s2;
 stimuli = round(s2 * w2 + s1 * w1);
 stimuli = s2;
-% stimuli = [ones(size(design,1),1),design] * coeffs;
-% % stimuli = [ones(size(Z,1),1),Z] * betas;
-% stimuli = round(stimuli,1);
-% % stimuli = design(:,7:end) * coeffs(8:end,:);
-% valid_flags = ~isnan(stimuli);
 stim_set = unique(stimuli(valid_flags));
 stim2group_flags = abs(diff(stim_set)) <= stim_set(2:end) * .05;
 if any(stim2group_flags)
@@ -48,7 +41,6 @@ for kk = 1 : n_contrasts
         trial_flags = ...
             valid_flags & ...
             unique_flags & ...
-            ...i1 == i_set(i1_mode_idx) & ...
             contrast_flags & ...
             stimulus_flags;
         psycurves(kk).x(ii,1) = normstim_set(ii);
@@ -77,7 +69,7 @@ end
 % psychometric fit settings
 psyopt.fit = struct();
 psyopt.fit.expType = 'YesNo';
-psyopt.fit.sigmoidName = 'rgumbel'; % 'logistic';
+psyopt.fit.sigmoidName = 'rgumbel';
 psyopt.fit.estimateType = 'MAP';
 psyopt.fit.confP = [.95,.9,.68];
 psyopt.fit.borders = [0,1; 0,1; 0,.25; 0,.25; 0,0];
@@ -91,10 +83,6 @@ for kk = 1 : n_contrasts
     psycurves(kk).fit = ...
         psignifit([psycurves(kk).x,psycurves(kk).y,psycurves(kk).n],psyopt.fit);
 end
-
-% fit big psychometric curve
-% bigpsy.fit = ...
-%     psignifit([bigpsy.x,bigpsy.y,bigpsy.n],psyopt.fit);
 
 %% plot phychometric function
 
@@ -147,14 +135,6 @@ for kk = 1 : n_contrasts
     p(kk) = plotpsy(psycurves(kk),psycurves(kk).fit,psyopt.plot);
 end
 
-% plot big psychometric curve
-% psyopt.plot.datafaceclr = [0,0,0];
-% psyopt.plot.overallvisibility = 'off';
-% psyopt.plot.normalizemarkersize = true;
-% psyopt.plot.plotfit = true;
-% psyopt.plot.plotdata = false;
-% plotpsy(bigpsy,bigpsy.fit,psyopt.plot);
-
 % legend
 if iscategorical(contrasts)
     leg_str = categories(contrast_set);
@@ -167,41 +147,6 @@ legend(p(isgraphics(p)),leg_str(isgraphics(p)),...
     'edgecolor','k',...
     'position',[0.085,0.66,.27,.2],...
     'box','on');
-
-%% inset with threshold marginals
-% axes(...
-%     axesopt.default,...
-%     axesopt.stimulus,...
-%     axesopt.psycurve,...
-%     axesopt.inset.nw,...
-%     'xaxislocation','bottom',...
-%     'ylimmode','auto',...
-%     'ycolor','none');
-% 
-% % plot options
-% marginalplotopt = struct();
-% marginalplotopt.h = gca;
-% marginalplotopt.prior = false;
-% marginalplotopt.lineWidth = psyopt.plot.linewidth;
-% marginalplotopt.labelSize = axesopt.inset.nw.fontsize;
-% marginalplotopt.xLabel = 'Threshold (s)';
-% marginalplotopt.yLabel = 'PDF';
-% 
-% % iterate through contrasts
-% for kk = 1 : n_contrasts
-%     
-%     % threshold marginal
-%     marginalplotopt.lineColor = contrast_clrs(kk,:);
-%     plotMarginal(psycurves(kk).fit,1,marginalplotopt);
-% end
-% 
-% % categorical boundary
-% plot([1,1]*.5,ylim,...
-%     'color','k',...
-%     'linestyle',':');
-% 
-% % axes adjustments
-% ylim([0,max(ylim)*2]);
 
 %% inset with delta P(T2 > T1)
 axes(...

@@ -4,7 +4,7 @@ if ~exist('data','var')
 end
 
 %% data curation
-fprintf('\nHETEROGENEITY FIXES:\n');
+fprintf('\nHETEROGENEITY / ROUNDING ERROR FIXES:\n');
 
 %% intensity heterogeneity fixes
 fprintf('INTENSITY:\n');
@@ -112,11 +112,6 @@ i1_max_idx = find(i_set == max(i1));
 i2_max_idx = find(i_set == max(i2));
 n_t = numel(t_set);
 n_i = numel(i_set);
-% if contains(file_name,'AT3')
-%     choice = data.Action == 0;
-% else
-%     choice = data.Action == 1;
-% end
 choice = data.Action;
 choice_set = unique(choice);
 n_choices = numel(choice_set);
@@ -168,8 +163,7 @@ t1_cat_units = '';
 
 %% color scheme
 t1_clrs = cool(n_t) * .95;
-% t2_clrs = colorlerp([.25,.5,1; [1,1,1]*.25; [1,1,0]],n_t);
-t2_clrs = summer(n_t) * .95; % colorlerp([0,.5,.4; 0.9,.9,0.55],n_t);
+t2_clrs = summer(n_t) * .95;
 t1t2_clrs = parula(n_t1t2);
 prev_t1_clrs = autumn(n_t);
 prev_t2_clrs = spring(n_t);
@@ -181,9 +175,6 @@ reward_clrs = [.25,.25,.25; .25,.9,.8];
 prevreward_clrs = reward_clrs / 2;
 subject_clr = [1,1,1] * .75;
 stim_clrs = [1,1,1] .* [.75; 0];
-t1_cat_clrs = [...
-    mean(t1_clrs(1:t1_mode_idx-1,:));...
-    mean(t1_clrs(t1_mode_idx+1:end,:))];
 t1_cat_clrs = cool(n_t1_cat);
 ramp_clrs = [.85,.05,.25; .15,.15,.15];
 rampud_clrs = [ramp_clrs(1,:);ramp_clrs(1,:);ramp_clrs(2,:)];
@@ -256,8 +247,11 @@ prev_correct = [nan;correct(1:end-1)];
 
 %% choice & correctness intersection
 choice_correct = (choice * 2 - 1) .* (correct + 1);
-choice_correct = categorical(choice_correct,[-2,-1,1,2],...
-    {'T2<T1_{correct}','T2<T1_{incorrect}','T2>T1_{incorrect}','T2>T1_{correct}'});
+choice_correct = categorical(choice_correct,[-2,-1,1,2],{...
+    'T2<T1_{correct}',...
+    'T2<T1_{incorrect}',...
+    'T2>T1_{incorrect}',...
+    'T2>T1_{correct}'});
 choice_correct_set = unique(choice_correct);
 n_choice_correct = numel(choice_correct_set);
 choice_correct_clrs = colorlerp(choice_clrs,n_choice_correct);
@@ -269,6 +263,7 @@ neuron_idcs = unique(data.NeuronNumb);
 n_neurons_total = numel(neuron_idcs);
 
 %% down-sample original spike counts
+downsampling_factor = 1;
 psthbin_src = 1;
 psthbin = psthbin_src * downsampling_factor;
 n_timebins_src = 6700;
@@ -282,14 +277,15 @@ if (psthbin_src ~= psthbin) && (size(data.FR,2) == n_timebins_src)
 end
 
 %% kernel settings
-kernel = gammakernel('peakx',kernel_peak_time,'binwidth',psthbin);
+kernel_peak_time = 50;
+gamma_kernel = gammakernel('peakx',kernel_peak_time,'binwidth',psthbin);
 n_paddedtimebins = size(data.FR,2);
-n_timebins = n_paddedtimebins - kernel.nbins + 1;
+n_timebins = n_paddedtimebins - gamma_kernel.nbins + 1;
 n_tbins = max(t_set) / psthbin;
 padded_time = time;
 validtime_flags = ...
-    padded_time >= padded_time(1) - kernel.paddx(1) & ...
-    padded_time <= padded_time(end) - kernel.paddx(end) + psthbin;
+    padded_time >= padded_time(1) - gamma_kernel.paddx(1) & ...
+    padded_time <= padded_time(end) - gamma_kernel.paddx(end) + psthbin;
 valid_time = padded_time(validtime_flags);
 
 %% trial pre-selection
@@ -301,11 +297,6 @@ valid_flags = ...
     ismember(t2,t_set);
 
 %% flag unique trials
-% this whole appraoch might be wrong if sessions / neurons are not
-% contiguous in the data (would lead to overestimating the number of
-% unique trials... going with unique rows might be
-% safer? unique I2, T1, I1, Choice, etc.
-
 pseudosession_transition_flags = [diff(data.Trial) ~= 1; true];
 n_pseudosession_transitions = sum(pseudosession_transition_flags);
 n_pseudosession_trialcounts = data.Trial(pseudosession_transition_flags);
@@ -408,7 +399,6 @@ axesopt.inset.ne.xaxislocation = 'bottom';
 axesopt.inset.ne.yaxislocation = 'right';
 
 % north-west inset properties
-% axesopt.inset.nw.position = [0.13,0.11,0.775,0.815];
 axesopt.inset.nw.position = [.275,.65,0.775/3,0.815/3];
 axesopt.inset.nw.fontsize = axesopt.default.fontsize * 5/6;
 axesopt.inset.nw.xaxislocation = 'top';

@@ -3,7 +3,7 @@ if ~exist('data','var')
     toso2021_wrapper;
 end
 
-%% choice GLM (complete model)
+%% choice GLM (logistic regression)
 
 % design matrix
 X = [s1,s2,d1,d2];
@@ -34,7 +34,7 @@ end
 
 % fit GLM to subject pool
 mdl = fitglm(Z(valid_flags,:),choice(valid_flags),'linear',...
-    'predictorvars',{s1_lbl,s2_lbl,d1_lbl,d2_lbl},...,'T1:I1','T2:I2'},...
+    'predictorvars',{s1_lbl,s2_lbl,d1_lbl,d2_lbl},...
     'distribution','binomial',...
     'intercept',true);
 bigbetas = mdl.Coefficients.Estimate;
@@ -56,7 +56,7 @@ axes(axesopt.default,...
     'plotboxaspectratio',[1,1,1]);
 title(sprintf('%s>%s~Binomial(\\phi(\\betaX))',s2_lbl,s1_lbl));
 xlabel('Regressor');
-ylabel('Coefficient');
+ylabel('Regression weight');
 
 % iterate through coefficients
 for bb = 1 : n_coefficients
