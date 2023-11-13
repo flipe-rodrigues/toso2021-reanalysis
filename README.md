@@ -6,5 +6,10 @@ Matlab code (tested on versions 2019b and 2020b) implementing the reanalyzes of 
 - Loads the data;
 - Selects which task variant to analyze (delayed duration or intensity comparison);
 - Sets _if_ and _where_ to save figures;
-- Sets which experimental variable to use as contrast;
-- Runs all other scripts in sequence (in the same order as they appear below);
+- Curates the data & prints _before_ & _after_ metrics;
+- Parses the data;
+- Sets neuron selection criteria;
+- Sets aesthetic preferences for figures & axes;
+- Sets all color schemes;
+- Sets which experimental variable to use as contrast (e.g., I2);
+- Runs the scripts corresponding to figures 1-7 (and S1-2) in sequence;
