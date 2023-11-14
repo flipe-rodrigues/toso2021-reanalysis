@@ -126,16 +126,16 @@ for nn = 1 : n_neurons2plot
     % iterate through durations
     for tt = 1 : n_t
         t1_flags = t1 == t_set(tt);
-        t1_spike_flags = ...
+        t1_trial_flags = ...
             valid_flags & ...
             neuron_flags & ...
             t1_flags;
-        if sum(t1_spike_flags) == 0
+        if sum(t1_trial_flags) == 0
             continue;
         end
         
         % fetch spike counts & compute spike rates
-        t1_spike_counts = data.FR(t1_spike_flags,:);
+        t1_spike_counts = data.FR(t1_trial_flags,:);
         t1_spike_rates = conv2(...
             1,gamma_kernel.pdf,t1_spike_counts,'valid')' / psthbin * 1e3;
         t1_n_trials = size(t1_spike_counts,1);
@@ -144,10 +144,10 @@ for nn = 1 : n_neurons2plot
         % S1-aligned, T1-split spike rates
         t1_alignment_onset = ...
             pre_init_padding + ...
-            pre_s1_delay(t1_spike_flags);
+            pre_s1_delay(t1_trial_flags);
         t1_alignment_flags = ...
             valid_time >= t1_alignment_onset + min(xlim(sps(1))) & ...
-            valid_time < t1_alignment_onset + t1(t1_spike_flags);
+            valid_time < t1_alignment_onset + t1(t1_trial_flags);
         t1_chunk_flags = ...
             valid_time >= t1_alignment_onset + min(xlim(sps(1))) & ...
             valid_time < t1_alignment_onset + max(xlim(sps(1)));
@@ -237,7 +237,7 @@ for nn = 1 : n_neurons2plot
         for jj = 1 : n_t
             t1_flags = t1 == t_set(jj);
             trial_flags = ...
-                t1_spike_flags & ...
+                t1_trial_flags & ...
                 t1_flags;
             if sum(trial_flags) < 1
                 continue;
@@ -258,13 +258,13 @@ for nn = 1 : n_neurons2plot
         % plot T1 raster
         t1_time_mat = padded_time - (...
             pre_init_padding + ...
-            pre_s1_delay(t1_spike_flags));
+            pre_s1_delay(t1_trial_flags));
         t1_trial_idcs = (1 : t1_n_trials)' + t1_n_trial_counter;
-        t1_trial_idcs_global = data.Trial(t1_spike_flags);
+        t1_trial_idcs_global = data.Trial(t1_trial_flags);
         t1_trial_mat = repmat(t1_trial_idcs,1,n_paddedtimebins);
         t1_spike_trials = t1_trial_mat(t1_spike_counts >= 1);
         t1_spike_times = t1_time_mat(t1_spike_counts >= 1);
-        trial_sorter = [t1(t1_spike_flags),choice(t1_spike_flags)];
+        trial_sorter = [t1(t1_trial_flags),choice(t1_trial_flags)];
         [~,sorted_idcs] = sortrows(trial_sorter,[1,-2]);
         [~,resorted_idcs] = sortrows(sorted_idcs);
         resorted_idcs = resorted_idcs + t1_n_trial_counter;
@@ -292,16 +292,16 @@ for nn = 1 : n_neurons2plot
     % iterate through intensities
     for ii = 1 : n_i
         i1_flags = i1 == i_set(ii);
-        i1_spike_flags = ...
+        i1_trial_flags = ...
             valid_flags & ...
             neuron_flags & ...
             i1_flags;
-        if sum(i1_spike_flags) == 0
+        if sum(i1_trial_flags) == 0
             continue;
         end
         
         % fetch spike counts & compute spike rates
-        i1_spike_counts = data.FR(i1_spike_flags,:);
+        i1_spike_counts = data.FR(i1_trial_flags,:);
         i1_spike_rates = conv2(...
             1,gamma_kernel.pdf,i1_spike_counts,'valid')' / psthbin * 1e3;
         i1_n_trials = size(i1_spike_counts,1);
@@ -310,10 +310,10 @@ for nn = 1 : n_neurons2plot
         % S1-aligned, I1-split spike rates
         i1_alignment_onset = ...
             pre_init_padding + ...
-            pre_s1_delay(i1_spike_flags);
+            pre_s1_delay(i1_trial_flags);
         i1_alignment_flags = ...
             valid_time >= i1_alignment_onset + min(xlim(sps(2))) & ...
-            valid_time < i1_alignment_onset + t1(i1_spike_flags);
+            valid_time < i1_alignment_onset + t1(i1_trial_flags);
         i1_chunk_flags = ...
             valid_time >= i1_alignment_onset + min(xlim(sps(2))) & ...
             valid_time < i1_alignment_onset + max(xlim(sps(2)));
@@ -402,7 +402,7 @@ for nn = 1 : n_neurons2plot
         for jj = 1 : n_t
             t1_flags = t1 == t_set(jj);
             trial_flags = ...
-                i1_spike_flags & ...
+                i1_trial_flags & ...
                 t1_flags;
             if sum(trial_flags) < 1
                 continue;
@@ -422,12 +422,12 @@ for nn = 1 : n_neurons2plot
         % plot I1 raster
         i1_time_mat = padded_time - (...
             pre_init_padding + ...
-            pre_s1_delay(i1_spike_flags));
+            pre_s1_delay(i1_trial_flags));
         i1_trial_idcs = (1 : i1_n_trials)' + i1_n_trial_counter;
         i1_trial_mat = repmat(i1_trial_idcs,1,n_paddedtimebins);
         i1_spike_trials = i1_trial_mat(i1_spike_counts >= 1);
         i1_spike_times = i1_time_mat(i1_spike_counts >= 1);
-        trial_sorter = [t1(i1_spike_flags),choice(i1_spike_flags)];
+        trial_sorter = [t1(i1_trial_flags),choice(i1_trial_flags)];
         [~,sorted_idcs] = sortrows(trial_sorter,[1,-2]);
         [~,resorted_idcs] = sortrows(sorted_idcs);
         resorted_idcs = resorted_idcs + i1_n_trial_counter;
@@ -454,16 +454,16 @@ for nn = 1 : n_neurons2plot
     % iterate through intensities
     for ii = 1 : n_i
         i2_flags = i2 == i_set(ii);
-        i2_spike_flags = ...
+        i2_trial_flags = ...
             valid_flags & ...
             neuron_flags & ...
             i2_flags;
-        if sum(i2_spike_flags) == 0
+        if sum(i2_trial_flags) == 0
             continue;
         end
         
         % fetch spike counts & compute spike rates
-        i2_spike_counts = data.FR(i2_spike_flags,:);
+        i2_spike_counts = data.FR(i2_trial_flags,:);
         i2_spike_rates = conv2(...
             1,gamma_kernel.pdf,i2_spike_counts,'valid')' / psthbin * 1e3;
         i2_n_trials = size(i2_spike_counts,1);
@@ -472,10 +472,10 @@ for nn = 1 : n_neurons2plot
         % S2-aligned, I2-split spike rates
         i2_alignment_onset = ...
             pre_init_padding + ...
-            pre_s1_delay(i2_spike_flags);
+            pre_s1_delay(i2_trial_flags);
         i2_alignment_flags = ...
             valid_time >= i2_alignment_onset + min(xlim(sps(3))) & ...
-            valid_time < i2_alignment_onset + t1(i2_spike_flags);
+            valid_time < i2_alignment_onset + t1(i2_trial_flags);
         i2_chunk_flags = ...
             valid_time >= i2_alignment_onset + min(xlim(sps(3))) & ...
             valid_time < i2_alignment_onset + max(xlim(sps(3)));
@@ -564,7 +564,7 @@ for nn = 1 : n_neurons2plot
         for jj = 1 : n_t
             t1_flags = t1 == t_set(jj);
             trial_flags = ...
-                i2_spike_flags & ...
+                i2_trial_flags & ...
                 t1_flags;
             if sum(trial_flags) < 1
                 continue;
@@ -584,12 +584,12 @@ for nn = 1 : n_neurons2plot
         % plot I2 raster
         i2_time_mat = padded_time - (...
             pre_init_padding + ...
-            pre_s1_delay(i2_spike_flags));
+            pre_s1_delay(i2_trial_flags));
         i2_trial_idcs = (1 : i2_n_trials)' + i2_n_trial_counter;
         i2_trial_mat = repmat(i2_trial_idcs,1,n_paddedtimebins);
         i2_spike_trials = i2_trial_mat(i2_spike_counts >= 1);
         i2_spike_times = i2_time_mat(i2_spike_counts >= 1);
-        trial_sorter = [t1(i2_spike_flags),choice(i2_spike_flags)];
+        trial_sorter = [t1(i2_trial_flags),choice(i2_trial_flags)];
         [~,sorted_idcs] = sortrows(trial_sorter,[1,-2]);
         [~,resorted_idcs] = sortrows(sorted_idcs);
         resorted_idcs = resorted_idcs + i2_n_trial_counter;
@@ -616,16 +616,16 @@ for nn = 1 : n_neurons2plot
     % iterate through choices
     for ii = 1 : n_choices
         choice_flags = choice == choice_set(ii);
-        choice_spike_flags = ...
+        choice_trial_flags = ...
             valid_flags & ...
             neuron_flags & ...
             choice_flags;
-        if sum(choice_spike_flags) == 0
+        if sum(choice_trial_flags) == 0
             continue;
         end
         
         % fetch spike counts & compute spike rates
-        choice_spike_counts = data.FR(choice_spike_flags,:);
+        choice_spike_counts = data.FR(choice_trial_flags,:);
         choice_spike_rates = conv2(...
             1,gamma_kernel.pdf,choice_spike_counts,'valid')' / psthbin * 1e3;
         choice_n_trials = size(choice_spike_counts,1);
@@ -634,10 +634,10 @@ for nn = 1 : n_neurons2plot
         % S2-aligned, I2-split spike rates
         choice_alignment_onset = ...
             pre_init_padding + ...
-            pre_s1_delay(choice_spike_flags);
+            pre_s1_delay(choice_trial_flags);
         choice_alignment_flags = ...
             valid_time >= choice_alignment_onset + min(xlim(sps(3))) & ...
-            valid_time < choice_alignment_onset + t1(choice_spike_flags);
+            valid_time < choice_alignment_onset + t1(choice_trial_flags);
         choice_chunk_flags = ...
             valid_time >= choice_alignment_onset + min(xlim(sps(3))) & ...
             valid_time < choice_alignment_onset + max(xlim(sps(3)));
@@ -746,12 +746,12 @@ for nn = 1 : n_neurons2plot
         % plot choice raster
         choice_time_mat = padded_time - (...
             pre_init_padding + ...
-            pre_s1_delay(choice_spike_flags));
+            pre_s1_delay(choice_trial_flags));
         choice_trial_idcs = (1 : choice_n_trials)' + choice_n_trial_counter;
         choice_trial_mat = repmat(choice_trial_idcs,1,n_paddedtimebins);
         choice_spike_trials = choice_trial_mat(choice_spike_counts >= 1);
         choice_spike_times = choice_time_mat(choice_spike_counts >= 1);
-        trial_sorter = [t1(choice_spike_flags),choice(choice_spike_flags)];
+        trial_sorter = [t1(choice_trial_flags),choice(choice_trial_flags)];
         [~,sorted_idcs] = sortrows(trial_sorter,[1,-2]);
         [~,resorted_idcs] = sortrows(sorted_idcs);
         resorted_idcs = resorted_idcs + choice_n_trial_counter;
