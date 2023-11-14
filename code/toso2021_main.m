@@ -90,7 +90,8 @@ toso2021_neurometricCurves_s2Aligned;
 toso2021_naiveBayesDecoder_avg_s2Aligned;
 
 %% figure 6
-toso2021_spikeCountsGLM_allEpochs; % needs to be split in 2 (data & sims)
+toso2021_spikeCountsGLM_data;
+toso2021_spikeCountsGLM_simulations;
 
 %% figure 7
 

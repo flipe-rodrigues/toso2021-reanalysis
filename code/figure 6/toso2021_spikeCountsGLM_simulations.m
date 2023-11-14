@@ -4,15 +4,11 @@ if ~exist('data','var')
 end
 
 %% run settings
-n_runs = 1;
-
-%% bootstrap settings
-n_boots = 0; % 1e3;
+n_runs = 3;
 
 %% GLM settings
 distro = 'normal';
-glm_wins = t_set(t1_mode_idx);
-% glm_wins = t_set(1:end);
+glm_wins = t_set(1:end);
 n_glm = numel(glm_wins);
 
 %% preallocation
@@ -21,12 +17,7 @@ fractions = struct();
 
 %% iterate through runs
 for rr = 1 : n_runs
-    if n_runs > 1
-        toso2021_simulateSpikes;
-        spike_data_field = 'FakeFR';
-    else
-        spike_data_field = 'FR';
-    end
+    toso2021_simulateControls_s2i2;
     
     %% iterate through spike integration windows
     for gg = 1 : n_glm
@@ -40,77 +31,27 @@ for rr = 1 : n_runs
         glm_roi_lbl = struct();
         
         % roi definitions
-        %         glm_roi.aroundInitMov = [-glm_win,0] - 316;
-        glm_roi.preInit = [-glm_win,0];
-        glm_roi.postInit = [0,glm_win];
-        glm_roi.preS1Onset = [-glm_win,0];
         glm_roi.postS1Onset = [0,glm_win];
         glm_roi.preS1Offset = [-glm_win,0];
-        glm_roi.postS1Offset = [0,glm_win];
-        glm_roi.preS2Onset = [-glm_win,0];
         glm_roi.postS2Onset = [0,glm_win];
         glm_roi.preS2Offset = [-glm_win,0];
-        glm_roi.postS2Offset = [0,glm_win];
-        glm_roi.preGoCue = [-glm_win,0];
-        glm_roi.postGoCue = [0,glm_win];
-        glm_roi.aroundReaction = glm_roi.postGoCue + glm_win;
-        glm_roi.aroundChoice = glm_roi.postGoCue + glm_win * 2;
         
         % roi labels
-        %         glm_roi_lbl.aroundInitMov = 'Initiation movement';
-        glm_roi_lbl.preInit = 'Pre-initiation';
-        glm_roi_lbl.postInit = 'Post-initiation';
-        glm_roi_lbl.preS1Onset = 'Pre-S1 onset';
         glm_roi_lbl.postS1Onset = 'Post-S1 onset';
         glm_roi_lbl.preS1Offset = 'Pre-S1 offset';
-        glm_roi_lbl.postS1Offset = 'Post-S1 offset';
-        glm_roi_lbl.preS2Onset = 'Pre-S2 onset';
         glm_roi_lbl.postS2Onset = 'Post-S2 onset';
         glm_roi_lbl.preS2Offset = 'Pre-S2 offset';
-        glm_roi_lbl.postS2Offset = 'Post-S2 offset';
-        glm_roi_lbl.preGoCue = 'Pre-go cue';
-        glm_roi_lbl.postGoCue = 'Post-go cue';
-        glm_roi_lbl.aroundReaction = '~Reaction';
-        glm_roi_lbl.aroundChoice = '~Choice';
-        
-        % adjust if simulating
-        if n_runs > 1
-            all_fields = fieldnames(glm_roi);
-            fields2rm = ~ismember(all_fields,...
-                {'postS1Onset','preS1Offset','postS2Onset','preS2Offset'});
-            glm_roi = rmfield(glm_roi,all_fields(fields2rm));
-            glm_roi_lbl = rmfield(glm_roi_lbl,all_fields(fields2rm));
-        end
         
         % epoch parsing
         epochs = fieldnames(glm_roi);
         n_epochs = numel(epochs);
-        
-        %% neuron selection
-        
-        % selected for being good examples of i2-modulation
-        if strcmpi(task_str,'duration')
-            neurons2use = [...
-                21,24,35,38,62,65,68,72,100,130,205,206,215,224,...
-                234,241,356,381,391,393,397,402,406,428,441,448,...
-                459,461,462,470,473,493,526,544,553,555,566];
-            %     neurons2use = [...
-            %         38,72,205,215,224,391,393,397,402,448,459,462,470,526,566];
-        elseif strcmpi(task_str,'intensity')
-            neurons2use = [...
-                19,22,30,61,66,70,100,111,112,115,...
-                166,238,243,260,344,408,410];
-        end
-        neurons2use = flagged_neurons;
-        % neurons2use = neuron_idcs;
-        n_neurons2use = numel(neurons2use);
-        
+ 
         %% construct response
         
         % iterate through neurons
-        for nn = 1 : n_neurons2use
-            progressreport(nn,n_neurons2use,'fetching spike counts');
-            neuron_flags = data.NeuronNumb == neurons2use(nn);
+        for nn = 1 : n_neurons
+            progressreport(nn,n_neurons,'fetching spike counts');
+            neuron_flags = data.NeuronNumb == flagged_neurons(nn);
             
             % flag trials for the current condition
             trial_flags = ...
@@ -121,7 +62,7 @@ for rr = 1 : n_runs
             end
             
             % fetch spike counts & compute spike rates
-            spike_counts = data.(spike_data_field)(trial_flags,:)';
+            spike_counts = data.FakeFR(trial_flags,:)';
             n_trials = sum(trial_flags);
             
             % around approach spike rates
@@ -392,7 +333,7 @@ for rr = 1 : n_runs
             spkcounts.preS2Offset(gg,trial_flags) = nansum(spkcounts_preS2Offset,2);
         end
         
-        %% spike count GLMs
+        %% spike count GLM
         
         % design matrix
         design = [prev_choice,prev_correct,s1,s2,d1,d2,choice,correct,trial_idcs];
@@ -404,7 +345,6 @@ for rr = 1 : n_runs
         
         % preallocation
         betas = struct();
-        boot_betas = struct();
         pvals_raw = struct();
         residuals = struct();
         rsquared = struct();
@@ -414,28 +354,21 @@ for rr = 1 : n_runs
             epoch = epochs{ee};
             
             % preallocation
-            betas.(epoch) = zeros(n_neurons2use,n_coefficients);
-            pvals_raw.(epoch) = zeros(n_neurons2use,n_coefficients);
+            betas.(epoch) = zeros(n_neurons,n_coefficients);
+            pvals_raw.(epoch) = zeros(n_neurons,n_coefficients);
             residuals.(epoch) = nan(n_glm,n_total_trials);
-            boot_betas.(epoch) = zeros(n_neurons2use,n_coefficients,n_boots);
             
             % duration selection
             t1_flags = t1 >= glm_win * ...
                 ismember(epoch,{'postS1Onset','preS1Offset'});
             t2_flags = t2 >= glm_win * ...
                 ismember(epoch,{'postS2Onset','preS2Offset'});
-            
-            % intensity selection (for bootstrapping purposes)
-            i1_flags = (i1 == i_set(i1_mode_idx)) | ...
-                ~ismember(epoch,{'postS1Onset','preS1Offset'});
-            i2_flags = (i2 == i_set(i2_mode_idx)) | ...
-                ~ismember(epoch,{'postS2Onset','preS2Offset'});
-            
+
             % iterate through neurons
-            for nn = 1 : n_neurons2use
-                progressreport(nn,n_neurons2use,...
+            for nn = 1 : n_neurons
+                progressreport(nn,n_neurons,...
                     sprintf('fitting neuron-wise GLMs (%s)',epoch));
-                neuron_flags = data.NeuronNumb == neurons2use(nn);
+                neuron_flags = data.NeuronNumb == flagged_neurons(nn);
                 trial_flags = ...
                     valid_flags & ...
                     neuron_flags & ...
@@ -455,42 +388,12 @@ for rr = 1 : n_runs
                     'distribution',distro,...
                     'intercept',true,...
                     'options',opts);
-                %                 mdlPoisson = fitglm(X,y,'linear',...
-                %                     'predictorvars',{'prevchoice','prevreward',s1_lbl,d1_lbl,s2_lbl,d2_lbl,'choice','reward','trial#'},...
-                %                     ...'predictorvars',{s1_lbl,d1_lbl,s2_lbl,d2_lbl,'choice','reward','trial#'},...
-                %                     ...'predictorvars',{s1_lbl,d1_lbl,s2_lbl,d2_lbl,'choice','trial#'},...
-                %                     ...'predictorvars',{s1_lbl,d1_lbl,s2_lbl,d2_lbl,'trial#'},...
-                %                     ...'predictorvars',{d1_lbl,d2_lbl,'trial#'},...
-                %                     'distribution','poisson',...
-                %                     'options',opts,...
-                %                     'intercept',true);
-                %                 rsquared.(epoch).poisson(gg,nn) = mdlPoisson.Rsquared.Ordinary;
-                
-                % bootstrapping
-                for bb = 1 : n_boots
-                    boot_mdl = fitglm(X,randsample(y,n_flagged_trials),'linear',...
-                        'predictorvars',mdl.CoefficientNames(2:end),...
-                        'distribution',mdl.Distribution.Name,...
-                        'intercept',ismember('(Intercept)',mdl.CoefficientNames),...
-                        'options',opts);
-                    boot_betas.(epoch)(nn,:,bb) = boot_mdl.Coefficients.Estimate;
-                end
-                
+
                 % caching
                 betas.(epoch)(nn,:) = mdl.Coefficients.Estimate;
                 pvals_raw.(epoch)(nn,:) = mdl.Coefficients.pValue;
                 residuals.(epoch)(gg,trial_flags) = mdl.Residuals.Raw;
                 rsquared.(epoch).normal(gg,nn) = mdl.Rsquared.Ordinary;
-                
-                %                 % bootstrapping
-                %                 for bb = 1 : n_boots
-                %                     bootmdl = fitglm(mdl.Variables{:,1:end-1},...
-                %                         mdl.Variables{randperm(n_flagged_trials),end},'linear',...
-                %                         'predictorvars',mdl.CoefficientNames(2:end),...
-                %                         'distribution',mdl.Distribution.Name,...
-                %                         'intercept',true);
-                %                     bootbetas.(epoch)(nn,:,bb) = bootmdl.Coefficients.Estimate;
-                %                 end
             end
         end
         
@@ -500,8 +403,8 @@ for rr = 1 : n_runs
         pvals_corrected = struct();
         
         % iterate through neurons
-        for nn = 1 : n_neurons2use
-            progressreport(nn,n_neurons2use,'p-value correction');
+        for nn = 1 : n_neurons
+            progressreport(nn,n_neurons,'p-value correction');
             
             % preallocation
             pvals = nan(n_epochs,n_coefficients);
@@ -523,36 +426,23 @@ for rr = 1 : n_runs
             end
         end
         
-        %% bonferroni correction for multiple comparisons
-        
-        % initialization
-        %         pvals_corrected = struct();
-        %
-        %         % iterate through neurons
-        %         for nn = 1 : n_neurons2use
-        %             progressreport(nn,n_neurons2use,'p-value correction');
-        %
-        %             % iterate through epochs
-        %             for ee = 1 : n_epochs
-        %                 epoch = epochs{ee};
-        %                 pvals_corrected.(epoch)(nn,:) = ...
-        %                     pvals_raw.(epoch)(nn,:) * n_epochs;
-        %             end
-        %         end
-        
         %% plot proportion of significantly modulated neurons
         
         % coefficient selection
         coeffs2plot = mdl.CoefficientNames(2:end-1);
         n_coeffs2plot = numel(coeffs2plot);
-        coeffs2highlight = {...
-            'T_1',...
-            'T_2',...
-            'I_1',...
-            'I_2',...
-            ...'choice',...
-            };
-%         coeffs2highlight = coeffs2plot;
+        coeffs2highlight = coeffs2plot;
+
+        % uncomment below to only highlight specific task factors
+        % coeffs2highlight = {...
+        %     'T_1',...
+        %     'T_2',...
+        %     'I_1',...
+        %     'I_2',...
+        %     'choice',...
+        %     };
+
+        % enact factor selection
         coeffs2highlight_flags = ismember(coeffs2plot,coeffs2highlight);
         coeffs2highlight_idcs = find(coeffs2highlight_flags);
         
@@ -562,8 +452,8 @@ for rr = 1 : n_runs
         
         % figure initialization
         fig = figure(figopt,...
-            ...'windowstate','maximized',...
-            'position',[150,125,1500,825],...
+            'windowstate','maximized',...
+            ...'position',[150,125,1500,825],...
             'name',sprintf('GLM_significance_crossEpochs_%s_%i_%s',...
             distro,glm_win,strrep([coeffs2highlight{:}],'_','')),...
             'color',[1,1,1]*1);
@@ -582,7 +472,6 @@ for rr = 1 : n_runs
         % axes initialization
         yymax = .25;
         yylim = [-1,1]*yymax+[-1,1]*.05*yymax*2;
-        yytick = unique([0,[-1,1]*yymax,[-1,1]*.05,[-1,1]*.01]);
         yytick = -yymax : .05 : yymax;
         yyticklabel = num2cell(abs(round(yytick,2)));
         yyticklabel(~ismember(yytick,[0,[-1,1]*yymax,[-1,1]*.05])) = {''};
@@ -604,9 +493,6 @@ for rr = 1 : n_runs
         title(sprintf('Spike counts in %i ms ~ %s(\\phi(\\betaX))',...
             glm_win,capitalize(distro)));
         xlabel('Task event');
-        %         ylabel({'P(significant regression coefficients)',...
-        %             '\downarrow-modulated                   \uparrow-modulated'},...
-        %             'verticalalignment','bottom');
         ylabel({'P(significant regression coefficients)',...
             'down-modulated                up-modulated'},...
             'verticalalignment','bottom');
@@ -614,16 +500,10 @@ for rr = 1 : n_runs
         % significance settings
         alphas = [.05,.01];
         n_alphas = numel(alphas);
-        pval_corr = 3;
         
         % reference lines
         plot(xlim,[1,1]*0,'-k',...
             'linewidth',1.5);
-        %         plot(xlim,[1,1]*0,':k');
-        %         plot(xlim,[1,1]*min(alphas),':k');
-        %         plot(xlim,[1,1]*-min(alphas),':k');
-        %         plot(xlim,[1,1]*max(alphas),':k');
-        %         plot(xlim,[1,1]*-max(alphas),':k');
 
         % pseudo-legend (stimulus epochs)
         s1epoch_idcs = ...
@@ -692,48 +572,24 @@ for rr = 1 : n_runs
                     
                     % significance flags
                     significant_flags = pvals_corrected.(epoch)(:,coeff_idx) <= alphas(aa);
-                    %                     significant_flags = ...
-                    %                         betas.(epoch)(:,coeff_idx) <= quantile(boot_betas.(epoch)(:,coeff_idx,:),alphas(aa),3) | ...
-                    %                         betas.(epoch)(:,coeff_idx) >= quantile(boot_betas.(epoch)(:,coeff_idx,:),1-alphas(aa),3);
-                    
-                    % pseudo-legend (regressors)
-                    if ee == 1 && alphas(aa) == max(alphas)
-                        %                         text(x-.025,yymax*.95,coeff_str,...
-                        %                             'color','k',...
-                        %                             'fontsize',8,...
-                        %                             'horizontalalignment','right',...
-                        %                             'verticalalignment','middle',...
-                        %                             'interpreter','none',...
-                        %                             'edgecolor','none',...
-                        %                             'rotation',90);
-                        if bb == 1
-                            %                             plot(1+[-1,1]*barwidth*n_coeffs2plot/2,[1,1]*yymax,...
-                            %                                 'color','k',...
-                            %                                 'linewidth',1.5);
-                            %                             text(1,yymax*1.025,'Regressors',...
-                            %                                 'color','k',...
-                            %                                 'fontsize',10,...
-                            %                                 'horizontalalignment','center',...
-                            %                                 'verticalalignment','bottom');
-                        end
-                    end
-                    
+
                     % iterate through signs
                     signs = [-1,1];
                     for ss = 1 : 2
                         sign_flags = sign(betas.(epoch)(:,coeff_idx)) == signs(ss);
                         n = sum(significant_flags & sign_flags);
-                        p = n / n_neurons2use;
+                        p = n / n_neurons;
                         
                         % store proportion for later use
                         fractions.(glm_str).(epoch).(coeff_lbl)(rr,aa,ss) = p;
                         
+                        % handle color according to modulation direction
                         if signs(ss) == -1
                             facecolor = coeff_clrs(1,:);
                         else
                             facecolor = coeff_clrs(end,:);
                         end
-                        if ~coeffs2highlight_flags(bb) % p < alphas(aa)
+                        if ~coeffs2highlight_flags(bb)
                             facecolor = [1,1,1] * .75;
                             edgecolor = 'none';
                         else
@@ -751,13 +607,6 @@ for rr = 1 : n_runs
                             'facecolor',facecolor,...
                             'facealpha',1,...
                             'linewidth',1.5);
-                        if false % p >= alphas(aa)
-                            h(h_idx) = patch(xpatch,ypatch,'k',...
-                                'edgecolor','k',...
-                                'facecolor','none',...
-                                'linewidth',1.5);
-                            h_idx = h_idx + 1;
-                        end
                         
                         P(bb,ss) = p;
                         if alphas(aa) == max(alphas) && bb == n_coeffs2plot
@@ -778,7 +627,7 @@ for rr = 1 : n_runs
                         % regressor lines
                         if ee == 1 && alphas(aa) == max(alphas) && signs(ss) == 1
                             offset = numel(coeff_str)*.025*yymax;
-                            p = plot(x*[1,1],[p,yymax],...[p,yymax*.915-offset],...
+                            p = plot(x*[1,1],[p,yymax],...
                                 'linestyle','-',...
                                 'color','k');
                             uistack(p,'bottom');
@@ -853,7 +702,6 @@ for rr = 1 : n_runs
             'ytick',1:n_coeffs2plot,...
             'xticklabel',regressor_lbls,...
             'yticklabel',regressor_lbls,...
-            ...'ticklabelinterpreter','none',...
             'xticklabelrotation',90,...
             'xaxislocation','bottom',...
             'yaxislocation','right',...
@@ -938,255 +786,6 @@ for rr = 1 : n_runs
                 'edgecolor','none',...
                 'facecolor',clr,...
                 'linewidth',1.5);
-            continue;
-            
-            % compute spike count distribution
-            bincounts = histcounts(residuals.(epoch)(gg,valid_flags),...
-                'binedges',binedges);
-            bincounts = bincounts / nansum(bincounts);
-            
-            % plot spike count distribution
-            histogram(...
-                'binedges',binedges,...
-                'bincounts',bincounts,...
-                'facealpha',1,...
-                'edgecolor','none',...
-                'facecolor','k',...
-                'linewidth',1.5);
-        end
-        
-        % save figure
-        if want2save
-            svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-            print(fig,svg_file,'-dsvg','-painters');
-        end
-        
-        %% plot proportion of significantly modulated neurons
-        
-        % coefficient selection
-        coeffs2plot = coeffs2highlight;
-        n_coeffs2plot = numel(coeffs2plot);
-        coeffs2highlight_flags = ismember(coeffs2plot,coeffs2highlight);
-        coeffs2highlight_idcs = find(coeffs2highlight_flags);
-        
-        % bar width settings
-        epoch_span = 1 / 3;
-        barwidth = epoch_span / n_coeffs2plot;
-        
-        % figure initialization
-        fig = figure(figopt,...
-            'name',sprintf('GLM_significance_crossEpochs_%s_%i_%s_highlight',...
-            distro,glm_win,strrep([coeffs2highlight{:}],'_','')),...
-            'color',[1,1,1]*1);
-        
-        % axes initialization
-        yymax = .25;
-        yylim = [-1,1]*yymax+[-1,1]*.05*yymax*2;
-        yytick = -yymax : .05 : yymax;
-        yyticklabel = num2cell(abs(round(yytick,2)));
-        yyticklabel(~ismember(yytick,[0,[-1,1]*yymax,[-1,1]*.05])) = {''};
-        axes(axesopt.default,...
-            'plotboxaspectratio',[1,1,1],...
-            'color','none',...
-            'xlim',[1,n_epochs]+[-1,1]*.05*n_epochs,...
-            'xtick',1:n_epochs,...
-            'xticklabel',num2cell(1:n_epochs),...struct2cell(glm_roi_lbl),...
-            'xticklabelrotation',90,...
-            'ylim',yylim,...
-            'ytick',yytick,...
-            'yticklabel',yyticklabel,...
-            'xcolor','k',...
-            'clipping','off',...
-            'layer','bottom');
-        xlabel('Task epoch');
-        ylabel({'P(significant regression coefficients)',...
-            '\downarrow-modulated                   \uparrow-modulated'},...
-            'verticalalignment','bottom');
-        
-        % significance settings
-        alphas = [.05,.01];
-        n_alphas = numel(alphas);
-        pval_corr = 3;
-        
-        % reference lines
-        plot(xlim,[1,1]*0,'-k',...
-            'linewidth',1.5);
-        
-        % pseudo-legend (stimulus epochs)
-        s1epoch_idcs = ...
-            [find(ismember(epochs,'postS1Onset')),...
-            find(ismember(epochs,'preS1Offset'))];
-        plot(s1epoch_idcs+[-1,1]*.5,[1,1]*yymax,...
-            'linestyle','-',...
-            'linewidth',3,...
-            'color',stim_clrs(1,:));
-        text(mean(s1epoch_idcs),yymax*1.025,'S1',...
-            'color',stim_clrs(1,:),...
-            'fontsize',12,...
-            'horizontalalignment','center',...
-            'verticalalignment','bottom');
-        s2epoch_idcs = ...
-            [find(ismember(epochs,'postS2Onset')),...
-            find(ismember(epochs,'preS2Offset'))];
-        plot(s2epoch_idcs+[-1,1]*.5,[1,1]*yymax,...
-            'linestyle','-',...
-            'linewidth',3,...
-            'color',stim_clrs(2,:));
-        text(mean(s2epoch_idcs),yymax*1.025,'S2',...
-            'color',stim_clrs(2,:),...
-            'fontsize',12,...
-            'horizontalalignment','center',...
-            'verticalalignment','bottom');
-        
-        % graphical object preallocation
-        h = gobjects((n_coefficients-2)*n_epochs*2*n_alphas,1);
-        h_idx = 1;
-        
-        % iterate through epochs
-        for ee = 1 : n_epochs
-            epoch = epochs{ee};
-            
-            % epoch delimeter
-            p = plot([1,1]*ee+1/2,[-1.1,1]*yymax,...
-                'color','k',...
-                'linestyle','--');
-            uistack(p,'bottom');
-            
-            % pseudo x-tick label
-            text(ee,-yymax*1.15,glm_roi_lbl.(epoch),...
-                'horizontalalignment','center',...
-                'rotation',90,...
-                'color','k',...
-                'fontsize',10);
-            
-            % compute horizontal offsets
-            x_offsets = ee + (0 : n_coeffs2plot - 1) * barwidth + ...
-                barwidth / 2 - epoch_span / 2;
-            
-            % iterate through alphas
-            for aa = 1 : n_alphas
-                
-                % preallocation
-                P = nan(n_coeffs2plot,2);
-                
-                % iterate through coefficients
-                for bb = 1 : n_coeffs2plot
-                    coeff_lbl = coeffs2plot{bb};
-                    coeff_idx = find(ismember(mdl.CoefficientNames,coeff_lbl));
-                    coeff_lbl = strrep(coeff_lbl,'#','');
-                    coeff_str = strrep(lower(coeff_lbl),'_','');
-                    coeff_clrs = eval([coeff_str,'_clrs']);
-                    x = x_offsets(bb);
-                    
-                    % significance flags
-                    significant_flags = pvals_corrected.(epoch)(:,coeff_idx) <= alphas(aa);
-                    
-                    % iterate through signs
-                    signs = [-1,1];
-                    for ss = 1 : 2
-                        sign_flags = sign(betas.(epoch)(:,coeff_idx)) == signs(ss);
-                        n = sum(significant_flags & sign_flags);
-                        p = n / n_neurons2use;
-                        
-                        % store proportion for later use
-                        fractions.(glm_str).(epoch).(coeff_lbl)(rr,aa,ss) = p;
-                        
-                        if signs(ss) == -1
-                            facecolor = coeff_clrs(1,:);
-                        else
-                            facecolor = coeff_clrs(end,:);
-                        end
-                        if ~coeffs2highlight_flags(bb) % p < alphas(aa)
-                            facecolor = [1,1,1] * .75;
-                            edgecolor = 'none';
-                        else
-                            edgecolor = 'k';
-                        end
-                        if alphas(aa) == max(alphas)
-                            n_fadedcolors = 5;
-                            clrs = colorlerp([facecolor;[1,1,1]],n_fadedcolors);
-                            facecolor = clrs(end-1,:);
-                        end
-                        xpatch = x + [-1,1,1,-1] / 2 * barwidth * 1;
-                        ypatch = p * signs(ss) .* [0,0,1,1];
-                        patch(xpatch,ypatch,'k',...
-                            'edgecolor','none',...
-                            'facecolor',facecolor,...
-                            'facealpha',1,...
-                            'linewidth',1.5);
-                        if false % p >= alphas(aa)
-                            h(h_idx) = patch(xpatch,ypatch,'k',...
-                                'edgecolor','k',...
-                                'facecolor','none',...
-                                'linewidth',1.5);
-                            h_idx = h_idx + 1;
-                        end
-                        
-                        P(bb,ss) = p;
-                        if alphas(aa) == max(alphas) && bb == n_coeffs2plot
-                            xstairs = ...
-                                [x_offsets(coeffs2highlight_idcs(1)),...
-                                x_offsets(coeffs2highlight_idcs),...
-                                x_offsets(coeffs2highlight_idcs(end)),...
-                                x_offsets(coeffs2highlight_idcs(end))+barwidth]-barwidth/2;
-                            ystairs = [0;...
-                                P(coeffs2highlight_idcs,ss);...
-                                P(coeffs2highlight_idcs(end),ss)*[1;0]] * signs(ss);
-                            h(h_idx) = stairs(xstairs,ystairs,...
-                                'color','k',...
-                                'linewidth',1.5);
-                            h_idx = h_idx + 1;
-                        end
-                    end
-                    
-                    % pseudo-legend (significance)
-                    if ee == 1 && bb == 1
-                        aspectratio = pbaspect;
-                        xpatch = n_epochs + [-1,1,1,-1] * .25 / (1 + (alphas(aa) == min(alphas))) - ...
-                            .125 * (alphas(aa) == min(alphas));
-                        ypatch = yymax + [0,0,1,1] * barwidth * ...
-                            range(ylim) / range(xlim) * aspectratio(1) / aspectratio(2);
-                        if alphas(aa) == min(alphas)
-                            clr = [0,0,0];
-                        else
-                            clrs = colorlerp([[0,0,0];[1,1,1]],n_fadedcolors);
-                            clr = clrs(end-1,:);
-                        end
-                        patch(xpatch,ypatch,clr,...
-                            'facealpha',1,...
-                            'linewidth',1.5);
-                        if alphas(aa) == max(alphas)
-                            text(mean(xpatch),mean(ypatch)+.01,'\alpha',...
-                                'color','k',...
-                                'fontsize',12,...
-                                'fontweight','normal',...
-                                'horizontalalignment','center',...
-                                'verticalalignment','bottom');
-                        end
-                        if alphas(aa) == max(alphas)
-                            horzalignment = 'left';
-                            xalpha = max(xpatch) + .06;
-                        else
-                            horzalignment = 'right';
-                            xalpha = min(xpatch) - .06;
-                        end
-                        text(xalpha,mean(ypatch)+.0025,sprintf('%.2f',alphas(aa)),...
-                            'color','k',...
-                            'fontsize',8,...
-                            'horizontalalignment',horzalignment,...
-                            'verticalalignment','middle');
-                    end
-                end
-            end
-        end
-        
-        % ui resorting
-        uistack(h(isgraphics(h)),'top');
-        
-        % save figure
-        if want2save
-            svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-            print(fig,svg_file,'-dsvg','-painters');
         end
         
         %% highlight coefficients of interest
@@ -1229,16 +828,11 @@ for rr = 1 : n_runs
                 'yticklabel',yyticklabel,...
                 'clipping','off',...
                 'layer','bottom');
-            %             title(sprintf('%s',setlabels{ss}));
             ylabel(sprintf('P(significant %s coefficients)',lower(setlabels{ss})));
                      
             % color settings
             s1_feature_str = lower(strrep(coeffsets2plot{ss,1},'_',''));
             s2_feature_str = lower(strrep(coeffsets2plot{ss,2},'_',''));
-            stim_feature_clrs = [...
-                eval([s1_feature_str,'_clrs(',[s1_feature_str,'_mode_idx'],',:)']);...
-                eval([s2_feature_str,'_clrs(',[s2_feature_str,'_mode_idx'],',:)'])
-                ];
             stim_feature_clrs = stim_clrs;
             
             % pseudo-legend (stimulus epochs)
@@ -1250,7 +844,7 @@ for rr = 1 : n_runs
                 'linewidth',3,...
                 'color',stim_feature_clrs(1,:));
             text(mean(s1epoch_idcs),yymax*1.025,...
-                sprintf('%s presentation','S1'),...strrep(coeffsets2plot{ss,1},'_','')),...
+                sprintf('%s presentation','S1'),...
                 'color',stim_feature_clrs(1,:),...
                 'fontsize',12,...
                 'horizontalalignment','center',...
@@ -1263,16 +857,12 @@ for rr = 1 : n_runs
                 'linewidth',3,...
                 'color',stim_feature_clrs(2,:));
             text(mean(s2epoch_idcs),yymax*1.025,...
-                sprintf('%s presentation','S2'),...strrep(coeffsets2plot{ss,2},'_','')),...
+                sprintf('%s presentation','S2'),...
                 'color',stim_feature_clrs(2,:),...
                 'fontsize',12,...
                 'horizontalalignment','center',...
                 'verticalalignment','bottom');
 
-            % reference lines
-            %             plot(xlim,[1,1]*min(alphas),':k');
-            %             plot(xlim,[1,1]*max(alphas),':k');
-            
             % preallocation
             P = nan(n_epochs,n_alphas,n_coeffsperset);
             
@@ -1283,41 +873,6 @@ for rr = 1 : n_runs
                 coeff_lbl = strrep(coeff_lbl,'#','');
                 coeff_str = strrep(lower(coeff_lbl),'_','');
                 coeff_clrs = eval([coeff_str,'_clrs']);
-                
-                %             % figure initialization
-                %             fig = figure(figopt,...
-                %                 'name',sprintf('GLM_significance_%s_%i_%s',distro,glm_win,coeff_lbl),...
-                %                 'color',[1,1,1]*1);
-                %
-                %             % axes initialization
-                %             yymax = .3;
-                %             yylim = [0,1]*yymax+[-1,1]*.05*yymax;
-                %             yytick = unique([0,[0,1]*yymax,[0,1]*.05,[0,1]*.01]);
-                %             yyticklabel = num2cell(abs(round(yytick,2)));
-                %             yyticklabel(~ismember(yytick,[0,[0,1]*yymax])) = {''};
-                %             axes(axesopt.default,...
-                %                 'plotboxaspectratio',[3,1,1],...
-                %                 'color','none',...
-                %                 'ticklength',axesopt.default.ticklength*.58,...
-                %                 'xlim',[1,n_epochs]+[-1,1]*.75,...
-                %                 'xtick',1:n_epochs,...
-                %                 'xticklabel',struct2cell(glm_roi_lbl),...
-                %                 'xticklabelrotation',45,...
-                %                 'ylim',yylim,...
-                %                 'ytick',yytick,...
-                %                 'yticklabel',yyticklabel,...
-                %                 'clipping','off',...
-                %                 'layer','bottom');
-                %             title(sprintf('\\beta_{%s}',capitalize(coeff_str)));
-                %             ylabel(sprintf('P(significant \\beta_{%s})',capitalize(coeff_str)));
-                %
-                %             % reference lines
-                %             plot(xlim,[1,1]*0,':k');
-                %             plot(xlim,[1,1]*min(alphas),':k');
-                %             plot(xlim,[1,1]*max(alphas),':k');
-                
-                % preallocation
-                %                 P = nan(n_epochs,n_alphas);
                 
                 % iterate through alphas
                 for aa = 1 : n_alphas
@@ -1373,20 +928,13 @@ for rr = 1 : n_runs
                 'fontweight','normal',...
                 'box','off');
             
-            % save figure
-            if want2save
-                svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-                print(fig,svg_file,'-dsvg','-painters');
+            %% close if this is not the last run
+            if rr < n_runs
+                close all;
             end
         end
     end
 end
-
-%% stop check
-if n_runs <= 1
-    return;
-end
-close all;
 
 %% spike count distributions as a function of window size
 
