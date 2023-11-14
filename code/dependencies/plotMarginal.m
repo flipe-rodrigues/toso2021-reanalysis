@@ -27,6 +27,7 @@ if ~isfield(plotOptions,'prior'),          plotOptions.prior          = true;   
 if ~isfield(plotOptions,'priorColor'),     plotOptions.priorColor     = [.7,.7,.7];         end
 if ~isfield(plotOptions,'CIpatch'),        plotOptions.CIpatch        = true;               end
 if ~isfield(plotOptions,'plotPE'),         plotOptions.plotPE         = true;               end
+if ~isfield(plotOptions,'faceAlpha'),      plotOptions.faceAlpha      = .5;               end
 
 if isfield(plotOptions,'h')
     h = plotOptions.h;
@@ -73,7 +74,7 @@ if plotOptions.CIpatch
         interp1(x,marginal,CI(2));0;0];
     patch(xCI,yCI,plotOptions.lineColor,....5*plotOptions.lineColor+.5*[1,1,1],...
         'EdgeColor','none',....5*plotOptions.lineColor+.5*[1,1,1],...
-        'facealpha',.5);
+        'facealpha',plotOptions.faceAlpha);
 end
 
 % plot prior

@@ -109,30 +109,34 @@ for cc = 1 : n_controls
     control = control_labels{cc};
     
     % control- & feature-specific modulation
-    gain = control_modulation.(control).gain;
-    offset = control_modulation.(control).offset;
-    scaling = control_modulation.(control).scaling;
+    nominal_gain = control_modulation.(control).gain;
     
     % iterate through neurons
     for nn = 1 : n_neurons_total
         progressreport(nn,n_neurons_total,...
             sprintf('generating %s control rates',control));
-        if all(isnan(real_psths.s2(:,nn)))
-            continue;
-        end
         
         % iterate through S2 durations
         for tt = 1 : n_t
-            
+            s2_time_flags = ...
+                roi_time >= 0 & ...
+                roi_time < t_set(tt);
+            post_s2_time_flags = ...
+                roi_time >= t_set(tt);
+
             % iterate through S2 intensities
             for ii = 1 : n_i
 
+                %
+                gain_through_time = zeros(roi_n_bins,1);
+                gain_through_time(s2_time_flags) = 1;
+                gain_through_time(post_s2_time_flags) = ...
+                    linspace(nominal_gain(ii),1,sum(post_s2_time_flags));
+                
                 % apply I2 modulation during S2 presentation
-                fake_psths.(control)(:,nn,ii) = offset(ii) + gain(ii) * ...
-                    interp1(roi_time.s2,...
-                    real_psths.s2(:,nn),...
-                    roi_time.s2*scaling(ii),...
-                    'linear','extrap');
+                fake_psths.(control)(:,nn,tt,ii) = real_psths(:,nn,tt);
+                fake_psths.(control)(s2_time_flags,nn,tt,ii) = ...
+                    nominal_gain(ii) * real_psths(s2_time_flags,nn,tt);
             end
             
             if ismember(nn,flagged_neurons)
@@ -141,12 +145,12 @@ for cc = 1 : n_controls
                 for ii = 1 : n_i
                     for ee = 1 : n_epochs
                         epoch = task_epochs{ee};
-                        plot(time+offsets,...
-                            fake_psths.(control)(:,nn,ii),...
+                        plot(roi_time,fake_psths.(control)(:,nn,tt,ii),...
                             'color',i2_clrs(ii,:),...
                             'linewidth',1.5);
                     end
                 end
+                plot(roi_time,gain_through_time,'k');
                 close;
             end
         end
