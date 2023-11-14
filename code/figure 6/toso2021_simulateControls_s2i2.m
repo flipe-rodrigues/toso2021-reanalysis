@@ -28,7 +28,8 @@ for cc = 1 : n_controls
 end
 
 %% ROI settings
-roi_window = [0,t_set(end)] + gamma_kernel.paddx;
+roi_padding = gamma_kernel.paddx * 1;
+roi_window = [0,t_set(end)] + roi_padding;
 roi_n_bins = range(roi_window) / psthbin;
 roi_time = linspace(roi_window(1),roi_window(2),roi_n_bins);
 
@@ -73,13 +74,18 @@ for nn = 1 : n_neurons_total
             t1(trial_flags) + ...
             isi;
         s2_alignment_flags = ...
+            padded_time >= s2_alignment + roi_padding(1) & ...
+            padded_time < s2_alignment + t2(trial_flags) + roi_padding(2);
+        s2_chunk_flags = ...
             padded_time >= s2_alignment + roi_window(1) & ...
             padded_time < s2_alignment + roi_window(2);
-        s2_chunk_flags = s2_alignment_flags;
         s2_spkrates = spike_rates';
         s2_spkrates(~s2_alignment_flags') = nan;
         s2_spkrates = reshape(...
             s2_spkrates(s2_chunk_flags'),[roi_n_bins,n_trials])';
+        
+        % reconvolve with a flipped kernel
+%         s2_spkrates = conv2(1,fliplr(gamma_kernel.pdf),s2_spkrates,'valid');
         
         % compute mean spike density function
         real_psths(:,nn,tt) = nanmean(s2_spkrates,1);
@@ -87,14 +93,11 @@ for nn = 1 : n_neurons_total
 %         if ismember(nn,flagged_neurons)
 %             figure('position',[1.8,41.8,766.4,740.8]); 
 %             subplot(3,1,[1,2]);
-%             imagesc(s2_spkrates)
+%             imagesc(roi_window,[],s2_spkrates)
 %             subplot(3,1,3);
-%             hold on;
-%             for ii = 1 : n_epochs
-%                 epoch = task_epochs{ii};
-%                 plot(roi_time,real_psths(:,nn,tt),...
-%                     'linewidth',1.5);
-%             end
+%             plot(roi_time,real_psths(:,nn,tt),...
+%                 'linewidth',1.5);
+%             xlim(roi_window);
 %             close;
 %         end
     end
@@ -171,9 +174,9 @@ for nn = 1 : n_neurons_total
     n_trials = numel(trial_idcs);
     
     %
-    if ismember(nn,flagged_neurons)
-        figure; hold on;
-    end
+%     if ismember(nn,flagged_neurons)
+%         figure; hold on;
+%     end
     
     % iterate through trials
     for kk = 1 : n_trials
@@ -202,18 +205,19 @@ for nn = 1 : n_neurons_total
 
         % negative control for S1
         lambda(s1_trial_alignment_flags) = fake_psths.negative(:,nn,...
-            t2(trial_idx)==t_set,i2(trial_idx)==i_set);
+            t1(trial_idx)==t_set,i2(trial_idx)==i_set);
         
         % positive control for S2
         lambda(s2_trial_alignment_flags) = fake_psths.positive(:,nn,...
             t2(trial_idx)==t_set,i2(trial_idx)==i_set);
 
-        if ismember(nn,flagged_neurons) && t2(trial_idx) == t_set(end)
-            plot(padded_time-padded_time(s2_trial_alignment),lambda,...
-                'color',i2_clrs(i_set==i2(trial_idx),:),...
-                'linewidth',1.5);
-            a=1
-        end
+%         if ismember(nn,flagged_neurons)
+%             plot(padded_time-padded_time(s1_trial_alignment),lambda,...
+%                 'color',i2_clrs(i_set==i2(trial_idx),:),...
+%                 'linewidth',1.5);
+%             title(sprintf('T1 = %i; T2 = %i',t1(trial_idx),t2(trial_idx)));
+%             [t1(trial_idx),t2(trial_idx)]
+%         end
         
         % sample spike times
         dur = numel(lambda) * psthbin;

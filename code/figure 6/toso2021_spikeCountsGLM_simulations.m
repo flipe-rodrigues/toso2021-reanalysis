@@ -15,7 +15,7 @@ fractions = struct();
 
 %% iterate through runs
 for rr = 1 : n_runs
-    toso2021_simulateControls_s2i2;
+    toso2021_simulateControls;
     
     %% iterate through spike integration windows
     for gg = 1 : n_glm
@@ -673,7 +673,7 @@ end
 
 % figure initialization
 fig = figure(figopt,...
-    'position',[240,560,420,320],...
+    'position',[240,250,420,320],...
     'name','GLM_spikeCountMus_crossBins',...
     'color',[1,1,1]*1);
 
@@ -766,7 +766,6 @@ binedges = linspace(binspan(1),binspan(2),n_bins);
 % axes initialization
 logxx = log(glm_wins);
 xxtick = t_set;
-xxticklabel = num2cell(xxtick);
 axes(axesopt.default,...
     axesopt.psycurve,...
     'xlim',[0,25]+[-1,1]*.05*25,...

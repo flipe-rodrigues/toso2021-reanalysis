@@ -45,7 +45,6 @@ toso2021_computeSDFs;
 
 %% neuron selection
 toso2021_neuronSelection;
-% toso2021_parseSessionData;
 
 %% cluster neurons into ramping & non-ramping neurons using their code
 toso2021_selectRamps;
@@ -84,6 +83,7 @@ toso2021_naiveBayesDecoder_avg_s2Aligned;
 
 %% figure 6
 toso2021_spikeCountsGLM_data;
+toso2021_positiveControlResponses;
 toso2021_spikeCountsGLM_simulations;
 
 %% figure 7
