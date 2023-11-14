@@ -28,7 +28,7 @@ end
 stimdelim_markersize = 4;
 rasterband_width = .035;
 
-%% construct Si-aligned, Ti- & Ii-split psths
+%% construct S2-aligned psths
 ti_padd = [-500,0];
 
 % clamping
@@ -43,7 +43,7 @@ for nn = 1 : n_neurons2plot
     % figure initialization
     fig = figure(figopt,...
         'position',[25,350,1975,375],...
-        'name',sprintf('neuron_%i_%i',neurons2plot(nn),fadeifnoisy));
+        'name',sprintf('neuron_%i_%i_s2',neurons2plot(nn),fadeifnoisy));
     n_rows = 2;
     n_cols = 4;
     n_sps = (n_rows - 1) * n_cols;

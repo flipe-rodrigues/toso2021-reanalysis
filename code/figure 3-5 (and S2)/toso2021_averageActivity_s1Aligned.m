@@ -10,7 +10,6 @@ n_bins = range(padded_roi) / psthbin;
 time = linspace(padded_roi(1),padded_roi(2),n_bins);
 
 % preallocation
-zscore_weights = nan(n_bins,n_neurons);
 ref_psths = nan(n_bins,n_neurons);
 psths = nan(n_bins,n_neurons,n_contrasts);
 
@@ -50,10 +49,7 @@ for nn = 1 : n_neurons
     ref_spkrates(~ref_alignment_flags') = nan;
     ref_spkrates = reshape(...
         ref_spkrates(ref_chunk_flags'),[n_bins,ref_n_trials])';
-    
-    % compute observations weights
-    zscore_weights(:,nn) = sum(~isnan(ref_spkrates));
-    
+
     % compute mean spike density function
     ref_psths(:,nn) = nanmean(ref_spkrates,1);
     

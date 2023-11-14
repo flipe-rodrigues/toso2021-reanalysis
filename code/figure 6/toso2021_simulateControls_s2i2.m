@@ -1,7 +1,5 @@
-%% initialization
-if ~exist('data','var')
-    toso2021_main;
-end
+%% check 'main.m' has run (and run it if not)
+toso2021_maincheck;
 
 %% modulation settings
 modulation = log(i_set') ./ log(i_set(i2_mode_idx));

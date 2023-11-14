@@ -17,7 +17,6 @@ roi2use_flags = ...
     roi2plot_time <= roi2use(2);
 
 % preallocation
-zscore_weights = nan(roi2plot_n_bins,n_neurons);
 ref_psths = nan(roi2plot_n_bins,n_neurons);
 psths = nan(roi2plot_n_bins,n_neurons,n_contrasts);
 
@@ -59,10 +58,7 @@ for nn = 1 : n_neurons
     ref_spkrates(~ref_alignment_flags') = nan;
     ref_spkrates = reshape(...
         ref_spkrates(ref_chunk_flags'),[roi2plot_n_bins,ref_n_trials])';
-    
-    % compute observations weights
-    zscore_weights(:,nn) = sum(~isnan(ref_spkrates));
-    
+
     % compute mean spike density function
     ref_psths(:,nn) = nanmean(ref_spkrates,1);
  

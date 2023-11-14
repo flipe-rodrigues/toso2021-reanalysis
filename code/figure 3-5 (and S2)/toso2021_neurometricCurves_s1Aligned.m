@@ -137,8 +137,6 @@ n_trials_cutoff = 0;
 
 % iterate through runs
 for rr = 1 : n_runs
-    train_counter = 0;
-    test_counter = 0;
     
     %% construct spike counts tensor (neurons X concatenations)
     
@@ -215,11 +213,7 @@ for rr = 1 : n_runs
             % handle cross-validation for all detected test conditions
             if any(xval_condition_flags)
                 xval_condition_idcs = find(xval_condition_flags)';
-                
-                if n_flagged_trials <= 1
-                    train_counter = train_counter + 1;
-                end
-                
+
                 % iterate through detected test conditions
                 for ii = xval_condition_idcs
                     
@@ -309,11 +303,6 @@ for rr = 1 : n_runs
             % handle cross-validation
             test_idcs = find(~ismember(...
                 flagged_trials,vertcat(xval_train_trials_bab{:,kk})));
-            
-            if numel(test_idcs) <= 1
-                test_counter = test_counter + 1;
-            end
-            
             if isempty(test_idcs)
                 continue;
             end
@@ -332,8 +321,6 @@ for rr = 1 : n_runs
             concat_evalset(concat_idcs) = 'test';
         end
     end
-    
-    [train_counter,test_counter]
     
     %% construct neurometric curves
     

@@ -6,7 +6,7 @@ function [Neurons,AllRamps,StereoCrit,MeanFR,preselected_idcs]=...
 % NeuronNumber in the session
 
 % extract Neuron Type
-Features = NeuronType_Striatum(DataB);
+Features = NeuronType_Striatum_THEIRCODE(DataB);
 Neurons = unique(DataB.Info.NeuronNumb,'rows');
 
 %Pairs of T1-T2

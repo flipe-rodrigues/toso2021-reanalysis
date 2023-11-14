@@ -41,14 +41,7 @@ want2save = true;
 toso2021_preface;
 
 %% compute spike density functions
-X = data.FR;
-g = circshift(gamma_kernel.pdf,gamma_kernel.nbins/2+1);
-g = padarray(g,[0,n_paddedtimebins-gamma_kernel.nbins],0,'post');
-G = cell2mat(arrayfun(@(i)circshift(g,i),(1:n_paddedtimebins)'-1,...
-    'uniformoutput',false));
-Z = X * G / psthbin * 1e3;
-data.SDF = Z;
-clear X G Z;
+toso2021_computeSDFs;
 
 %% neuron selection
 toso2021_neuronSelection;
