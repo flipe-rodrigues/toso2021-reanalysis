@@ -1,3 +1,8 @@
+%% check 'main.m' has run (and run it if not)
+toso2021_maincheck;
+
+%% parse session data
+
 % flag (unique) session transitions
 session_start_idcs = find(data.Trial == 1);
 valid_session_flags = ...

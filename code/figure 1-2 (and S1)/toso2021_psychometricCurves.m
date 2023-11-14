@@ -1,7 +1,5 @@
-%% initialization
-if ~exist('data','var')
-    toso2021_wrapper;
-end
+%% check 'main.m' has run (and run it if not)
+toso2021_maincheck;
 
 %% stimulus settings
 w_norm = sum(abs(beta_s1) + abs(beta_s2));

@@ -1,7 +1,5 @@
-%% initialization
-if ~exist('data','var')
-    toso2021_wrapper;
-end
+%% check 'main.m' has run (and run it if not)
+toso2021_maincheck;
 
 %% GLM settings
 distro = 'normal';
@@ -294,7 +292,7 @@ for nn = 1 : n_neurons
         spkcounts.postGoCue(trial_flags) = nansum(spkcounts_postGoCue,2);
     end
     
-    % around choice spike rates
+    % around reaction spike rates
     if isfield(glm_roi,'aroundReaction')
         alignment_onset = ...
             pre_init_padding + ...

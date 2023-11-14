@@ -1,7 +1,5 @@
-%% initialization
-if ~exist('DataB','var')
-    load(data_file);
-end
+%% check 'main.m' has run (and run it if not)
+toso2021_maincheck;
 
 %% THEIR CODE FOR CLASSIFYING NEURONS AS "RAMPS" & "NON-RAMPS"
 load(data_file);

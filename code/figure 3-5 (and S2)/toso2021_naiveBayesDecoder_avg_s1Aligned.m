@@ -1,8 +1,11 @@
-%% initialization
-if ~exist('data','var')
-    toso2021_wrapper;
-    close all;
-end
+%% check 'main.m' has run (and run it if not)
+toso2021_maincheck;
+
+%% run settings
+n_runs = 10;
+
+%% concatenation settings
+n_concats_max = 2^7;
 
 %% training & test set conditions
 
@@ -105,14 +108,8 @@ conditions.train.values
 fprintf('\nTEST CONDITIONS:\n');
 conditions.test.values
 
-%% run settings
-n_runs = 100;
-
 %% subject selection
 subject_flags = ismember(subjects,subject_set);
-
-%% concatenation settings
-n_concats_max = 2^7;
 
 %% time settings
 roi = [-500,t_set(end)];

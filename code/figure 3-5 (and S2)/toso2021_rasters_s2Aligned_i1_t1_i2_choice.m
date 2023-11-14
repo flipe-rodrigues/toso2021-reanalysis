@@ -1,8 +1,5 @@
-%% initialization
-if ~exist('data','var')
-    toso2021_wrapper;
-end
-% close all;
+%% check 'main.m' has run (and run it if not)
+toso2021_maincheck;
 
 %% neuron selection
 

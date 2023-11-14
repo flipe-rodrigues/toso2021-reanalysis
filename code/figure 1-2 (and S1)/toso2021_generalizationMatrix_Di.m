@@ -1,7 +1,5 @@
-%% initialization
-if ~exist('data','var')
-    toso2021_wrapper;
-end
+%% check 'main.m' has run (and run it if not)
+toso2021_maincheck;
 
 %% choice GLM (partial model)
 mdl = fitglm([d1(valid_flags),d2(valid_flags)].*[1,1],...

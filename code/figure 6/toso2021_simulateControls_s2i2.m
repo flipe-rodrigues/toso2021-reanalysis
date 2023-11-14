@@ -1,243 +1,164 @@
 %% initialization
 if ~exist('data','var')
-    toso2021_wrapper;
+    toso2021_main;
+end
+
+%% modulation settings
+modulation = log(i_set') ./ log(i_set(i2_mode_idx));
+
+%% control settings
+control_modulation = struct(...
+    'positive',struct(...
+        'gain',modulation.^1,...
+        'offset',modulation.*0,...
+        'scaling',modulation.^0),...
+    'negative',struct(...
+        'gain',modulation.^0,...
+        'offset',modulation.*0,...
+        'scaling',modulation.^0));
+control_labels = fieldnames(control_modulation);
+n_controls = numel(control_labels);
+
+% iterate through controls
+for cc = 1 : n_controls
+    control = control_labels{cc};
+    
+    % display control settings
+    fprintf('%s control modulation\n\t\t  I2 = {%i, %i, %i} %s:\n',...
+        upper(control),i_set,i2_units);
+    disp(control_modulation.positive);
 end
 
 %% ROI settings
+roi_window = [0,t_set(end)] + gamma_kernel.paddx;
+roi_n_bins = range(roi_window) / psthbin;
+roi_time = linspace(roi_window(1),roi_window(2),roi_n_bins);
+
+%% construct real real_psths from middle-I2 trials
 
 % preallocation
-rois = struct();
-n_bins = struct();
-time = struct();
-psths = struct();
-
-% smoothing settings
-gauss_kernel = gausskernel('sig',50,'binwidth',psthbin);
-gauss_padded_time = ...
-    (1 : psthbin : n_paddedtimebins * psthbin) - psthbin;
-gauss_validtime_flags = ...
-    gauss_padded_time >= gauss_padded_time(1) - gauss_kernel.paddx(1) & ...
-    gauss_padded_time <= gauss_padded_time(end) - gauss_kernel.paddx(end) + psthbin;
-gauss_valid_time = gauss_padded_time(gauss_validtime_flags);
-
-% roi definition
-rois.pre_s1 = [gauss_kernel.paddx(1),unique(pre_s1_delay(valid_flags))];
-rois.s1 = [0,t_set(end)];
-rois.isi = [0,isi];
-rois.s2on = [0,t_set(end)];
-rois.s2off = sort(-rois.s2on);
-rois.post_s2 = [0,post_s2_delay];
-rois.go = [0,gauss_kernel.paddx(2)];
-
-% iterate through task epochs
-task_epochs = fieldnames(rois);
-n_epochs = numel(task_epochs);
-for ii = 1 : n_epochs
-    epoch = task_epochs{ii};
-    n_bins.(epoch) = range(rois.(epoch)) / psthbin;
-    time.(epoch) = linspace(rois.(epoch)(1),rois.(epoch)(2),n_bins.(epoch));
-    psths.(epoch) = nan(n_bins.(epoch),n_neurons_total,n_i);
-end
-
-%% construct T1-aligned, Ii-split psths
+real_psths = nan(roi_n_bins,n_neurons_total,n_t);
+fake_psths = struct(...
+    control_labels{1},nan(roi_n_bins,n_neurons_total,n_t,n_i),...
+    control_labels{2},nan(roi_n_bins,n_neurons_total,n_t,n_i));
 
 % iterate through neurons
 for nn = 1 : n_neurons_total
     progressreport(nn,n_neurons_total,'parsing neural data');
-    
-    % trial selection
     neuron_flags = data.NeuronNumb == nn;
-    i1_flags = i1 == i_set(i1_mode_idx);
-    i2_flags = i2 == i_set(i2_mode_idx);
-    spike_flags = ...
-        valid_flags & ...
-        neuron_flags & ...
-        i1_flags & ...
-        i2_flags;
-    if sum(spike_flags) == 0
-        continue;
-    end
     
-    % fetch spike counts & compute spike rates
-    spike_counts = data.FR(spike_flags,:);
-    spike_rates = conv2(...
-        1,gauss_kernel.pdf,spike_counts,'valid')' / psthbin * 1e3;
-    n_trials = size(spike_counts,1);
-    
-    % pre S1 delay-aligned spike rates
-    pre_s1_alignment = ...
-        repmat(pre_init_padding,n_trials,1);
-    pre_s1_alignment_flags = ...
-        gauss_valid_time >= pre_s1_alignment + rois.pre_s1(1) & ...
-        gauss_valid_time < pre_s1_alignment + pre_s1_delay(spike_flags);
-    pre_s1_chunk_flags = ...
-        gauss_valid_time >= pre_s1_alignment + rois.pre_s1(1) & ...
-        gauss_valid_time < pre_s1_alignment + rois.pre_s1(2);
-    pre_s1_spkrates = spike_rates;
-    pre_s1_spkrates(~pre_s1_alignment_flags') = nan;
-    pre_s1_spkrates = reshape(...
-        pre_s1_spkrates(pre_s1_chunk_flags'),[n_bins.pre_s1,n_trials])';
-    
-    % S1-aligned spike rates
-    s1_alignment = ...
-        pre_init_padding + ...
-        pre_s1_delay(spike_flags);
-    s1_alignment_flags = ...
-        gauss_valid_time >= s1_alignment + rois.s1(1) & ...
-        gauss_valid_time < s1_alignment + t1(spike_flags);
-    s1_chunk_flags = ...
-        gauss_valid_time >= s1_alignment + rois.s1(1) & ...
-        gauss_valid_time < s1_alignment + rois.s1(2);
-    s1_spkrates = spike_rates;
-    s1_spkrates(~s1_alignment_flags') = nan;
-    s1_spkrates = reshape(...
-        s1_spkrates(s1_chunk_flags'),[n_bins.s1,n_trials])';
-    
-    % inter S1-S2 delay-aligned spike rates
-    isi_alignment = ...
-        pre_init_padding + ...
-        pre_s1_delay(spike_flags) + ...
-        t1(spike_flags);
-    isi_alignment_flags = ...
-        gauss_valid_time >= isi_alignment + rois.isi(1) & ...
-        gauss_valid_time < isi_alignment + isi;
-    isi_chunk_flags = ...
-        gauss_valid_time >= isi_alignment + rois.isi(1) & ...
-        gauss_valid_time < isi_alignment + rois.isi(2);
-    isi_spkrates = spike_rates;
-    isi_spkrates(~isi_alignment_flags') = nan;
-    isi_spkrates = reshape(...
-        isi_spkrates(isi_chunk_flags'),[n_bins.isi,n_trials])';
-    
-    % S2-onset-aligned spike rates
-    s2on_alignment = ...
-        pre_init_padding + ...
-        pre_s1_delay(spike_flags) + ...
-        t1(spike_flags) + ...
-        isi;
-    s2on_alignment_flags = ...
-        gauss_valid_time >= s2on_alignment + rois.s2on(1) & ...
-        gauss_valid_time < s2on_alignment + t2(spike_flags);
-    s2on_chunk_flags = ...
-        gauss_valid_time >= s2on_alignment + rois.s2on(1) & ...
-        gauss_valid_time < s2on_alignment + rois.s2on(2);
-    s2on_spkrates = spike_rates;
-    s2on_spkrates(~s2on_alignment_flags') = nan;
-    s2on_spkrates = reshape(...
-        s2on_spkrates(s2on_chunk_flags'),[n_bins.s2on,n_trials])';
-    
-    % S2-offset-aligned spike rates
-    s2off_alignment = ...
-        pre_init_padding + ...
-        pre_s1_delay(spike_flags) + ...
-        t1(spike_flags) + ...
-        isi + ...
-        t2(spike_flags);
-    s2off_alignment_flags = ...
-        gauss_valid_time >= s2off_alignment - t2(spike_flags) & ...
-        gauss_valid_time < s2off_alignment + rois.s2off(2);
-    s2off_chunk_flags = ...
-        gauss_valid_time >= s2off_alignment + rois.s2off(1) & ...
-        gauss_valid_time < s2off_alignment + rois.s2off(2);
-    s2off_spkrates = spike_rates;
-    s2off_spkrates(~s2off_alignment_flags') = nan;
-    s2off_spkrates = reshape(...
-        s2off_spkrates(s2off_chunk_flags'),[n_bins.s2off,n_trials])';
-    
-    % post S2 delay-aligned spike rates
-    post_s2_alignment = ...
-        pre_init_padding + ...
-        pre_s1_delay(spike_flags) + ...
-        t1(spike_flags) + ...
-        isi + ...
-        t2(spike_flags);
-    post_s2_alignment_flags = ...
-        gauss_valid_time >= post_s2_alignment + rois.post_s2(1) & ...
-        gauss_valid_time < post_s2_alignment + post_s2_delay;
-    post_s2_chunk_flags = ...
-        gauss_valid_time >= post_s2_alignment + rois.post_s2(1) & ...
-        gauss_valid_time < post_s2_alignment + rois.post_s2(2);
-    post_s2_spkrates = spike_rates;
-    post_s2_spkrates(~post_s2_alignment_flags') = nan;
-    post_s2_spkrates = reshape(...
-        post_s2_spkrates(post_s2_chunk_flags'),[n_bins.post_s2,n_trials])';
-    
-    % go cue-aligned spike rates
-    go_alignment = ...
-        pre_init_padding + ...
-        pre_s1_delay(spike_flags) + ...
-        t1(spike_flags) + ...
-        isi + ...
-        t2(spike_flags) + ...
-        post_s2_delay;
-    go_alignment_flags = ...
-        gauss_valid_time >= go_alignment + rois.go(1) & ...
-        gauss_valid_time < go_alignment + rois.go(2);
-    go_chunk_flags = go_alignment_flags;
-    go_spkrates = spike_rates;
-    go_spkrates(~go_alignment_flags') = nan;
-    go_spkrates = reshape(...
-        go_spkrates(go_chunk_flags'),[n_bins.go,n_trials])';
-    
-    % compute mean spike density function
-    psths.pre_s1(:,nn,i2_mode_idx) = nanmean(pre_s1_spkrates,1);
-    psths.s1(:,nn,i2_mode_idx) = nanmean(s2on_spkrates,1); % !!! IMPORTANT DETAIL: S2, NOT S1
-    psths.isi(:,nn,i2_mode_idx) = nanmean(isi_spkrates,1);
-    psths.s2on(:,nn,i2_mode_idx) = nanmean(s2on_spkrates,1);
-    psths.s2off(:,nn,i2_mode_idx) = nanmean(s2off_spkrates,1);
-    psths.post_s2(:,nn,i2_mode_idx) = nanmean(post_s2_spkrates,1);
-    psths.go(:,nn,i2_mode_idx) = nanmean(go_spkrates,1);
-end
-
-%% generate I2-modulated spike rates
-
-% modulation settings
-modulation = log(i_set) ./ log(i_set(i2_mode_idx));
-scaling = modulation .^ 0;
-gain = modulation .^ 1 * 1;
-offset = modulation .^ 1 * 0;
-
-% iterate through neurons
-for nn = 1 : n_neurons_total
-    progressreport(nn,n_neurons_total,'generating fake rates');
-    if all(isnan(psths.s2on(:,nn,i2_mode_idx)))
-        continue;
-    end
-    
-    % iterate through intensities
-    for ii = 1 : n_i
-        if ii == i2_mode_idx
+    % iterate through S2 durations
+    for tt = 1 : n_t
+        t2_flags = t2 == t_set(tt);
+        
+        % I2-based trial selection
+        i2_flags = i2 == i_set(i2_mode_idx);
+        
+        % trial selection
+        trial_flags = ...
+            valid_flags & ...
+            neuron_flags & ...
+            t2_flags & ...
+            i2_flags;
+        n_trials = sum(trial_flags);
+        if n_trials == 0
             continue;
         end
         
-        % apply I1 modulation at S1 presentation
-        psths.s1(:,nn,ii) = 1 * ...
-            psths.s1(:,nn,i1_mode_idx);
+        % fetch spike counts & compute spike rates
+        spike_rates = data.SDF(trial_flags,:);
         
-        % apply I2 modulation at S2 presentation
-        psths.s2on(:,nn,ii) = offset(ii) + gain(ii) * ...linspace(1,gain(ii),n_bins.s2on) .* ...
-            interp1(time.s2on,psths.s2on(:,nn,i2_mode_idx),time.s2on*scaling(ii),...
-            'linear','extrap');
-%         nan_flags = isnan(psths.s2on(:,nn,ii));
-%         psths.s2on(nan_flags,nn,ii) = psths.s2on(find(~nan_flags,1,'last'),nn,ii);
-        psths.s2off(:,nn,ii) = offset(ii) + gain(ii) * ...
-            interp1(time.s2off,psths.s2off(:,nn,i2_mode_idx),time.s2off*scaling(ii));
-
-        % no intensity modulation in the remaining epochs
-        psths.pre_s1(:,nn,ii) = psths.pre_s1(:,nn,i2_mode_idx);
-        psths.isi(:,nn,ii) = psths.isi(:,nn,i2_mode_idx);
-        psths.post_s2(:,nn,ii) = psths.post_s2(:,nn,i2_mode_idx);
-        psths.go(:,nn,ii) = psths.go(:,nn,i2_mode_idx);
+        % S2-aligned spike rates
+        s2_alignment = ...
+            pre_init_padding + ...
+            pre_s1_delay(trial_flags) + ...
+            t1(trial_flags) + ...
+            isi;
+        s2_alignment_flags = ...
+            padded_time >= s2_alignment + roi_window(1) & ...
+            padded_time < s2_alignment + roi_window(2);
+        s2_chunk_flags = s2_alignment_flags;
+        s2_spkrates = spike_rates';
+        s2_spkrates(~s2_alignment_flags') = nan;
+        s2_spkrates = reshape(...
+            s2_spkrates(s2_chunk_flags'),[roi_n_bins,n_trials])';
+        
+        % compute mean spike density function
+        real_psths(:,nn,tt) = nanmean(s2_spkrates,1);
+        
+%         if ismember(nn,flagged_neurons)
+%             figure('position',[1.8,41.8,766.4,740.8]); 
+%             subplot(3,1,[1,2]);
+%             imagesc(s2_spkrates)
+%             subplot(3,1,3);
+%             hold on;
+%             for ii = 1 : n_epochs
+%                 epoch = task_epochs{ii};
+%                 plot(roi_time,real_psths(:,nn,tt),...
+%                     'linewidth',1.5);
+%             end
+%             close;
+%         end
     end
 end
 
-%% generate I2-modulated spike trains
+%% construct fake real_psths (for + & - controls)
+
+% iterate through controls
+for cc = 1 : n_controls
+    control = control_labels{cc};
+    
+    % control- & feature-specific modulation
+    gain = control_modulation.(control).gain;
+    offset = control_modulation.(control).offset;
+    scaling = control_modulation.(control).scaling;
+    
+    % iterate through neurons
+    for nn = 1 : n_neurons_total
+        progressreport(nn,n_neurons_total,...
+            sprintf('generating %s control rates',control));
+        if all(isnan(real_psths.s2(:,nn)))
+            continue;
+        end
+        
+        % iterate through S2 durations
+        for tt = 1 : n_t
+            
+            % iterate through S2 intensities
+            for ii = 1 : n_i
+
+                % apply I2 modulation during S2 presentation
+                fake_psths.(control)(:,nn,ii) = offset(ii) + gain(ii) * ...
+                    interp1(roi_time.s2,...
+                    real_psths.s2(:,nn),...
+                    roi_time.s2*scaling(ii),...
+                    'linear','extrap');
+            end
+            
+            if ismember(nn,flagged_neurons)
+                figure;
+                hold on;
+                for ii = 1 : n_i
+                    for ee = 1 : n_epochs
+                        epoch = task_epochs{ee};
+                        plot(time+offsets,...
+                            fake_psths.(control)(:,nn,ii),...
+                            'color',i2_clrs(ii,:),...
+                            'linewidth',1.5);
+                    end
+                end
+                close;
+            end
+        end
+    end
+end
+
+%% sample fake spike times (for + & - controls)
 
 % preallocation
-if isfield(data,'FakeFR')
-    data = rmfield(data,'FakeFR');
+if ~isfield(data,'FakeFR')
+    data.FakeFR = nan(size(data.FR));
 end
-data.FakeFR = nan(size(data.FR));
 
 % iterate through neurons
 for nn = 1 : n_neurons_total
@@ -245,38 +166,32 @@ for nn = 1 : n_neurons_total
     neuron_flags = data.NeuronNumb == nn;
     
     % trial selection
-    spike_flags = ...
+    trial_flags = ...
         valid_flags & ...
         neuron_flags;
-    spike_trials = find(spike_flags);
+    spike_trials = find(trial_flags);
     n_trials = numel(spike_trials);
     
-%     if ismember(nn,flagged_neurons)
-%         figure;hold on;
-%     end
+    %
+    if ismember(nn,flagged_neurons)
+        figure; hold on;
+    end
     
     % iterate through trials
     for kk = 1 : n_trials
         trial_idx = spike_trials(kk);
+
+        %
+        lambda_isi = real_psths.isi(:,nn);
         
-        %         lambda_pre_s1 = psths.pre_s1(:,nn,i1(trial_idx)==i_set);
-        %         lambda_s1 = psths.s1(time.s1<=t1(trial_idx),nn,i1(trial_idx)==i_set);
-        %         lambda_isi = psths.isi(:,nn,i1(trial_idx)==i_set);
-        %         lambda_s2 = psths.s2on(time.s2on<=t2(trial_idx),nn,i2(trial_idx)==i_set);
-        %         lambda_post_s2 = psths.post_s2(:,nn,i2(trial_idx)==i_set);
-        %         lambda_go = psths.go(:,nn,i2(trial_idx)==i_set);
+        % positive control for S2
+        lambda_s2 = ...
+            fake_psths.positive.s2(roi_time.s2<=t2(trial_idx),nn,i2(trial_idx)==i_set) + ...
+            lambda_isi(end) - fake_psths.s2.positive(1,nn,i2(trial_idx)==i_set);
         
-        lambda_pre_s1 = psths.pre_s1(:,nn,i1(trial_idx)==i_set);
-        lambda_s1 = psths.s1(time.s1<=t1(trial_idx),nn,i1(trial_idx)==i_set) + ...
-            lambda_pre_s1(end) - psths.s1(1,nn,i1(trial_idx)==i_set);
-        lambda_isi = psths.isi(:,nn,i1(trial_idx)==i_set) + ...
-            lambda_s1(end) - psths.isi(1,nn,i1(trial_idx)==i_set);
-        lambda_s2 = psths.s2on(time.s2on<=t2(trial_idx),nn,i2(trial_idx)==i_set) + ...
-            lambda_isi(end) - psths.s2on(1,nn,i2(trial_idx)==i_set);
-        lambda_post_s2 = psths.post_s2(:,nn,i2(trial_idx)==i_set) + ...
-            lambda_s2(end) - psths.post_s2(1,nn,i2(trial_idx)==i_set);
-        lambda_go = psths.go(:,nn,i2(trial_idx)==i_set) + ...
-            lambda_post_s2(end) - psths.go(1,nn,i2(trial_idx)==i_set);
+        %
+        lambda_post_s2 = real_psths.post_s2(:,nn) + ...
+            lambda_s2(end) - real_psths.post_s2(1,nn);
         
         lambda = [...
             lambda_pre_s1;...
@@ -286,17 +201,17 @@ for nn = 1 : n_neurons_total
             lambda_post_s2;...
             lambda_go];
         
-%         if ismember(nn,flagged_neurons) && t2(trial_idx) == t_set(end)
-% 
-%             plot(lambda_s2,...*i2(trial_idx)/80,...
-%                 'color',i2_clrs(i_set==i2(trial_idx),:));
-%             a=1
-%         end
+        if ismember(nn,flagged_neurons) && t2(trial_idx) == t_set(end)
+            
+            plot(lambda_s2,...*i2(trial_idx)/80,...
+                'color',i2_clrs(i_set==i2(trial_idx),:));
+            a=1
+        end
         
+        % sample spike times
         dur = numel(lambda) * psthbin;
-        
         [n,ts] = poissonprocess(lambda,dur / 1e3);
-        offset = pre_init_padding + rois.pre_s1(1);
+        offset = pre_init_padding + roi_window.pre_s1(1);
         data.FakeFR(trial_idx,:) = ...
             histcounts(ts*1e3,[gauss_padded_time,n_paddedtimebins*psthbin]-offset);
     end
