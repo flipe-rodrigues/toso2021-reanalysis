@@ -125,32 +125,28 @@ for cc = 1 : n_controls
             % iterate through S2 intensities
             for ii = 1 : n_i
 
-                %
-                gain_through_time = zeros(roi_n_bins,1);
-                gain_through_time(s2_time_flags) = 1;
+                % compute gain through time
+                gain_through_time = ones(roi_n_bins,1);
+                gain_through_time(s2_time_flags) = nominal_gain(ii);
                 gain_through_time(post_s2_time_flags) = ...
                     linspace(nominal_gain(ii),1,sum(post_s2_time_flags));
                 
                 % apply I2 modulation during S2 presentation
-                fake_psths.(control)(:,nn,tt,ii) = real_psths(:,nn,tt);
-                fake_psths.(control)(s2_time_flags,nn,tt,ii) = ...
-                    nominal_gain(ii) * real_psths(s2_time_flags,nn,tt);
+                fake_psths.(control)(:,nn,tt,ii) = ...
+                    gain_through_time .* real_psths(:,nn,tt);
             end
             
-            if ismember(nn,flagged_neurons)
-                figure;
-                hold on;
-                for ii = 1 : n_i
-                    for ee = 1 : n_epochs
-                        epoch = task_epochs{ee};
-                        plot(roi_time,fake_psths.(control)(:,nn,tt,ii),...
-                            'color',i2_clrs(ii,:),...
-                            'linewidth',1.5);
-                    end
-                end
-                plot(roi_time,gain_through_time,'k');
-                close;
-            end
+%             if ismember(nn,flagged_neurons)
+%                 figure;
+%                 hold on;
+%                 for ii = 1 : n_i
+%                     plot(roi_time,fake_psths.(control)(:,nn,tt,ii),...
+%                         'color',i2_clrs(ii,:),...
+%                         'linewidth',1.5);
+%                 end
+%                 plot(roi_time,gain_through_time*5,'k');
+%                 close;
+%             end
         end
     end
 end
@@ -171,8 +167,8 @@ for nn = 1 : n_neurons_total
     trial_flags = ...
         valid_flags & ...
         neuron_flags;
-    spike_trials = find(trial_flags);
-    n_trials = numel(spike_trials);
+    trial_idcs = find(trial_flags);
+    n_trials = numel(trial_idcs);
     
     %
     if ismember(nn,flagged_neurons)
@@ -181,27 +177,23 @@ for nn = 1 : n_neurons_total
     
     % iterate through trials
     for kk = 1 : n_trials
-        trial_idx = spike_trials(kk);
+        trial_idx = trial_idcs(kk);
 
-        %
-        lambda_isi = real_psths.isi(:,nn);
+        
+        % negative control for S1
+        s1_time_flags = roi_time <= t2(trial_idx);
+        lambda_s1 = fake_psths.positive(s2_time_flags,nn,...
+            t2(trial_idx)==t_set,i2(trial_idx)==i_set);
         
         % positive control for S2
-        lambda_s2 = ...
-            fake_psths.positive.s2(roi_time.s2<=t2(trial_idx),nn,i2(trial_idx)==i_set) + ...
-            lambda_isi(end) - fake_psths.s2.positive(1,nn,i2(trial_idx)==i_set);
-        
-        %
-        lambda_post_s2 = real_psths.post_s2(:,nn) + ...
-            lambda_s2(end) - real_psths.post_s2(1,nn);
-        
+        s2_time_flags = roi_time <= t2(trial_idx);
+        lambda_s2 = fake_psths.positive(s2_time_flags,nn,...
+            t2(trial_idx)==t_set,i2(trial_idx)==i_set);
+
         lambda = [...
-            lambda_pre_s1;...
             lambda_s1;...
-            lambda_isi;...
             lambda_s2;...
-            lambda_post_s2;...
-            lambda_go];
+            ];
         
         if ismember(nn,flagged_neurons) && t2(trial_idx) == t_set(end)
             
