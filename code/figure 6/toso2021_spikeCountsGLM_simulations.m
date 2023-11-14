@@ -15,7 +15,7 @@ fractions = struct();
 
 %% iterate through runs
 for rr = 1 : n_runs
-    toso2021_simulateControls;
+    toso2021_simulateControls_s2i2;
     
     %% iterate through spike integration windows
     for gg = 1 : n_glm

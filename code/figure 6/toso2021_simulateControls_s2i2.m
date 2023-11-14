@@ -170,8 +170,8 @@ for nn = 1 : n_neurons_total
     trial_flags = ...
         valid_flags & ...
         neuron_flags;
-    trial_idcs = find(trial_flags);
-    n_trials = numel(trial_idcs);
+    flagged_trials = find(trial_flags);
+    n_trials = numel(flagged_trials);
     
     %
 %     if ismember(nn,flagged_neurons)
@@ -180,7 +180,7 @@ for nn = 1 : n_neurons_total
     
     % iterate through trials
     for kk = 1 : n_trials
-        trial_idx = trial_idcs(kk);
+        trial_idx = flagged_trials(kk);
 
         % preallocation
         lambda = nan(n_paddedtimebins,1);
@@ -220,8 +220,8 @@ for nn = 1 : n_neurons_total
 %         end
         
         % sample spike times
-        dur = numel(lambda) * psthbin;
-        [n,ts] = poissonprocess(lambda,dur / 1e3);
+        dur = numel(lambda) * psthbin / 1e3;
+        [~,ts] = poissonprocess(lambda,dur);
         fake_spike_counts = histcounts(...
             ts*1e3,[padded_time,n_paddedtimebins*psthbin]);
         data.FakeFR(trial_idx,:) = fake_spike_counts;

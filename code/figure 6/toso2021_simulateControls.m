@@ -243,7 +243,12 @@ for nn = 1 : n_neurons_total
         neuron_flags;
     spike_trials = find(spike_flags);
     n_trials = numel(spike_trials);
-
+    
+    if ismember(nn,flagged_neurons)
+        figure;
+        hold on;
+    end
+    
     % iterate through trials
     for kk = 1 : n_trials
         trial_idx = spike_trials(kk);
@@ -269,6 +274,12 @@ for nn = 1 : n_neurons_total
             lambda_go];
         
         dur = numel(lambda) * psthbin;
+        
+        if ismember(nn,flagged_neurons)
+            plot(lambda,...
+                'color',i2_clrs(i2(trial_idx)==i_set,:));
+            a=1
+        end
         
         [n,ts] = poissonprocess(lambda,dur / 1e3);
         offset = pre_init_padding + rois.pre_s1(1);
