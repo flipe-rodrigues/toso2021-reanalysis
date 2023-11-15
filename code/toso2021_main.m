@@ -76,7 +76,7 @@ toso2021_psychometricCurves;
 
 %% figures 3-5
 toso2021_averageActivity_s2Aligned;
-toso2021_rasters_s2Aligned_i1_t1_i2_choice;
+toso2021_rasters_s2Aligned;
 toso2021_PCA_s2Aligned;
 toso2021_neurometricCurves_s2Aligned;
 toso2021_naiveBayesDecoder_avg_s2Aligned;
@@ -87,14 +87,18 @@ toso2021_positiveControlResponses;
 toso2021_spikeCountsGLM_simulations;
 
 %% figure 7
-
+toso2021_rampClustering;
+toso2021_rampProportions;
+toso2021_rampTemporalTuning;
+toso2021_rampFiringRateRange;
+toso2021_rampStereotypyCoefficients;
 
 %% figure S1
 toso2021_samplingScheme;
 
 %% figure S2
 toso2021_averageActivity_s1Aligned;
-toso2021_rasters_s1Aligned_i1_t1_i2_choice;
+toso2021_rasters_s1Aligned;
 toso2021_PCA_s1Aligned;
 toso2021_neurometricCurves_s1Aligned;
 toso2021_naiveBayesDecoder_avg_s1Aligned;

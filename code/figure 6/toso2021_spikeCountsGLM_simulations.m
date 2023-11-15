@@ -30,7 +30,7 @@ for cc = 1 : n_controls
     control = control_labels{cc};
     
     % display control settings
-    fprintf('%s control modulation\n\t\t  I2 = {%i, %i, %i} %s:\n',...
+    fprintf('\n%s control modulation\n\t\t  I2 = {%i, %i, %i} %s:\n',...
         upper(control),i_set,i2_units);
     disp(control_modulation.positive);
 end

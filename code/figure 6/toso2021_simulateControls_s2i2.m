@@ -1,8 +1,11 @@
 %% check 'main.m' has run (and run it if not)
 toso2021_maincheck;
 
+%% half-width smoothing kernel
+hw_kernel = gammakernel('peakx',kernel_peak_time/2,'binwidth',psthbin);
+
 %% ROI settings
-roi_padding = gamma_kernel.paddx * 1;
+roi_padding = hw_kernel.paddx * 2;
 roi_window = [0,t_set(end)] + roi_padding;
 roi_n_bins = range(roi_window) / psthbin;
 roi_time = linspace(roi_window(1),roi_window(2),roi_n_bins);
@@ -37,9 +40,14 @@ for nn = 1 : n_neurons_total
         if n_trials == 0
             continue;
         end
-        
+
         % fetch spike counts & compute spike rates
-        spike_rates = data.SDF(trial_flags,:);
+        spike_counts = data.FR(trial_flags,:);
+%         spike_rates = data.SDF(trial_flags,:);
+        spike_rates = conv2(...
+            1,hw_kernel.pdf,spike_counts / psthbin * 1e3,'same');
+        spike_rates = conv2(...
+            1,fliplr(hw_kernel.pdf),spike_rates,'same');
         
         % S2-aligned spike rates
         s2_alignment = ...

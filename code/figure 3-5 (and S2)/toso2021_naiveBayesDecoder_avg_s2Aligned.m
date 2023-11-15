@@ -475,46 +475,6 @@ if want2save
     print(fig,svg_file,'-dsvg','-painters');
 end
 
-%% plot superimposed contrast-split MAP averages
-fig = figure(...
-    figopt,...
-    'name',sprintf('superimposed_posterior_maps_%s',contrast_str),...
-    'numbertitle','off');
-axes(...
-    axesopt.default,...
-    'xlim',roi_xlim,...
-    'xtick',unique([roi';roi_xlim';0;t_set]),...
-    'ylim',roi_ylim,...
-    'ytick',unique([roi';roi_ylim';0;t_set]),...
-    'xticklabelrotation',0,...
-    'yticklabelrotation',0);
-xlabel('Time since S_2 onset (ms)');
-ylabel('Decoded time since S_2 onset (ms)');
-
-% plot identity line
-plot([roi2plot(1),t_set(end)],[roi2plot(1),t_set(end)],':k');
-
-% zero lines
-plot([1,1]*0,ylim,':k');
-plot(xlim,[1,1]*0,':k');
-
-% iterate through contrast conditions
-for ii = 1 : n_contrasts
-    map_avg = squeeze(avgfun(map(:,ii,:),3));
-    map_err = squeeze(errfun(map(:,ii,:),3));
-    errorpatch(roi_time,map_avg,map_err,contrast_clrs(ii,:),...
-        'facealpha',.25);
-    plot(roi_time,map_avg,...
-        'color',contrast_clrs(ii,:),...
-        'linewidth',1.5);
-end
-
-% save figure
-if want2save
-    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-    print(fig,svg_file,'-dsvg','-painters');
-end
-
 %% plot slices through condition-split posterior averages
 
 % figure initialization
