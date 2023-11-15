@@ -1,32 +1,6 @@
 %% check 'main.m' has run (and run it if not)
 toso2021_maincheck;
 
-%% modulation settings
-modulation = log(i_set') ./ log(i_set(i2_mode_idx));
-
-%% control settings
-control_modulation = struct(...
-    'positive',struct(...
-        'gain',modulation.^1,...
-        'offset',modulation.*0,...
-        'scaling',modulation.^0),...
-    'negative',struct(...
-        'gain',modulation.^0,...
-        'offset',modulation.*0,...
-        'scaling',modulation.^0));
-control_labels = fieldnames(control_modulation);
-n_controls = numel(control_labels);
-
-% iterate through controls
-for cc = 1 : n_controls
-    control = control_labels{cc};
-    
-    % display control settings
-    fprintf('%s control modulation\n\t\t  I2 = {%i, %i, %i} %s:\n',...
-        upper(control),i_set,i2_units);
-    disp(control_modulation.positive);
-end
-
 %% ROI settings
 roi_padding = gamma_kernel.paddx * 1;
 roi_window = [0,t_set(end)] + roi_padding;
