@@ -2,7 +2,7 @@
 toso2021_maincheck;
 
 %% run settings
-n_runs = 3;
+n_runs = 10;
 
 %% GLM settings
 distro = 'normal';
