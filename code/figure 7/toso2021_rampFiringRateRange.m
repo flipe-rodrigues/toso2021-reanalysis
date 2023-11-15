@@ -1,7 +1,5 @@
-%% initialization
-if ~exist('data','var')
-    toso2021_wrapper;
-end
+%% check 'main.m' has run (and run it if not)
+toso2021_maincheck;
 
 %% compute Si-aligned firing rate statistics
 
@@ -68,7 +66,7 @@ for nn = 1 : n_neurons_total
     s2_spkrates(~s2_alignment_flags') = nan;
     s2_spkrates = reshape(...
         s2_spkrates(s2_chunk_flags'),[n_tbins,n_trials])';
-
+    
     % compute average spike rates across trials
     s1_spkrate = mean(s1_spkrates,'omitnan');
     s2_spkrate = mean(s2_spkrates,'omitnan');
@@ -78,7 +76,7 @@ for nn = 1 : n_neurons_total
     s2_weights = sum(~isnan(s1_spkrates));
     s1_weights = s1_weights ./ nansum(s1_weights);
     s2_weights = s2_weights ./ nansum(s2_weights);
-
+    
     % compute firing rate statistics
     fr_mu.s1(nn) = s1_spkrate * s1_weights';
     fr_mu.s2(nn) = s2_spkrate * s2_weights';
@@ -252,24 +250,29 @@ for ee = 1 : n_epochs
         'linewidth',1.5,...
         'handlevisibility','off');
     [~,pval] = kstest2(distro.(epoch){'ramp'},distro.(epoch){'nonramp'});
-%     pval = kruskalwallis(...
-%         vertcat(distro.(epoch){'ramp'},distro.(epoch){'nonramp'}),...
-%         vertcat(ones(size(distro.(epoch){'ramp'})),...
-%         zeros(size(distro.(epoch){'nonramp'}))),'off');
-%     pval = pval * n_epochs;
+    pval = pval * n_epochs;
     if pval < .01
         test_str = '**';
+        font_size = 16;
     elseif pval < .05
         test_str = '*';
+        font_size = 16;
     else
         test_str = 'n.s.';
+        font_size = axesopt.default.fontsize;
     end
     text(mean(xx),mean(yy)-.025*range(ylim),test_str,...
         'color','k',...
-        'fontsize',16,...
+        'fontsize',font_size,...
         'horizontalalignment','center',...
         'verticalalignment','bottom');
 end
+
+% compare the two stimulus epochs
+[~,pval] = kstest2(...
+    vertcat(distro.s1{'ramp'},distro.(epoch){'nonramp'}),...
+    vertcat(distro.s2{'ramp'},distro.(epoch){'nonramp'}));
+fprintf('KS test p-value (S1 vs. S2 firing rate range): %.2f\n',pval);
 
 % save figure
 if want2save

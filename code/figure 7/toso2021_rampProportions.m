@@ -1,7 +1,5 @@
-%% initialization
-if ~exist('data','var')
-    toso2021_wrapper;
-end
+%% check 'main.m' has run (and run it if not)
+toso2021_maincheck;
 
 %% plot proportion of ramping & non-ramping neurons across task epochs
 
@@ -64,6 +62,9 @@ proportion = struct2table(proportion,...
 proportion_ud = struct2table(proportion_ud,...
     'rownames',ramp_idcs.Properties.RowNames(1:2));
 
+% graphics object preallocation
+p = gobjects(3,1);
+
 % plot reference lines
 plot(xlim,[1,1]*.5,':k',...
     'handlevisibility','off');
@@ -78,15 +79,16 @@ for ee = 1 : n_cluster_epochs
         xx = xxrange(kk*2-1) + [0,1] * xxoffset * (-1)^(kk == 2) * .75;
         xpatch = [xx,fliplr(xx)];
         ypatch = sort(repmat([0,proportion.(epoch)(kk)],1,2));
-        patch(xpatch,ypatch,ramp_clrs(kk,:),...
+        p(kk) = patch(xpatch,ypatch,ramp_clrs(kk,:),...
             'facealpha',1,...
             'edgecolor',ramp_clrs(kk,:),...
-            'linewidth',1.5);
+            'linewidth',1.5,...
+            'handlevisibility','off');
     end
 end
 
 % iterate through alignments
-for ee = 1 : n_cluster_epochs
+for ee = 1 : n_cluster_epochs - 2
     epoch = cluster_epochs{ee};
     plot([1,1]*ee,ylim,':k',...
         'handlevisibility','off');
@@ -95,7 +97,7 @@ for ee = 1 : n_cluster_epochs
         xx = xxrange(kk*2-1) + [0,1] * xxoffset * (-1)^(kk == 2) * .75;
         xpatch = [xx,fliplr(xx)];
         ypatch = sort(repmat([0,proportion_ud.(epoch)('down')],1,2));
-        patch(xpatch,ypatch,'w',...
+        p(n_clusters + 1) = patch(xpatch,ypatch,'w',...
             'facealpha',1,...
             'edgecolor',ramp_clrs(kk,:),...
             'linewidth',1.5);
@@ -103,7 +105,7 @@ for ee = 1 : n_cluster_epochs
 end
 
 % legend
-legend({'up-ramping','down-ramping','non-ramping'},...
+legend(p,{'down-ramping / ramping','non-ramping','up-ramping'},...
     'autoupdate','off',...
     'box','off',...
     'location','best');

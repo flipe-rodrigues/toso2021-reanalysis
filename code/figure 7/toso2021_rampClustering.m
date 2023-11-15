@@ -2,9 +2,9 @@
 toso2021_maincheck;
 
 %% USE THEIR CODE TO CLASSIFY NEURONS AS "RAMPS" & "NON-RAMPS"
-if ~exist('AllRamps','var')
+if ~exist('their_labels','var')
     load(data_file);
-    [Neurons,AllRamps,~,~,preselected_idcs] = Selectramp_THEIRCODE(DataB);
+    [~,their_labels,~,~,preselected_idcs] = THEIRCODE_Selectramp(DataB);
     clear DataB;
 end
 
@@ -47,7 +47,7 @@ for ee = 1 : n_cluster_epochs
     % iterate through clusters
     for kk = 1 : n_clusters
         cluster = cluster_labels{kk};
-        rule = sum(AllRamps(:,epoch_idcs.(epoch)),2) > 0 == strcmpi(cluster,'ramp');
+        rule = sum(their_labels(:,epoch_idcs.(epoch)),2) > 0 == strcmpi(cluster,'ramp');
         their_idcs = preselected_idcs(rule);
         intersection_flags = ismember(their_idcs,flagged_neurons);
         cluster_idcs{ee,kk} = their_idcs(intersection_flags);
@@ -77,14 +77,14 @@ for ee = 1 : n_cluster_epochs
         end
         
         % up- & down-ramping neurons
-        rule = sum(AllRamps(:,epoch_idcs.(epoch)(idcs)),2) > 0;
+        rule = sum(their_labels(:,epoch_idcs.(epoch)(idcs)),2) > 0;
         their_idcs = preselected_idcs(rule);
         intersection_flags = ismember(their_idcs,flagged_neurons);
         ramp_idcs{ee,kk} = their_idcs(intersection_flags);
     end
     
     % non-ramping neurons
-    rule = sum(AllRamps(:,epoch_idcs.(epoch)),2) == 0;
+    rule = sum(their_labels(:,epoch_idcs.(epoch)),2) == 0;
     their_idcs = preselected_idcs(rule);
     intersection_flags = ismember(their_idcs,flagged_neurons);
     ramp_idcs{ee,end} = their_idcs(intersection_flags);

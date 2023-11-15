@@ -1,4 +1,4 @@
-function Features=THEIRCODE_NeuronType_Striatum(DataB)
+function Features = THEIRCODE_NeuronType_Striatum(DataB)
 
 % input: Data structure of neural recordings for each rat
 % output: a matrix called Features: col1: peakvalley, col2: peakwidth,

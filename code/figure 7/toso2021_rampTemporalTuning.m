@@ -1,7 +1,5 @@
-%% initialization
-if ~exist('data','var')
-    toso2021_wrapper;
-end
+%% check 'main.m' has run (and run it if not)
+toso2021_maincheck;
 
 %% compute temporal tuning across task epochs
 
@@ -114,7 +112,7 @@ for nn = 1 : n_neurons_total
     go_cue_spkrates = reshape(...
         go_cue_spkrates(go_cue_chunk_flags'),...
         [cluster_roi_n_bins,n_trials])';
-       
+    
     % S1-aligned spike rates
     s1_alignment_flags = ...
         padded_time >= s1_onset_alignment & ...
@@ -127,7 +125,7 @@ for nn = 1 : n_neurons_total
     s1_spkrates = reshape(...
         s1_spkrates(s1_chunk_flags'),...
         [cluster_roi_n_bins,n_trials])';
-     
+    
     % S2-aligned spike rates
     s2_alignment_flags = ...
         padded_time >= s2_onset_alignment & ...
@@ -154,19 +152,9 @@ for nn = 1 : n_neurons_total
         
         % normalize
         epoch_spkrate = epoch_spkrate ./ nansum(epoch_spkrate);
-
+        
         % compute center of mass
-        fr_tuning.(epoch)(nn) = epoch_spkrate * cluster_roi_time';        
-%         [~,max_idx] = max(epoch_spkrate);
-%         com_idx = find(cluster_roi_time>epoch_spkrate * cluster_roi_time',1);
-%         if strcmpi(epoch,'s2')
-%             %             figure;
-%             %             plot(cluster_roi_time,epoch_spkrate);
-%             %             hold on;
-%             %             plot(cluster_roi_time(max_idx),epoch_spkrate(max_idx),'o');
-%             %             plot(cluster_roi_time(com_idx),epoch_spkrate(com_idx),'o');
-%         end
-%         fr_tuning.(epoch)(nn) = cluster_roi_time(max_idx);
+        fr_tuning.(epoch)(nn) = epoch_spkrate * cluster_roi_time';
     end
 end
 
@@ -289,44 +277,6 @@ for ee = 1 : n_cluster_epochs - 2
     end
 end
 
-% % iterate through alignments
-% for ee = 1 : n_epochs
-%     epoch = epochs{ee};
-%     xx = [-1,1] * .5 / 3 + ee;
-%     yy = [1,1] * yylim(2);
-%     
-%     % iterate through clusters
-%     for kk = 1 : n_clusters
-%         cluster = cluster_labels{kk};
-%         
-% %         n_modes = [];
-% %         aic = inf;
-% %         for mm = 1 : 2
-% %             gmfit = fitgmdist(distro.(epoch){cluster},mm);
-% %             if aic > gmfit.BIC
-% %                 aic = gmfit.BIC;
-% %                 n_modes = mm;
-% %             end
-% %         end
-%         
-%         [~,pval] = kstest(distro.(epoch){cluster}-mean(distro.(epoch){cluster}));
-% %         pval = pval * n_epochs
-%         if pval < .01
-%             test_str = '**';
-%         elseif pval < .05
-%             test_str = '*';
-%         else
-%             test_str = 'n.s.';
-%         end
-%         text(xx(kk),mean(yy)-.025*range(ylim),test_str,...
-%             'color',ramp_clrs(kk,:),...
-%             'fontsize',16,...
-%             'horizontalalignment','center',...
-%             'verticalalignment','bottom');
-%     end
-% end
-% return
-
 % iterate through alignments
 for ee = 1 : n_epochs
     epoch = epochs{ee};
@@ -338,20 +288,28 @@ for ee = 1 : n_epochs
         'color','k',...
         'linewidth',1.5,...
         'handlevisibility','off');
-    [~,pval] = diptest(distro.(epoch){'ramp'});
-%     pval = pval * n_epochs;
-    if pval < .01
-        test_str = '**';
-    elseif pval < .05
-        test_str = '*';
-    else
-        test_str = 'n.s.';
+    
+    % iterate through clusters
+    for kk = 1 : n_clusters
+        cluster = cluster_labels{kk};
+        [~,pval] = diptest(distro.(epoch){cluster});
+        pval = pval * n_epochs * n_clusters;
+        if pval < .01
+            test_str = '**';
+            font_size = 16;
+        elseif pval < .05
+            test_str = '*';
+            font_size = 16;
+        else
+            test_str = 'n.s.';
+            font_size = axesopt.default.fontsize;
+        end
+        text(mean(xx),mean(yy)+(n_clusters-kk)*.25*mean(yy),test_str,...
+            'color',ramp_clrs(kk,:),...
+            'fontsize',font_size,...
+            'horizontalalignment','center',...
+            'verticalalignment','bottom');
     end
-    text(mean(xx),mean(yy)-.025*range(ylim),test_str,...
-        'color','k',...
-        'fontsize',16,...
-        'horizontalalignment','center',...
-        'verticalalignment','bottom');
 end
 
 % iterate through alignments
@@ -359,11 +317,6 @@ fprintf('\n');
 for ee = 1 : n_epochs
     epoch = epochs{ee};
     [~,pval] = kstest2(distro.(epoch){'ramp'},distro.(epoch){'nonramp'});
-%     pval = kruskalwallis(...
-%         vertcat(distro.(epoch){'ramp'},distro.(epoch){'nonramp'}),...
-%         vertcat(ones(size(distro.(epoch){'ramp'})),...
-%         zeros(size(distro.(epoch){'nonramp'}))),'on');
-%     pval = pval * n_epochs;
     fprintf('%s: %.2f\n',epoch,pval);
 end
 

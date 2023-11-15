@@ -1,10 +1,8 @@
-%% initialization
-if ~exist('data','var')
-    toso2021_wrapper;
-end
+%% check 'main.m' has run (and run it if not)
+toso2021_maincheck;
 
 %% bootstrap settings
-n_boots = 50;
+n_boots = 100;
 
 %% compute Si-aligned stereotypy
 
@@ -87,22 +85,6 @@ for nn = 1 : n_neurons_total
     % compute stereotypy coefficient
     fr_correlation.s1(nn) = nanmean(s1_rhos(:,1,2));
     fr_correlation.s2(nn) = nanmean(s2_rhos(:,1,2));
-    
-%     % preallocation
-%     s1_rhos = nan(n_trials,2,2);
-%     s2_rhos = nan(n_trials,2,2);
-%     
-%     % iterate through trials
-%     for tt = 1 : n_trials
-% 
-%         % compute correlation coefficients
-%         nan_flags = isnan(s1_spkrates(tt,:));
-%         s1_rhos(tt,:,:) = corrcoef(s1_spkrates(tt,~nan_flags),...
-%             nanmean(s1_spkrates((1:n_trials)~=tt,~nan_flags)));
-%         nan_flags = isnan(s2_spkrates(tt,:));
-%         s2_rhos(tt,:,:) = corrcoef(s2_spkrates(tt,~nan_flags),...
-%             nanmean(s2_spkrates((1:n_trials)~=tt,~nan_flags)));
-%     end
 
     % preallocation
     s1_entropy = nan(n_tbins,1);
@@ -220,7 +202,6 @@ legend({'ramping','non-ramping'},...
 
 % update axes
 yylim = [-1,1];
-% yylim = round(quantile(stat2plot.s2,[0,1])/.5)*.5;
 yytick = linspace(yylim(1),yylim(2),5);
 yyticklabel = num2cell(yytick);
 yyticklabel(~ismember(yytick,[0,yylim])) = {''};
@@ -281,24 +262,29 @@ for ee = 1 : n_epochs
         'linewidth',1.5,...
         'handlevisibility','off');
     [~,pval] = kstest2(distro.(epoch){'ramp'},distro.(epoch){'nonramp'});
-%     pval = kruskalwallis(...
-%         vertcat(distro.(epoch){'ramp'},distro.(epoch){'nonramp'}),...
-%         vertcat(ones(size(distro.(epoch){'ramp'})),...
-%         zeros(size(distro.(epoch){'nonramp'}))),'off');
-%     pval = pval * n_epochs;
+    pval = pval * n_epochs;
     if pval < .01
         test_str = '**';
+        font_size = 16;
     elseif pval < .05
         test_str = '*';
+        font_size = 16;
     else
         test_str = 'n.s.';
+        font_size = axesopt.default.fontsize;
     end
     text(mean(xx),mean(yy)-.025*range(ylim),test_str,...
         'color','k',...
-        'fontsize',16,...
+        'fontsize',font_size,...
         'horizontalalignment','center',...
         'verticalalignment','bottom');
 end
+
+% compare the two stimulus epochs
+[~,pval] = kstest2(...
+    vertcat(distro.s1{'ramp'},distro.(epoch){'nonramp'}),...
+    vertcat(distro.s2{'ramp'},distro.(epoch){'nonramp'}));
+fprintf('KS test p-value (S1 vs. S2 stereotypy): %.2f\n',pval);
 
 % save figure
 if want2save
