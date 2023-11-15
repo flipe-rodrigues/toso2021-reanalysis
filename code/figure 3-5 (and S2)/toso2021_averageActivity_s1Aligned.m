@@ -20,7 +20,7 @@ subject_flags = ismember(subjects,subject_set);
 
 % iterate through neurons
 for nn = 1 : n_neurons
-    progressreport(nn,n_neurons,'parsing neural data');
+    progressreport(nn,n_neurons,'computing average activity');
     neuron_flags = data.NeuronNumb == flagged_neurons(nn);
     ref_trial_flags = ...
         valid_flags & ...

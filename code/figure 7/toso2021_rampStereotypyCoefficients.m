@@ -19,7 +19,7 @@ entropyfun = @(p) -nansum(p .* log2(p));
 
 % iterate through neurons
 for nn = 1 : n_neurons_total
-    progressreport(nn,n_neurons_total,'parsing neural data');
+    progressreport(nn,n_neurons_total,'computing stereotypy statistics');
     neuron_flags = data.NeuronNumb == neuron_idcs(nn);
     spike_flags = ...
         valid_flags & ...

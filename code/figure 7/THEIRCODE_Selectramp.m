@@ -40,6 +40,8 @@ MeanFR = struct();
 Ramp_stats=[];Alignment=[];
 % loop through all Neurons
 for n=1:size(Neurons,1)
+    progressreport(n,size(Neurons,1),...
+        'flagging ramps and non-ramps (S1 onset)');
     
     % Linear Fit between time and FR
     PSTH=[];Trial_Spikes=[];
@@ -123,6 +125,8 @@ end
 Ramp_stats=[];Alignment=[];
 % loop through all Neurons
 for n=1:size(Neurons,1)
+    progressreport(n,size(Neurons,1),...
+        'flagging ramps and non-ramps (S1 offset)');
     
     % Linear Fit between time and FR
     PSTH=[];Trial_Spikes=[];
@@ -207,6 +211,8 @@ end
 Ramp_stats=[];Alignment=[];
 % loop through all Neurons
 for n=1:size(Neurons,1)
+    progressreport(n,size(Neurons,1),...
+        'flagging ramps and non-ramps (S2 onset)');
     
     % Linear Fit between time and FR
     PSTH=[];Trial_Spikes=[];
@@ -294,6 +300,8 @@ end
 Ramp_stats=[];Alignment=[];
 % loop through all Neurons
 for n=1:size(Neurons,1)
+    progressreport(n,size(Neurons,1),...
+        'flagging ramps and non-ramps (S2 offset)');
     
     % Linear Fit between time and FR
     PSTH=[];Trial_Spikes=[];
@@ -379,6 +387,8 @@ end
 Ramp_stats=[];Alignment=[];
 % loop through all Neurons
 for n=1:size(Neurons,1)
+    progressreport(n,size(Neurons,1),...
+        'flagging ramps and non-ramps (go cue)');
     
     % Linear Fit between time and FR
     PSTH=[];Trial_Spikes=[];

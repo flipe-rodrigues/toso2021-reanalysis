@@ -9,7 +9,7 @@ task_str = 'duration';
 % task_str = 'intensity';
 
 %% directory settings
-code_path = fileparts(which(mfilename));
+code_path = fileparts(getmfilename);
 addpath(genpath(code_path));
 cd(code_path);
 root_path = fileparts(code_path);

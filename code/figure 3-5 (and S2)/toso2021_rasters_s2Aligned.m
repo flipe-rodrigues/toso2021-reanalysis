@@ -37,7 +37,7 @@ i2_clamp_flags = i2 == i_set(i2_mode_idx);
 
 % iterate through neurons
 for nn = 1 : n_neurons2plot
-    progressreport(nn,n_neurons2plot,'parsing neural data');
+    progressreport(nn,n_neurons2plot,'plotting spike rasters & SDFs');
     neuron_flags = data.NeuronNumb == neurons2plot(nn);
     
     % figure initialization

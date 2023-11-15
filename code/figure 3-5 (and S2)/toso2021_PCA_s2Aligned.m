@@ -25,7 +25,7 @@ s2_psths = nan(roi2plot_n_bins,n_neurons,n_contrasts);
 
 % iterate through neurons
 for nn = 1 : n_neurons
-    progressreport(nn,n_neurons,'parsing neural data');
+    progressreport(nn,n_neurons,'computing average activity matrix for PCA');
     neuron_flags = data.NeuronNumb == flagged_neurons(nn);
     ref_trial_flags = ...
         valid_flags & ...
