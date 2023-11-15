@@ -46,9 +46,6 @@ toso2021_computeSDFs;
 %% neuron selection
 toso2021_neuronSelection;
 
-%% cluster neurons into ramping & non-ramping neurons using their code
-toso2021_selectRamps;
-
 %% contrast selection
 contrast_str = 'i2';
 % contrast_str = 't2';
