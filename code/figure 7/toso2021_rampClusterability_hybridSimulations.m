@@ -218,7 +218,7 @@ ylabel({'Real neuron / simulated ramp #','(sorted by PCs)'});
 % sort by angular position in PC space
 [~,theta_idcs] = sortrows(thetas);
 theta_idcs = circshift(theta_idcs,-125);
-betas = [(1:N)',ones(N,1)] \ rhos(theta_idcs);
+betas = [(1:n_neurons)',ones(n_neurons,1)] \ rhos(theta_idcs);
 if betas(1) < 0
     theta_idcs = flipud(theta_idcs);
 end
@@ -467,7 +467,6 @@ bounds = struct();
 edges = struct();
 counts = struct();
 bounds.thetas = [-pi,pi];
-bounds.slopes = quantile(slopes,[0,1]);
 bounds.rhos = [-1,1];
     
 % iterate through clusterability metrics
