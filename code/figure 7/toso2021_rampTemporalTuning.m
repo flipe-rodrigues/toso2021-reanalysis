@@ -313,11 +313,11 @@ for ee = 1 : n_epochs
 end
 
 % iterate through alignments
-fprintf('\n');
+fprintf('Two-sample KS p-values (ramp vs. non-ramp temporal tuning):\n');
 for ee = 1 : n_epochs
     epoch = epochs{ee};
     [~,pval] = kstest2(distro.(epoch){'ramp'},distro.(epoch){'nonramp'});
-    fprintf('%s: %.2f\n',epoch,pval);
+    fprintf('\t%s: %.2f\n',epoch,pval);
 end
 
 % save figure

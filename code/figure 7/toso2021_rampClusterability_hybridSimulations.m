@@ -1,14 +1,5 @@
-%% initialization
-if ~exist('data','var')
-    toso2021_wrapper;
-end
-
-%% gap statistic settings
-max_k = 15;
-min_pcs2consider = 2;
-max_pcs2consider = 2;
-n_pcs2consider = max_pcs2consider - min_pcs2consider + 1;
-pc_clrs = flipud(gray(max_pcs2consider+1));
+%% check 'main.m' has run (and run it if not)
+toso2021_maincheck;
 
 %% temporal smoothing kernel
 gauss_kernel = gausskernel('sig',50,'binwidth',psthbin);
@@ -155,43 +146,6 @@ pca_neuron_coeff = pca(zscore(r,0,1));
 %% t-SNE
 tsne_embeddings = tsne(zscore(r,0,2)');
 
-%% compute pairwise distances between PC coefficients
-
-% all to all pairwise distances
-dissimilarity_mat = pdist2(...
-    pca_neuron_coeff(:,1:2),pca_neuron_coeff(:,1:2));
-triu_mask = dissimilarity_mat == triu(dissimilarity_mat);
-dissimilarity = mat2colvec(dissimilarity_mat(triu_mask));
-
-% ramp to all pairwise distances
-dissimilarity_mat_ramp = pdist2(...
-    pca_neuron_coeff(ramp_flags,1:2),pca_neuron_coeff(ramp_flags,1:2));
-triu_mask_ramp = dissimilarity_mat_ramp == triu(dissimilarity_mat_ramp);
-dissimilarity_ramp = mat2colvec(dissimilarity_mat_ramp(triu_mask_ramp));
-
-% non-ramp to all pairwise distances
-dissimilarity_mat_non = pdist2(...
-    pca_neuron_coeff(nonramp_flags,1:2),pca_neuron_coeff(nonramp_flags,1:2));
-triu_mask_non = dissimilarity_mat_non == triu(dissimilarity_mat_non);
-dissimilarity_non = mat2colvec(dissimilarity_mat_non(triu_mask_non));
-
-%% compute monotonicity
-monotonicityfun = @(x) sum(sign(diff(x)) ./ (size(x,1) - 1));
-monotonicity = monotonicityfun(r);
-
-%% linear regression
-
-% preallocation
-slopes = nan(n_neurons,1);
-r2 = nan(n_neurons,1);
-
-% iterate through neurons
-for nn = 1 : n_neurons
-    mdl = fitlm(t,z(:,nn));
-    slopes(nn) = mdl.Coefficients.Estimate(2);
-    r2(nn) = mdl.Rsquared.Ordinary;
-end
-
 %% pearson's correlation coefficient
 
 % preallocation
@@ -239,33 +193,6 @@ for mm = 1 : n_metrics
     end
 end
 
-%% compute gap statistics
-
-% preallocation
-cluster_eval = struct();
-
-% iterate through number of PCs considered
-for pc = min_pcs2consider : max_pcs2consider
-    progressreport(pc-min_pcs2consider+1,n_pcs2consider,...
-        'computing gap statistics');
-    
-    % evaluate clustering based on neuron-wise PC coefficients
-    curr_eval = evalclusters(pca_neuron_coeff(:,1:pc),'kmeans','gap',...
-        'referencedistribution','uniform',...
-        'klist',1:max_k);
-    cluster_eval.neuron.gap(pc,:) = curr_eval.CriterionValues;
-    cluster_eval.neuron.se(pc,:) = curr_eval.SE;
-    cluster_eval.neuron.k(pc) = curr_eval.OptimalK;
-    
-    % evaluate clustering based on time-wise PC scores
-    curr_eval = evalclusters(pca_time_score(:,1:pc),'kmeans','gap',...
-        'referencedistribution','uniform',...
-        'klist',1:max_k);
-    cluster_eval.time.gap(pc,:) = curr_eval.CriterionValues;
-    cluster_eval.time.se(pc,:) = curr_eval.SE;
-    cluster_eval.time.k(pc) = curr_eval.OptimalK;
-end
-
 %% tiling
 
 % figure initialization
@@ -306,10 +233,6 @@ sorted_idcs = theta_idcs;
 clim = [-2,4];
 
 % plot psth raster
-% downramp_idcs = find(downramp_flags);
-% nonramp_idcs = find(nonramp_flags);
-% upramp_idcs = find(upramp_flags);
-% sorted_idcs = [downramp_idcs;nonramp_idcs(theta_idcs);upramp_idcs];
 imagesc(roi,[1,n_neurons],z(:,sorted_idcs)',clim);
 
 % plot cluster affordances
@@ -457,8 +380,8 @@ grapeplot(pca_time_score(ramp_flags,1),pca_time_score(ramp_flags,2),...
     'markerfacecolor',cluster_clrs(ramp_flags,:)*.85);
 
 % update axis
-xxlim = xlim; % quantile(s2_score_time(:,1),[0,1]+[1,-1]*.00);
-yylim = ylim; % quantile(s2_score_time(:,2),[0,1]+[1,-1]*.00);
+xxlim = xlim;
+yylim = ylim;
 xlim(xxlim + [-1,1] * .05 * range(xxlim));
 ylim(yylim + [-1,1] * .05 * range(yylim));
 set(gca,...
@@ -516,7 +439,7 @@ end
 
 % figure initialization
 fig = figure(figopt,...
-    'position',[200,200,560,415],...
+    'position',[200,600,560,415],...
     'name','clusterability_simulated');
 
 % axes initialization
@@ -607,7 +530,7 @@ end
 
 % figure initialization
 fig = figure(figopt,...
-    'position',[200,200,560,415],...
+    'position',[200,100,560,415],...
     'name','clusterability_clustersplit_simulated');
 
 % axes initialization
@@ -705,60 +628,4 @@ set(sps(2),...
 if want2save
     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
-end
-
-%% plot gap statistics
-clustering_criteria = fieldnames(cluster_eval);
-n_clustering_criteria = numel(clustering_criteria);
-
-% iterate through clustering criteria
-for cc = 1 : n_clustering_criteria
-    criterion = clustering_criteria{cc};
-    
-    % figure initialization
-    fig = figure(figopt,...
-        'name',sprintf('gap_%s_simulated',criterion));
-    axes(axesopt.default,...
-        'xlim',[1,max_k]+[-1,1]*.05*max_k,...
-        'xtick',1:max_k,...
-        'ylimspec','tight');
-    xlabel('Number of clusters');
-    ylabel('Gap value');
-    
-    % iterate through number of PCs considered
-    for pc = min_pcs2consider : max_pcs2consider
-        errorbar(1:max_k,...
-            cluster_eval.(criterion).gap(pc,:),...
-            cluster_eval.(criterion).se(pc,:),...
-            'color',pc_clrs(pc,:),...
-            'linewidth',1.5,...
-            'capsize',0);
-        plot(cluster_eval.(criterion).k(pc),...
-            cluster_eval.(criterion).gap(pc,cluster_eval.(criterion).k(pc)),...
-            'color','k',...
-            'marker','o',...
-            'markersize',6.5,...
-            'markeredgecolor',pc_clrs(pc,:),...
-            'markerfacecolor','w',...
-            'linewidth',1.5,...
-            'handlevisibility','off');
-    end
-    
-    % legend
-    leg_str = arrayfun(...
-        @(x)sprintf('first %i PCs_{s2}',x),min_pcs2consider:max_pcs2consider,...
-        'uniformoutput',false);
-    % legend(leg_str);
-    
-    % update axis
-    set(gca,...
-        'ytick',ylim,...
-        'ylim',ylim+[-1,1]*.05*range(ylim),...
-        'yticklabel',{'0',''});
-    
-    % save figure
-    if want2save
-        svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-        print(fig,svg_file,'-dsvg','-painters');
-    end
 end

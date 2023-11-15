@@ -272,7 +272,7 @@ end
 [~,pval] = kstest2(...
     vertcat(distro.s1{'ramp'},distro.(epoch){'nonramp'}),...
     vertcat(distro.s2{'ramp'},distro.(epoch){'nonramp'}));
-fprintf('KS test p-value (S1 vs. S2 firing rate range): %.2f\n',pval);
+fprintf('Two-sample KS p-value (S1 vs. S2 firing rate range): %.2f\n',pval);
 
 % save figure
 if want2save

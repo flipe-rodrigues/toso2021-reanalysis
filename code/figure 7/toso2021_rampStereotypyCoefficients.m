@@ -2,7 +2,7 @@
 toso2021_maincheck;
 
 %% bootstrap settings
-n_boots = 100;
+n_boots = 10;
 
 %% compute Si-aligned stereotypy
 
@@ -284,7 +284,7 @@ end
 [~,pval] = kstest2(...
     vertcat(distro.s1{'ramp'},distro.(epoch){'nonramp'}),...
     vertcat(distro.s2{'ramp'},distro.(epoch){'nonramp'}));
-fprintf('KS test p-value (S1 vs. S2 stereotypy): %.2f\n',pval);
+fprintf('Two-sample KS p-value (S1 vs. S2 stereotypy): %.2f\n',pval);
 
 % save figure
 if want2save
