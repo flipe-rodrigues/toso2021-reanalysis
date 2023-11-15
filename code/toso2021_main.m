@@ -62,7 +62,7 @@ contrast_clrs = eval([contrast_str,'_clrs']);
 contrast_units = eval([contrast_str,'_units']);
 contrast_lbl = [upper(contrast_str(1)),'_',contrast_str(2)];
 
-%% figures 1 & 2
+%% figures 1-2
 toso2021_eventDiagram;
 toso2021_generalizationMatrix_Si;
 toso2021_generalizationMatrix_Di;
