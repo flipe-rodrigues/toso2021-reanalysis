@@ -139,7 +139,8 @@ sdf_spacing = 1.05;
 % figure initialization
 fig = figure(figopt,...
     'position',[489,343,460,420],...
-    'name',sprintf('fake_modulation_%s',contrast_str));
+    'name',sprintf('fake_modulation_%s',contrast_str),...
+    'color',[1,1,1]*245/255);
 
 % axes initialization
 sps = gobjects(2,1);

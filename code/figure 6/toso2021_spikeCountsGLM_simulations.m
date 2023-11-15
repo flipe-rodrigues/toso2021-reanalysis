@@ -15,13 +15,13 @@ modulation = log(i_set') ./ log(i_set(i2_mode_idx));
 %% control settings
 control_modulation = struct(...
     'positive',struct(...
-        'gain',modulation.^1,...
-        'offset',modulation.*0,...
-        'scaling',modulation.^0),...
+    'gain',modulation.^1,...
+    'offset',modulation.*0,...
+    'scaling',modulation.^0),...
     'negative',struct(...
-        'gain',modulation.^0,...
-        'offset',modulation.*0,...
-        'scaling',modulation.^0));
+    'gain',modulation.^0,...
+    'offset',modulation.*0,...
+    'scaling',modulation.^0));
 control_labels = fieldnames(control_modulation);
 n_controls = numel(control_labels);
 
@@ -69,7 +69,7 @@ for rr = 1 : n_runs
         % epoch parsing
         epochs = fieldnames(glm_roi);
         n_epochs = numel(epochs);
- 
+        
         %% construct response
         
         % iterate through neurons
@@ -192,7 +192,7 @@ for rr = 1 : n_runs
                 ismember(epoch,{'postS1Onset','preS1Offset'});
             t2_flags = t2 >= glm_win * ...
                 ismember(epoch,{'postS2Onset','preS2Offset'});
-
+            
             % iterate through neurons
             for nn = 1 : n_neurons
                 progressreport(nn,n_neurons,...
@@ -217,7 +217,7 @@ for rr = 1 : n_runs
                     'distribution',distro,...
                     'intercept',true,...
                     'options',opts);
-
+                
                 % caching
                 betas.(epoch)(nn,:) = mdl.Coefficients.Estimate;
                 pvals_raw.(epoch)(nn,:) = mdl.Coefficients.pValue;
@@ -261,7 +261,7 @@ for rr = 1 : n_runs
         coeffs2plot = mdl.CoefficientNames(2:end-1);
         n_coeffs2plot = numel(coeffs2plot);
         coeffs2highlight = coeffs2plot;
-
+        
         % uncomment below to only highlight specific task factors
         % coeffs2highlight = {...
         %     'T_1',...
@@ -270,7 +270,7 @@ for rr = 1 : n_runs
         %     'I_2',...
         %     'choice',...
         %     };
-
+        
         % enact factor selection
         coeffs2highlight_flags = ismember(coeffs2plot,coeffs2highlight);
         coeffs2highlight_idcs = find(coeffs2highlight_flags);
@@ -285,7 +285,7 @@ for rr = 1 : n_runs
             ...'position',[150,125,1500,825],...
             'name',sprintf('GLM_significance_crossEpochs_%s_%i_%s',...
             distro,glm_win,strrep([coeffs2highlight{:}],'_','')),...
-            'color',[1,1,1]*1);
+            'color',[1,1,1]*245/255);
         
         % alignments
         alignments = {...
@@ -333,7 +333,7 @@ for rr = 1 : n_runs
         % reference lines
         plot(xlim,[1,1]*0,'-k',...
             'linewidth',1.5);
-
+        
         % pseudo-legend (stimulus epochs)
         s1epoch_idcs = ...
             [find(ismember(epochs,'postS1Onset')),...
@@ -401,7 +401,7 @@ for rr = 1 : n_runs
                     
                     % significance flags
                     significant_flags = pvals_corrected.(epoch)(:,coeff_idx) <= alphas(aa);
-
+                    
                     % iterate through signs
                     signs = [-1,1];
                     for ss = 1 : 2
@@ -629,7 +629,7 @@ end
 % figure initialization
 fig = figure(figopt,...
     'name','GLM_spikeCountDistros_crossBins',...
-    'color',[1,1,1]*1);
+    'color',[1,1,1]*245/255);
 
 % bin settings
 binspan = [0,30];
@@ -700,7 +700,7 @@ end
 fig = figure(figopt,...
     'position',[550,400,420,320],...
     'name','GLM_spikeCountMus_crossBins',...
-    'color',[1,1,1]*1);
+    'color',[1,1,1]*245/255);
 
 % axes initialization
 xxtick = unique([-pre_s1_delay;0;t_set]);
@@ -781,7 +781,7 @@ end
 % figure initialization
 fig = figure(figopt,...
     'name',sprintf('GLM_falseNegativeRate_%s',distro),...
-    'color',[1,1,1]*1);
+    'color',[1,1,1]*245/255);
 
 % axes initialization
 xxtick = unique([-pre_s1_delay;0;t_set]);

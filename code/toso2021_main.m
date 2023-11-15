@@ -92,8 +92,11 @@ toso2021_rampProportions;
 toso2021_rampTemporalTuning;
 toso2021_rampFiringRateRange;
 toso2021_rampStereotypyCoefficients;
-
+toso2021_rampBumpModelSpecification;
+toso2021_rampDecodingPerformance_simulations;
+toso2021_rampDecodingPerformance_s1s2;
 toso2021_rampClusterability_data;
+toso2021_rampClusterability_hybrid;
 
 %% figure S1
 toso2021_samplingScheme;
