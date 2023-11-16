@@ -5,7 +5,7 @@ if ~exist('data','var')
 end
 
 %% bootstrap settings
-n_boots = 100;
+n_boots = 10;
 
 %% temporal smoothing kernel
 gauss_kernel = gausskernel('sig',50,'binwidth',psthbin);
@@ -371,14 +371,17 @@ for ee = 1 : n_epochs
     pval = kruskalwallis([accuracy(:,ee,1),accuracy(:,ee,2)],[],'off');
     if pval < .01
         test_str = '**';
+        font_size = 16;
     elseif pval < .05
         test_str = '*';
+        font_size = 16;
     else
         test_str = 'n.s.';
+        font_size = axesopt.default.fontsize;
     end
     text(mean(xx),mean(yy)-.025/2.5*range(ylim),test_str,...
         'color','k',...
-        'fontsize',16,...
+        'fontsize',font_size,...
         'horizontalalignment','center',...
         'verticalalignment','bottom');
 end
@@ -476,14 +479,17 @@ for ee = 1 : n_epochs
     pval = kruskalwallis([precision(:,ee,1),precision(:,ee,2)],[],'off');
     if pval < .01
         test_str = '**';
+        font_size = 16;
     elseif pval < .05
         test_str = '*';
+        font_size = 16;
     else
         test_str = 'n.s.';
+        font_size = axesopt.default.fontsize;
     end
     text(mean(xx),mean(yy)-.025/2.5*range(ylim),test_str,...
         'color','k',...
-        'fontsize',16,...
+        'fontsize',font_size,...
         'horizontalalignment','center',...
         'verticalalignment','bottom');
 end
