@@ -51,8 +51,7 @@ roi_offset_flags = ...
 
 % "monotonocity" criteria
 rho_monotonocity_cutoff = .5;
-% beta_monotonocity_cutoff = .05;	% what they say they do in the methods
-beta_monotonocity_cutoff = .004;	% what's in their code
+beta_monotonocity_cutoff = .003;
 pval_monotonocity_cutoff = .05;
 
 % stereotypy criteria
