@@ -524,6 +524,9 @@ for mm = 1 : M
         imagesc(sps(2),roi_decoding,roi_decoding,P_tR_non',clim);
         plot(sps(2),xlim(sps(2)),ylim(sps(2)),'-k');
         plot(sps(2),xlim(sps(2)),ylim(sps(2)),'--w');
+        
+        % force a draw call
+        drawnow;
     end
 end
 
@@ -1006,7 +1009,7 @@ for mm = 1 : M
     end
     text(mean(xx),mean(yy)-.025/2.5*range(ylim),test_str,...
         'color','k',...
-        'fontsize',fontsize,...
+        'fontsize',font_size,...
         'horizontalalignment','center',...
         'verticalalignment','bottom');
 end
@@ -1158,13 +1161,7 @@ if want2save
     print(fig,svg_file,'-dsvg','-painters');
 end
 
-%%
-figure;
-for mm = 1 : M
-    subplot(M,1,mm);
-    histogram(P_RAMP(:,mm),(0:.025:1.05)-.0125);
-    xlim([0,1]);
-end
+%% <firing rate> distributions across models
 figure(...
     'position',[1.0258e+03 41.8000 1.0224e+03 1.0288e+03]);
 fr_edges = linspace(0,30,50);
@@ -1172,7 +1169,7 @@ for mm = 1 : M
     subplot(M,1,mm);
     set(gca,axesopt.default,...
         'plotboxaspectratio',[M,1,1]);
-    xlabel('Firing rate (Hz)');
+    xlabel('<Firing rate> (Hz)');
     ylabel('Count');
     mm_ramp_flags = SELECTED_RAMP_FLAGS(:,:,mm);
     mm_mean_fr = MEAN_FR(:,:,mm);
@@ -1190,4 +1187,8 @@ for mm = 1 : M
     plot([1,1]*mean(mm_mean_fr(~mm_ramp_flags),[1,2]),[0,1]*yymax*1.05,...
         'color',ramp_clrs(2,:),...
         'linewidth',3);
+    text(1,1,sprintf('<P(ramp)> = %.2f',mean(P_RAMP(:,mm))),...
+        'horizontalalignment','right',...
+        'verticalalignment','top',...
+        'units','normalized');
 end
