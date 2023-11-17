@@ -9,7 +9,7 @@ task_str = 'duration';
 % task_str = 'intensity';
 
 %% directory settings
-code_path = fileparts(getmfilename);
+code_path = fileparts(matlab.desktop.editor.getActiveFilename);
 addpath(genpath(code_path));
 cd(code_path);
 root_path = fileparts(code_path);
