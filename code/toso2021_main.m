@@ -8,8 +8,6 @@ clc;
 task_str = 'duration';
 % task_str = 'intensity';
 
-copydependencies(mfilename,fullfile(pwd,'DEPS'));
-
 %% directory settings
 code_path = fileparts(getmfilename);
 addpath(genpath(code_path));
