@@ -378,7 +378,7 @@ sps = gobjects(n_pcs2plot,1);
 for pc = 1 : n_pcs2plot
     sp_idx = pc * 2 - 1 - (pc > n_pcs2plot / 2) * (n_pcs2plot - 1);
     sps(pc) = subplot(n_pcs2plot/2,2,sp_idx);
-    xlabel(sps(pc),'Time since S_1 onset (ms)');
+    xlabel(sps(pc),'Time since S1 onset (ms)');
     ylabel(sps(pc),sprintf('PC %i',pc));
 end
 xxtick = unique([roi2plot';0;t_set]);
@@ -503,8 +503,8 @@ fig = figure(figopt,...
 axes(...
     axesopt.default,...
     'clipping','off');
-xlabel('Neural dimension 1_{1}');
-ylabel('Neural dimension 2_{2}');
+xlabel('Neural dimension 1');
+ylabel('Neural dimension 2');
 
 % rotation specification
 rotfuns = {@rotxd,@rotyd,@rotzd};

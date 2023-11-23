@@ -82,10 +82,10 @@ for nn = 1 : n_neurons2plot
     set(sps((1:n_cols)+n_cols),...
         'yaxislocation','right',...
         'ycolor','k');
-    xlabel(sps(1+n_cols),'Time since S_1 onset (s)');
-    xlabel(sps(2+n_cols),'Time since S_1 onset (s)');
-    xlabel(sps(3+n_cols),'Time since S_1 onset (s)');
-    xlabel(sps(4+n_cols),'Time since S_1 onset (s)');
+    xlabel(sps(1+n_cols),'Time since S1 onset (s)');
+    xlabel(sps(2+n_cols),'Time since S1 onset (s)');
+    xlabel(sps(3+n_cols),'Time since S1 onset (s)');
+    xlabel(sps(4+n_cols),'Time since S1 onset (s)');
     ylbl_1 = ylabel(sps(1),'Firing rate (Hz)');
     ylbl_2 = ylabel(sps(2),'Firing rate (Hz)');
     ylbl_3 = ylabel(sps(3),'Firing rate (Hz)');

@@ -211,7 +211,7 @@ axes(axesopt.default,...
     'colormap',hot(2^8),...
     'clipping','off');
 title('S1-aligned PSTH raster');
-xlabel('Time since S_1 onset (ms)');
+xlabel('Time since S1 onset (ms)');
 ylabel({'Neuron #','(sorted by neuron-wise PCs)'});
 
 % sort by angular position in PC space
@@ -274,7 +274,7 @@ axes(axesopt.default,...
     'colormap',hot(2^8),...
     'clipping','off');
 title('S2-aligned PSTH raster');
-xlabel('Time since S_2 onset (ms)');
+xlabel('Time since S2 onset (ms)');
 ylabel({'Neuron #','(sorted by neuron-wise PCs)'});
 
 % sort by angular position in PC space

@@ -348,8 +348,8 @@ figure(...
 sps = gobjects(n_contrasts,1);
 for ii = 1 : n_contrasts
     sps(ii) = subplot(1,n_contrasts,ii);
-    xlabel(sps(ii),'Time since S_1 onset (ms)');
-    ylabel(sps(ii),'Decoded time since S_1 onset (ms)');
+    xlabel(sps(ii),'Time since S1 onset (ms)');
+    ylabel(sps(ii),'Decoded time since S1 onset (ms)');
 end
 set(sps,...
     axesopt.default,...
@@ -385,8 +385,8 @@ axes(...
     'ytick',unique([roi';roi_ylim';0;t_set]),...
     'xticklabelrotation',0,...
     'yticklabelrotation',0);
-xlabel('Time since S_1 onset (ms)');
-ylabel('Decoded time since S_1 onset (ms)');
+xlabel('Time since S1 onset (ms)');
+ylabel('Decoded time since S1 onset (ms)');
 
 % convert from tensor to rgb
 P_tR_avg = squeeze(avgfun(P_tR,4));
@@ -488,7 +488,7 @@ axes(...
     'layer','bottom');
 
 % axes labels
-xlabel('Decoded time since S_1 onset (ms)');
+xlabel('Decoded time since S1 onset (ms)');
 ylabel('P(t|R)');
 
 % time seletion

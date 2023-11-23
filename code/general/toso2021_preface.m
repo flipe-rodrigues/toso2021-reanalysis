@@ -41,8 +41,12 @@ fprintf('- after: (intensity | I1 count | I2 count)\n');
 summary(categorical([data.Intensity1,data.Intensity2]))
 
 %% convert intensity from standard deviation to mean speed units
-data.Intensity1 = round(data.Intensity1 .* sqrt(2 / pi));
-data.Intensity2 = round(data.Intensity2 .* sqrt(2 / pi));
+if any(~ismember(i1_set_bugged(~isnan(i1_set_bugged)),i1_set))
+    data.Intensity1 = round(data.Intensity1 .* sqrt(2 / pi));
+end
+if any(~ismember(i2_set_bugged(~isnan(i2_set_bugged)),i2_set))
+    data.Intensity2 = round(data.Intensity2 .* sqrt(2 / pi));
+end
 
 %% duration heterogeneity fixes
 fprintf('DURATION:\n');
@@ -194,10 +198,10 @@ if strcmpi(task_str,'duration')
     d_set = i_set;
     
     % labels
-    s1_lbl = 'T_1';
-    s2_lbl = 'T_2';
-    d1_lbl = 'I_1';
-    d2_lbl = 'I_2';
+    s1_lbl = 'T1';
+    s2_lbl = 'T2';
+    d1_lbl = 'I1';
+    d2_lbl = 'I2';
     s_units = t1_units;
     d_units = i1_units;
     
@@ -219,10 +223,10 @@ elseif strcmpi(task_str,'intensity')
     d_set = t_set;
     
     % labels
-    s1_lbl = 'I_1';
-    s2_lbl = 'I_2';
-    d1_lbl = 'T_1';
-    d2_lbl = 'T_2';
+    s1_lbl = 'I1';
+    s2_lbl = 'I2';
+    d1_lbl = 'T1';
+    d2_lbl = 'T2';
     s_units = i1_units;
     d_units = t1_units;
     
@@ -264,7 +268,7 @@ n_neurons_total = numel(neuron_idcs);
 downsampling_factor = 1;
 psthbin_src = 1;
 psthbin = psthbin_src * downsampling_factor;
-n_timebins_src = 6700;
+n_timebins_src = size(data.FR,2);
 n_timebins = n_timebins_src / downsampling_factor;
 time_src = 1 : psthbin_src : n_timebins_src * psthbin_src;
 time = 1 : psthbin : n_timebins * psthbin;
