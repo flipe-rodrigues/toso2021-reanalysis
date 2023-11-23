@@ -203,8 +203,8 @@ if strcmpi(task_str,'duration')
     % colors
     s1_clrs = t1_clrs;
     s2_clrs = t2_clrs;
-    
-    % delayed intensity comparison
+
+% delayed intensity comparison
 elseif strcmpi(task_str,'intensity')
     
     % stimuli
@@ -293,6 +293,53 @@ valid_flags = ...
     ismember(i2,i_set) & ...
     ismember(t2,t_set);
 
+%% normalized stimulus dimensions
+
+% duration
+ntd = round((t2 - t1) ./ (t2 + t1),2);
+ntd_set = unique(ntd(valid_flags));
+n_ntd = numel(ntd_set);
+
+% intensity
+nid = round((i2 - i1) ./ (i2 + i1),1);
+nid_set = unique(nid(valid_flags));
+n_nid = numel(nid_set);
+    
+% delayed duration comparison
+if strcmpi(task_str,'duration')
+    
+    % stimuli
+    nsd = ntd;
+    nsd_set = ntd_set;
+    n_nsd = n_ntd;
+    
+    % distractors
+    ndd = nid;
+    ndd_set = nid_set;
+    n_ndd = n_nid;
+    
+    % labels
+    nsd_lbl = 'NTD';
+    ndd_lbl = 'NID';
+    
+% delayed intensity comparison
+elseif strcmpi(task_str,'intensity')
+
+    % stimuli
+    nsd = nid;
+    nsd_set = nid_set;
+    n_nsd = n_nid;
+    
+    % distractors
+    ndd = ntd;
+    ndd_set = ntd_set;
+    n_ndd = n_ntd;
+    
+    % labels
+    nsd_lbl = 'NID';
+    ndd_lbl = 'NTD';
+end
+
 %% flag unique trials
 pseudosession_transition_flags = [diff(data.Trial) ~= 1; true];
 n_pseudosession_transitions = sum(pseudosession_transition_flags);
@@ -325,18 +372,6 @@ for ii = 1 : n_pseudosession_transitions
     end
     prev_session_rows = pseudo_session_rows;
 end
-
-%% normalized stimulus dimensions
-
-% duration
-ntd = round((t2 - t1) ./ (t2 + t1),2);
-ntd_set = unique(ntd(valid_flags));
-n_ntd = numel(ntd_set);
-
-% intensity
-nid = round((i2 - i1) ./ (i2 + i1),1);
-nid_set = unique(nid(valid_flags));
-n_nid = numel(nid_set);
 
 %% fade settings
 fadeifnoisy = true;

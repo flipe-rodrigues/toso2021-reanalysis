@@ -178,7 +178,11 @@ cbar.Label.VerticalAlignment = 'bottom';
 
 % plot hypothesized probability of reporting S2 > S1
 si_x = linspace(invfun(min(xlim)),invfun(max(xlim)),1e2);
-beta = 1.75;
+if strcmpi(task_str,'duration')
+    beta = 1.75;
+else
+    beta = 1.75;
+end
 p_choice_mat = 1 ./ (1 + exp(-beta * (si_x' - si_x) ./ (si_x' + si_x)));
 h = pcolor(tfun(si_x),tfun(si_x),p_choice_mat);
 h.EdgeColor = 'none';
