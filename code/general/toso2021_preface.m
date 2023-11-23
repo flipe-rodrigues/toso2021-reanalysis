@@ -41,10 +41,12 @@ fprintf('- after: (intensity | I1 count | I2 count)\n');
 summary(categorical([data.Intensity1,data.Intensity2]))
 
 %% convert intensity from standard deviation to mean speed units
-if any(~ismember(i1_set_bugged(~isnan(i1_set_bugged)),i1_set))
+if any(~ismember(i1_set_bugged(~isnan(i1_set_bugged)),...
+        unique(data.Intensity1(~isnan(data.Intensity1)))))
     data.Intensity1 = round(data.Intensity1 .* sqrt(2 / pi));
 end
-if any(~ismember(i2_set_bugged(~isnan(i2_set_bugged)),i2_set))
+if any(~ismember(i2_set_bugged(~isnan(i2_set_bugged)),...
+        unique(data.Intensity2(~isnan(data.Intensity2)))))
     data.Intensity2 = round(data.Intensity2 .* sqrt(2 / pi));
 end
 

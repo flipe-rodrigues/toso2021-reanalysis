@@ -168,8 +168,8 @@ set(sps(2),...
     'xlim',sort(-([0,max(t_set)]+ti_padd)),...
     'xtick',xxtick,...
     'xticklabel',xxticklabel);
-xlabel(sps(1),'Time since S_2 onset (ms)');
-xlabel(sps(2),'Time since S_2 offset (ms)');
+xlabel(sps(1),'Time since S2 onset (ms)');
+xlabel(sps(2),'Time since S2 offset (ms)');
 ylabel(sps(1),'Firing rate (Hz)');
 ylabel(sps(2),'Firing rate (Hz)');
 
