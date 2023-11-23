@@ -41,14 +41,7 @@ fprintf('- after: (intensity | I1 count | I2 count)\n');
 summary(categorical([data.Intensity1,data.Intensity2]))
 
 %% convert intensity from standard deviation to mean speed units
-if any(~ismember(i1_set_bugged(~isnan(i1_set_bugged)),...
-        unique(data.Intensity1(~isnan(data.Intensity1)))))
-    data.Intensity1 = round(data.Intensity1 .* sqrt(2 / pi));
-end
-if any(~ismember(i2_set_bugged(~isnan(i2_set_bugged)),...
-        unique(data.Intensity2(~isnan(data.Intensity2)))))
-    data.Intensity2 = round(data.Intensity2 .* sqrt(2 / pi));
-end
+intensity_tfun = @(x) round(x .* sqrt(2 / pi));
 
 %% duration heterogeneity fixes
 fprintf('DURATION:\n');
@@ -100,8 +93,8 @@ prev_t1_set = t1_set;
 prev_t2_set = t2_set;
 n_t1 = numel(t1_set);
 n_t2 = numel(t2_set);
-i1 = data.Intensity1;
-i2 = data.Intensity2;
+i1 = intensity_tfun(data.Intensity1);
+i2 = intensity_tfun(data.Intensity2);
 i1_set = unique(i1(~isnan(i1)));
 i2_set = unique(i2(~isnan(i2)));
 n_i1 = numel(i1_set);
