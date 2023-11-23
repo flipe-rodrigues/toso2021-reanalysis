@@ -131,7 +131,7 @@ s1_score = nan(roi2plot_n_bins,n_selected_neurons,n_contrasts);
 for ii = 1 : n_contrasts
     
     % project onto PCs
-    s1_score(:,:,ii) = s1_zpsths(:,:,ii) * coeff;
+    s1_score(roi2use_flags,:,ii) = s1_zpsths(roi2use_flags,:,ii) * coeff;
 end
 
 %% recompute explained variance

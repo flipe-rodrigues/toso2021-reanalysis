@@ -7,7 +7,7 @@ toso2021_maincheck;
 pre_padd = 500;
 roi2use = [-pre_padd,t_set(end)];
 roi2plot = [-pre_padd,t_set(end)];
-roi2plot_padded = roi2plot + [-1,1] * .05 * range(roi2plot);
+roi2plot_padded = round(roi2plot + [-1,1] * .05 * range(roi2plot));
 roi2use_n_bins = range(roi2use) / psthbin;
 roi2plot_n_bins = range(roi2plot_padded) / psthbin;
 roi2use_time = linspace(roi2use(1),roi2use(2),roi2use_n_bins);

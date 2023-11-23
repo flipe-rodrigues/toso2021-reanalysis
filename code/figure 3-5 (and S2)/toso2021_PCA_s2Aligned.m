@@ -5,7 +5,7 @@ toso2021_maincheck;
 pre_padd = 500;
 roi2use = [-pre_padd*1,t_set(end)];
 roi2plot = [-pre_padd,t_set(end)];
-roi2plot_padded = roi2plot + [-1,1] * .05 * range(roi2plot);
+roi2plot_padded = round(roi2plot + [-1,1] * .05 * range(roi2plot));
 roi2use_n_bins = range(roi2use) / psthbin;
 roi2plot_n_bins = range(roi2plot_padded) / psthbin;
 roi2use_time = linspace(roi2use(1),roi2use(2),roi2use_n_bins);
@@ -135,7 +135,7 @@ s2_score = nan(roi2plot_n_bins,n_selected_neurons,n_contrasts);
 for ii = 1 : n_contrasts
     
     % project onto PCs
-    s2_score(:,:,ii) = s2_zpsths(:,:,ii) * coeff;
+    s2_score(roi2use_flags,:,ii) = s2_zpsths(roi2use_flags,:,ii) * coeff;
 end
 
 %% recompute explained variance
