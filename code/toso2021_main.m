@@ -6,7 +6,7 @@ clc;
 
 %% task selection
 task_str = 'duration';
-task_str = 'intensity';
+% task_str = 'intensity';
 
 %% directory settings
 code_path = fileparts(matlab.desktop.editor.getActiveFilename);
@@ -46,14 +46,16 @@ toso2021_computeSDFs;
 %% neuron selection
 toso2021_neuronSelection;
 
-%% contrast selection
-contrast_str = 'i2';
+%% contrast settings
+
+% contrast selection
+contrast_str = 't1';
 % contrast_str = 't2';
 % contrast_str = 'i1';
 % contrast_str = 't1';
 % contrast_str = 'choice';
 
-%% parse selected contrast
+% parse selected contrast
 contrasts = eval(contrast_str);
 contrast_set = eval([contrast_str,'_set']);
 n_contrasts = numel(contrast_set);

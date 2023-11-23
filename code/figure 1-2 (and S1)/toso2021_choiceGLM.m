@@ -4,7 +4,7 @@ toso2021_maincheck;
 %% choice GLM (logistic regression)
 
 % design matrix
-X = [s1,s2,d1,d2];
+X = [t1,t2,i1,i2];
 n_regressors = size(X,2);
 n_coefficients = n_regressors + 1;
 
@@ -32,7 +32,7 @@ end
 
 % fit GLM to subject pool
 mdl = fitglm(Z(valid_flags,:),choice(valid_flags),'linear',...
-    'predictorvars',{s1_lbl,s2_lbl,d1_lbl,d2_lbl},...
+    'predictorvars',{'T1','T2','I1','I2'},...
     'distribution','binomial',...
     'intercept',true);
 bigbetas = mdl.Coefficients.Estimate;
