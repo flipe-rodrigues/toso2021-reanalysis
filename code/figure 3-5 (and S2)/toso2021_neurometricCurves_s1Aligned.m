@@ -586,8 +586,8 @@ axes(...
     axesopt.default,...
     axesopt.stimulus,...
     axesopt.psycurve);
-xlabel('T_2 (ms)');
-ylabel('P(T_2 > T_1)');
+xlabel('T1 (ms)');
+ylabel(sprintf('P(%s > %s)',s2_lbl,s1_lbl));
 
 % psychometric plot settings
 psyopt.plot = struct();
