@@ -2,7 +2,7 @@
 toso2021_maincheck;
 
 %% run settings
-n_runs = 10;
+n_runs = 100;
 
 %% concatenation settings
 n_concats_max = 2^7;
@@ -389,7 +389,7 @@ for rr = 1 : n_runs
 end
 
 %% visualize population state at S2 offset
-X = concat_spkcounts'; % (~invalid_flags,:)';
+X = concat_spkcounts(:,train_flags)';
 
 % normalization
 Z = zscore(X);
@@ -498,10 +498,10 @@ threshold = nanmedian(stimuli(valid_flags));
 
 % iterate through stimuli
 for ii = 1 : n_stimuli
-    stimulus_flags = concat_s2 == stim_set(ii);
+    concat_flags = concat_s2(train_flags) == stim_set(ii);
     
     % plot projections onto linear discriminant
-    bincounts = histcounts(score(stimulus_flags),binedges);
+    bincounts = histcounts(score(concat_flags),binedges);
     h = histogram(...
         'binedges',binedges,...
         'bincounts',bincounts + prevcounts,...
