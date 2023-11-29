@@ -2,7 +2,7 @@
 toso2021_maincheck;
 
 %% run settings
-n_runs = 100;
+n_runs = 10;
 
 %% concatenation settings
 n_concats_max = 2^7;

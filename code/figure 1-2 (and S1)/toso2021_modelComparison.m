@@ -112,7 +112,7 @@ for ii = 1 : n_conditions
         models2test(bic_idx),models2test);
 end
 
-%% plot psychometric fits (e.g. session)
+%% plot psychometric fits
 
 % figure & axes initialization
 figure(figopt,...

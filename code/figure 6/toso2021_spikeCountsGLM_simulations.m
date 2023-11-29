@@ -826,9 +826,9 @@ for rr = 1 : n_runs
             % iterate through signs
             for ss = 1 : 2
                 p_falsenegative_onset(rr,gg,aa) = p_falsenegative_onset(rr,gg,aa) - ...
-                    fractions.(glm_str).postS2Onset.I_2(rr,aa,ss);
+                    fractions.(glm_str).postS2Onset.I2(rr,aa,ss);
                 p_falsenegative_offset(rr,gg,aa) = p_falsenegative_offset(rr,gg,aa) - ...
-                    fractions.(glm_str).preS2Offset.I_2(rr,aa,ss);
+                    fractions.(glm_str).preS2Offset.I2(rr,aa,ss);
             end
         end
     end
@@ -937,9 +937,9 @@ for rr = 1 : n_runs
             % iterate through signs
             for ss = 1 : 2
                 p_falsepositive_onset(rr,gg,aa) = p_falsepositive_onset(rr,gg,aa) + ...
-                    fractions.(glm_str).postS1Onset.I_2(rr,aa,ss);
+                    fractions.(glm_str).postS1Onset.I2(rr,aa,ss);
                 p_falsepositive_offset(rr,gg,aa) = p_falsepositive_offset(rr,gg,aa) + ...
-                    fractions.(glm_str).preS1Offset.I_2(rr,aa,ss);
+                    fractions.(glm_str).preS1Offset.I2(rr,aa,ss);
             end
         end
     end
