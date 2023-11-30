@@ -54,6 +54,7 @@ contrast_str = 'i2';
 % contrast_str = 'i1';
 % contrast_str = 't1';
 % contrast_str = 'choice';
+% contrast_str = 'correct';
 
 % parse selected contrast
 contrasts = eval(contrast_str);

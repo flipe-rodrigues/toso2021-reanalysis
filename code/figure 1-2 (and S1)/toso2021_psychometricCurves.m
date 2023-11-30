@@ -20,7 +20,7 @@ n_stimuli = numel(stim_set);
 stim_lbl = sprintf('%.2f \\times %s + %.2f \\times %s (%s)',...
     w2,s2_lbl,w1,s1_lbl,s_units);
 
-%% construct psychophysical triple
+%% construct psychophysical triples
 
 % normalize stimulus range
 norm_stimuli = (stimuli - min(stimuli)) / range(stimuli);
@@ -62,7 +62,7 @@ for ii = 1 : n_stimuli
         std(choice(trial_flags)) / sqrt(sum(trial_flags));
 end
 
-%% fit psychometric function
+%% fit psychometric functions
 
 % psychometric fit settings
 psyopt.fit = struct();
@@ -82,7 +82,7 @@ for kk = 1 : n_contrasts
         psignifit([psycurves(kk).x,psycurves(kk).y,psycurves(kk).n],psyopt.fit);
 end
 
-%% plot phychometric function
+%% plot phychometric functions
 
 % stimulus-specific axes properties
 axesopt.stimulus.xlim = ...
