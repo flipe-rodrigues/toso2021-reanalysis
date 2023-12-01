@@ -73,6 +73,8 @@ toso2021_performance_Si;
 toso2021_performance_Di;
 toso2021_choiceGLM;
 toso2021_psychometricCurves;
+toso2021_psychometricModel;
+toso2021_modelComparison;
 
 %% figures 3-5
 toso2021_averageActivity_s2Aligned;
