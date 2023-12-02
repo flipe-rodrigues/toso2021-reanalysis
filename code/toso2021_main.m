@@ -107,6 +107,7 @@ toso2021_idealizedGeneralizationMatrix_Di;
 toso2021_idealizedPerformance_Si;
 toso2021_idealizedPerformance_Di;
 toso2021_idealizedChoiceGLM;
+toso2021_idealizedPsychometricCurves;
 
 %% figure S3
 toso2021_psychometricModel;

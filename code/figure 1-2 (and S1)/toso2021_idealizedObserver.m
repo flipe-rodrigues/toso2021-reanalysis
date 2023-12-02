@@ -2,7 +2,7 @@
 toso2021_maincheck;
 
 %% idealized observer settings
-beta_nsd = 2.5;
+beta_nsd = 3;
 beta_ndd = 1;
 p_choice = 1 ./ (1 + exp(-beta_nsd * nsd - beta_ndd * ndd));
 

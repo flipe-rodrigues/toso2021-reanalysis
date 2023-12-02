@@ -8,7 +8,6 @@ toso2021_idealizedObserver;
 w_norm = sum(abs(beta_s1) + abs(beta_s2));
 w1 = beta_s1 / w_norm;
 w2 = beta_s2 / w_norm;
-stimuli = round(s2 * w2 + s1 * w1);
 stimuli = s2;
 stim_set = unique(stimuli(valid_flags));
 stim2group_flags = abs(diff(stim_set)) <= stim_set(2:end) * .05;
