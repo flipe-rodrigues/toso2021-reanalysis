@@ -73,8 +73,6 @@ toso2021_performance_Si;
 toso2021_performance_Di;
 toso2021_choiceGLM;
 toso2021_psychometricCurves;
-toso2021_psychometricModel;
-toso2021_modelComparison;
 
 %% figures 3-5
 toso2021_averageActivity_s2Aligned;
@@ -104,6 +102,10 @@ toso2021_rampClusterability_hybrid;
 toso2021_samplingScheme;
 
 %% figure S2
+toso2021_psychometricModel;
+toso2021_modelComparison;
+
+%% figure S3
 toso2021_averageActivity_s1Aligned;
 toso2021_rasters_s1Aligned;
 toso2021_PCA_s1Aligned;

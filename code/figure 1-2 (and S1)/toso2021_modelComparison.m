@@ -33,9 +33,9 @@ normstim_set = unique(norm_stimuli(valid_flags));
 %% construct psychophysical triples
 
 % preallocation
-all = struct();
-ctrl = struct();
-cond = struct();
+all_contrasts = struct();
+ref_contrast = struct();
+test_contrasts = struct();
 
 % iterate through subjects
 for ss = 1 : n_subjects
@@ -55,19 +55,19 @@ for ss = 1 : n_subjects
                 subject_flags & ...
                 contrast_flags & ...
                 stimulus_flags;
-            all.data(ss,kk).x(ii,1) = normstim_set(ii);
-            all.data(ss,kk).y(ii,1) = sum(choice(trial_flags));
-            all.data(ss,kk).n(ii,1) = sum(trial_flags);
-            all.data(ss,kk).err(ii,1) = ...
+            all_contrasts.data(ss,kk).x(ii,1) = normstim_set(ii);
+            all_contrasts.data(ss,kk).y(ii,1) = sum(choice(trial_flags));
+            all_contrasts.data(ss,kk).n(ii,1) = sum(trial_flags);
+            all_contrasts.data(ss,kk).err(ii,1) = ...
                 std(choice(trial_flags)) / sqrt(sum(trial_flags));
         end
     end
 end
 
 % parse reference and test data
-ctrl.data = all.data(:,contrast_mode_idx);
-cond.data = all.data(:,(1:n_contrasts)~=contrast_mode_idx);
-n_conditions = size(cond.data,2);
+ref_contrast.data = all_contrasts.data(:,contrast_mode_idx);
+test_contrasts.data = all_contrasts.data(:,(1:n_contrasts)~=contrast_mode_idx);
+n_test_conditions = size(test_contrasts.data,2);
 
 %% fit psychometric curves (w/ model comparison)
 
@@ -76,12 +76,12 @@ for ss = 1 : n_subjects
     
     % fit control psychometric curve
     psyopt.fit.fixedPars = nan(5,1);
-    ctrl.psy(ss,1).hat.fit = psignifit(...
-        [ctrl.data(ss).x,ctrl.data(ss).y,ctrl.data(ss).n],psyopt.fit);
-    m = ctrl.psy(ss).hat.fit.Fit(1);
-    w = ctrl.psy(ss).hat.fit.Fit(2);
-    l = ctrl.psy(ss).hat.fit.Fit(3);
-    g = ctrl.psy(ss).hat.fit.Fit(4);
+    ref_contrast.psy(ss,1).hat.fit = psignifit(...
+        [ref_contrast.data(ss).x,ref_contrast.data(ss).y,ref_contrast.data(ss).n],psyopt.fit);
+    m = ref_contrast.psy(ss).hat.fit.Fit(1);
+    w = ref_contrast.psy(ss).hat.fit.Fit(2);
+    l = ref_contrast.psy(ss).hat.fit.Fit(3);
+    g = ref_contrast.psy(ss).hat.fit.Fit(4);
     
     % setup model comparison
     fixed_params = array2table([...
@@ -105,8 +105,8 @@ for ss = 1 : n_subjects
         'variablenames',models2test);
     
     % iterate through conditions
-    for ii = 1 : n_conditions
-        progressreport(ii+(ss-1)*n_conditions,n_subjects*n_conditions,...
+    for ii = 1 : n_test_conditions
+        progressreport(ii+(ss-1)*n_test_conditions,n_subjects*n_test_conditions,...
             'model comparison');
         
         % preallocation
@@ -120,41 +120,41 @@ for ss = 1 : n_subjects
             % fit condition psychometric curve
             psyopt.fit.fixedPars = fixed_params.(models2test{jj});
             models{jj} = psignifit(...
-                [cond.data(ss,ii).x,cond.data(ss,ii).y,cond.data(ss,ii).n],psyopt.fit);
+                [test_contrasts.data(ss,ii).x,test_contrasts.data(ss,ii).y,test_contrasts.data(ss,ii).n],psyopt.fit);
             
             % compute AIC & BIC
             logP = models{jj}.logPmax;
             n_params = sum(isnan(psyopt.fit.fixedPars));
-            n_obs = sum(cond.data(ss,ii).n);
+            n_obs = sum(test_contrasts.data(ss,ii).n);
             aic(jj) = 2 * n_params - 2 * logP;
             bic(jj) = log(n_obs) * n_params - 2 * logP;
         end
         
         % store unconstrained model
-        cond.psy(ss,ii).hat.fit = models{1};
+        test_contrasts.psy(ss,ii).hat.fit = models{1};
         
         % model selection (akaike information criteria)
         [~,aic_idx] = min(aic);
-        cond.psy(ss,ii).hat.aic.fit = models{aic_idx};
-        cond.psy(ss,ii).hat.aic.m = models{aic_idx}.Fit(1);
-        cond.psy(ss,ii).hat.aic.w = models{aic_idx}.Fit(2);
-        cond.psy(ss,ii).hat.aic.l = models{aic_idx}.Fit(3);
-        cond.psy(ss,ii).hat.aic.g = models{aic_idx}.Fit(4);
-        cond.psy(ss,ii).hat.aic.vals = aic;
-        cond.psy(ss,ii).hat.aic.idx = aic_idx;
-        cond.psy(ss,ii).hat.aic.lbl = categorical(...
+        test_contrasts.psy(ss,ii).hat.aic.fit = models{aic_idx};
+        test_contrasts.psy(ss,ii).hat.aic.m = models{aic_idx}.Fit(1);
+        test_contrasts.psy(ss,ii).hat.aic.w = models{aic_idx}.Fit(2);
+        test_contrasts.psy(ss,ii).hat.aic.l = models{aic_idx}.Fit(3);
+        test_contrasts.psy(ss,ii).hat.aic.g = models{aic_idx}.Fit(4);
+        test_contrasts.psy(ss,ii).hat.aic.vals = aic;
+        test_contrasts.psy(ss,ii).hat.aic.idx = aic_idx;
+        test_contrasts.psy(ss,ii).hat.aic.lbl = categorical(...
             models2test(aic_idx),models2test);
         
         % model selection (bayesian information criteria)
         [~,bic_idx] = min(bic);
-        cond.psy(ss,ii).hat.bic.fit = models{bic_idx};
-        cond.psy(ss,ii).hat.bic.m = models{bic_idx}.Fit(1);
-        cond.psy(ss,ii).hat.bic.w = models{bic_idx}.Fit(2);
-        cond.psy(ss,ii).hat.bic.l = models{bic_idx}.Fit(3);
-        cond.psy(ss,ii).hat.bic.g = models{bic_idx}.Fit(4);
-        cond.psy(ss,ii).hat.bic.vals = bic;
-        cond.psy(ss,ii).hat.bic.idx = bic_idx;
-        cond.psy(ss,ii).hat.bic.lbl = categorical(...
+        test_contrasts.psy(ss,ii).hat.bic.fit = models{bic_idx};
+        test_contrasts.psy(ss,ii).hat.bic.m = models{bic_idx}.Fit(1);
+        test_contrasts.psy(ss,ii).hat.bic.w = models{bic_idx}.Fit(2);
+        test_contrasts.psy(ss,ii).hat.bic.l = models{bic_idx}.Fit(3);
+        test_contrasts.psy(ss,ii).hat.bic.g = models{bic_idx}.Fit(4);
+        test_contrasts.psy(ss,ii).hat.bic.vals = bic;
+        test_contrasts.psy(ss,ii).hat.bic.idx = bic_idx;
+        test_contrasts.psy(ss,ii).hat.bic.lbl = categorical(...
             models2test(bic_idx),models2test);
     end
 end
@@ -162,8 +162,8 @@ end
 %% plot psychometric fits
 
 % color settings
-ctrl.clr = contrast_clrs(contrast_mode_idx,:);
-cond.clrs = contrast_clrs((1:n_contrasts)~=contrast_mode_idx,:);
+ref_contrast.clr = contrast_clrs(contrast_mode_idx,:);
+test_contrasts.clrs = contrast_clrs((1:n_contrasts)~=contrast_mode_idx,:);
 
 % iterate through subjects
 for ss = 1 : n_subjects
@@ -190,32 +190,32 @@ for ss = 1 : n_subjects
         'fontsize',12);
     
     % plot control fit
-    psyopt.plot.datafaceclr = ctrl.clr;
-    plotpsy(ctrl.data(ss),ctrl.psy(ss).hat.fit,psyopt.plot);
+    psyopt.plot.datafaceclr = ref_contrast.clr;
+    plotpsy(ref_contrast.data(ss),ref_contrast.psy(ss).hat.fit,psyopt.plot);
     
     % iterate through conditions
-    for ii = 1 : n_conditions
+    for ii = 1 : n_test_conditions
         
         % plot best condition fit (AIC)
-        psyopt.plot.datafaceclr = cond.clrs(ii,:);
-        plotpsy(cond.data(ss,ii),cond.psy(ss,ii).hat.aic.fit,psyopt.plot);
-        text(.05,.95-.1*(ii-1),['AIC: ',char(cond.psy(ss,ii).hat.aic.lbl)],...
+        psyopt.plot.datafaceclr = test_contrasts.clrs(ii,:);
+        plotpsy(test_contrasts.data(ss,ii),test_contrasts.psy(ss,ii).hat.aic.fit,psyopt.plot);
+        text(.05,.95-.1*(ii-1),['AIC: ',char(test_contrasts.psy(ss,ii).hat.aic.lbl)],...
             'horizontalalignment','left',...
             'verticalalignment','top',...
             'interpreter','latex',...
             'units','normalized',...
-            'color',cond.clrs(ii,:),...
+            'color',test_contrasts.clrs(ii,:),...
             'fontsize',10);
         
         % plot best condition fit (BIC)
-        psyopt.plot.datafaceclr = cond.clrs(ii,:);
-        plotpsy(cond.data(ss,ii),cond.psy(ss,ii).hat.bic.fit,psyopt.plot);
-        text(.05,.9-.1*(ii-1),['BIC: ',char(cond.psy(ss,ii).hat.bic.lbl)],...
+        psyopt.plot.datafaceclr = test_contrasts.clrs(ii,:);
+        plotpsy(test_contrasts.data(ss,ii),test_contrasts.psy(ss,ii).hat.bic.fit,psyopt.plot);
+        text(.05,.9-.1*(ii-1),['BIC: ',char(test_contrasts.psy(ss,ii).hat.bic.lbl)],...
             'horizontalalignment','left',...
             'verticalalignment','top',...
             'interpreter','latex',...
             'units','normalized',...
-            'color',cond.clrs(ii,:),...
+            'color',test_contrasts.clrs(ii,:),...
             'fontsize',10);
     end
 end
@@ -254,20 +254,20 @@ ylabel('Best model count');
 prev_bincounts = 0;
 
 % iterate through conditions
-for ii = 1 : n_conditions
+for ii = 1 : n_test_conditions
     
     % iterate through subjects
     for ss = 1 : n_subjects
         
         % compute distribution
-        bincounts = histcounts(cond.psy(ss,ii).hat.aic.idx,binedges);
+        bincounts = histcounts(test_contrasts.psy(ss,ii).hat.aic.idx,binedges);
         
         % plot BIC distribution
         h = histogram(...
             'binedges',binedges,...
             'bincounts',bincounts + prev_bincounts,...
             'edgecolor','w',...
-            'facecolor',cond.clrs(ii,:),...
+            'facecolor',test_contrasts.clrs(ii,:),...
             'facealpha',1,...
             'linewidth',1.5);
         
@@ -313,20 +313,20 @@ ylabel('Best model count');
 prev_bincounts = 0;
 
 % iterate through conditions
-for ii = 1 : n_conditions
+for ii = 1 : n_test_conditions
     
     % iterate through subjects
     for ss = 1 : n_subjects
         
         % compute distribution
-        bincounts = histcounts(cond.psy(ss,ii).hat.bic.idx,binedges);
+        bincounts = histcounts(test_contrasts.psy(ss,ii).hat.bic.idx,binedges);
         
         % plot BIC distribution
         h = histogram(...
             'binedges',binedges,...
             'bincounts',bincounts + prev_bincounts,...
             'edgecolor','w',...
-            'facecolor',cond.clrs(ii,:),...
+            'facecolor',test_contrasts.clrs(ii,:),...
             'facealpha',1,...
             'linewidth',1.5);
         
@@ -347,18 +347,18 @@ end
 %% parse & sort AIC and BIC scores
 
 % preallocation
-aic_vals = nan(n_models,n_conditions,n_subjects);
-bic_vals = nan(n_models,n_conditions,n_subjects);
+aic_vals = nan(n_models,n_test_conditions,n_subjects);
+bic_vals = nan(n_models,n_test_conditions,n_subjects);
 
 % iterate through conditions
-for ii = 1 : n_conditions
+for ii = 1 : n_test_conditions
     
     % iterate through subjects
     for ss = 1 : n_subjects
         
         % store information criteria
-        aic_vals(:,ii,ss) = cond.psy(ss,ii).hat.aic.vals;
-        bic_vals(:,ii,ss) = cond.psy(ss,ii).hat.bic.vals;
+        aic_vals(:,ii,ss) = test_contrasts.psy(ss,ii).hat.aic.vals;
+        bic_vals(:,ii,ss) = test_contrasts.psy(ss,ii).hat.bic.vals;
     end
 end
 
@@ -399,10 +399,10 @@ ylabel('\DeltaAIC');
 tfun = @(x) x + 1;
 
 % graphical object preallocation
-p = gobjects(n_conditions,1);
+p = gobjects(n_test_conditions,1);
 
 % iterate through conditions
-for ii = 1 : n_conditions
+for ii = 1 : n_test_conditions
     
     % iterate through subjects
     for ss = 1 : n_subjects
@@ -412,26 +412,26 @@ for ii = 1 : n_conditions
             'marker','o',...
             'markersize',3.5,...
             'markeredgecolor','none',...
-            'markerfacecolor',cond.clrs(ii,:),...
+            'markerfacecolor',test_contrasts.clrs(ii,:),...
             'linestyle','none',...
             'linewidth',1);
     end
 end
 
 % iterate through conditions
-for ii = 1 : n_conditions
+for ii = 1 : n_test_conditions
     aic_mu = mean(tfun(aic_vals(aic_sorted_idcs,ii,:)),3)';
     aic_std = std(tfun(aic_vals(aic_sorted_idcs,ii,:)),0,3)';
     aic_sem = aic_std ./ sqrt(n_subjects);
     
     % plot subject-agnostic mean
-    errorpatch(model_idcs,aic_mu,aic_sem,cond.clrs(ii,:),...
+    errorpatch(model_idcs,aic_mu,aic_sem,test_contrasts.clrs(ii,:),...
         'facealpha',.25);
     p(ii) = plot(model_idcs,aic_mu,...
-        'color',cond.clrs(ii,:),...
+        'color',test_contrasts.clrs(ii,:),...
         'marker','o',...
         'markersize',6,...
-        'markeredgecolor',cond.clrs(ii,:),...
+        'markeredgecolor',test_contrasts.clrs(ii,:),...
         'markerfacecolor','w',...
         'linestyle','-',...
         'linewidth',1.5);
@@ -448,7 +448,7 @@ uistack(p,'top');
 
 % legend
 leg_str = cellfun(@(x,y)sprintf('%s = %i %s',x,y,contrast_units),...
-    repmat({contrast_lbl},n_conditions,1),...
+    repmat({contrast_lbl},n_test_conditions,1),...
     num2cell(contrast_set(1:n_contrasts~=contrast_mode_idx)),...
     'uniformoutput',false);
 legend(p(isgraphics(p)),leg_str(isgraphics(p)),...
@@ -489,10 +489,10 @@ ylabel('\DeltaBIC');
 tfun = @(x) x + 1;
 
 % graphical object preallocation
-p = gobjects(n_conditions,1);
+p = gobjects(n_test_conditions,1);
 
 % iterate through conditions
-for ii = 1 : n_conditions
+for ii = 1 : n_test_conditions
     
     % iterate through subjects
     for ss = 1 : n_subjects
@@ -502,26 +502,26 @@ for ii = 1 : n_conditions
             'marker','o',...
             'markersize',3.5,...
             'markeredgecolor','none',...
-            'markerfacecolor',cond.clrs(ii,:),...
+            'markerfacecolor',test_contrasts.clrs(ii,:),...
             'linestyle','none',...
             'linewidth',1);
     end
 end
 
 % iterate through conditions
-for ii = 1 : n_conditions
+for ii = 1 : n_test_conditions
     bic_mu = mean(tfun(bic_vals(bic_sorted_idcs,ii,:)),3)';
     bic_std = std(tfun(bic_vals(bic_sorted_idcs,ii,:)),0,3)';
     bic_sem = bic_std ./ sqrt(n_subjects);
     
     % plot subject-agnostic mean
-    errorpatch(model_idcs,bic_mu,bic_sem,cond.clrs(ii,:),...
+    errorpatch(model_idcs,bic_mu,bic_sem,test_contrasts.clrs(ii,:),...
         'facealpha',.25);
     p(ii) = plot(model_idcs,bic_mu,...
-        'color',cond.clrs(ii,:),...
+        'color',test_contrasts.clrs(ii,:),...
         'marker','o',...
         'markersize',6,...
-        'markeredgecolor',cond.clrs(ii,:),...
+        'markeredgecolor',test_contrasts.clrs(ii,:),...
         'markerfacecolor','w',...
         'linestyle','-',...
         'linewidth',1.5);
@@ -538,7 +538,7 @@ uistack(p,'top');
 
 % legend
 leg_str = cellfun(@(x,y)sprintf('%s = %i %s',x,y,contrast_units),...
-    repmat({contrast_lbl},n_conditions,1),...
+    repmat({contrast_lbl},n_test_conditions,1),...
     num2cell(contrast_set(1:n_contrasts~=contrast_mode_idx)),...
     'uniformoutput',false);
 legend(p(isgraphics(p)),leg_str(isgraphics(p)),...
@@ -608,48 +608,48 @@ for pp = 1 : n_params
         'linewidth',1);
     
     % preallocation
-    p_ctrl = nan(1,n_subjects);
-    p_cond = nan(n_conditions,n_subjects);
+    p_ref = nan(1,n_subjects);
+    p_test = nan(n_test_conditions,n_subjects);
     
     % iterate through conditions
-    for ii = 1 : n_conditions
+    for ii = 1 : n_test_conditions
         
         % iterate through subjects
         for ss = 1 : n_subjects
-            p_ctrl(ss) = ctrl.psy(ss).hat.fit.Fit(pp) * multiplier + offset;
-            p_cond(ii,ss) = cond.psy(ss,ii).hat.fit.Fit(pp) * multiplier + offset;
+            p_ref(ss) = ref_contrast.psy(ss).hat.fit.Fit(pp) * multiplier + offset;
+            p_test(ii,ss) = test_contrasts.psy(ss,ii).hat.fit.Fit(pp) * multiplier + offset;
         end
     end
     
     % iterate through conditions
-    for ii = 1 : n_conditions
+    for ii = 1 : n_test_conditions
         
         % iterate through subjects
         for ss = 1 : n_subjects
-            p_ctrl(ss) = ctrl.psy(ss).hat.fit.Fit(pp) * multiplier + offset;
-            p_cond(ii,ss) = cond.psy(ss,ii).hat.fit.Fit(pp) * multiplier + offset;
+            p_ref(ss) = ref_contrast.psy(ss).hat.fit.Fit(pp) * multiplier + offset;
+            p_test(ii,ss) = test_contrasts.psy(ss,ii).hat.fit.Fit(pp) * multiplier + offset;
             
             % plot parameter scatter
-            plot(p_ctrl(ss),p_cond(ii,ss),...
+            plot(p_ref(ss),p_test(ii,ss),...
                 'marker','o',...
                 'markersize',5,...
                 'markeredgecolor','none',...
-                'markerfacecolor',cond.clrs(ii,:),...
+                'markerfacecolor',test_contrasts.clrs(ii,:),...
                 'linestyle','none',...
                 'linewidth',1);
         end
         
         % plot subject-agnostic mean
-        ctrl_mu = nanmean(p_ctrl);
-        cond_mu = nanmean(p_cond(ii,:));
-        ctrl_sem = nanstd(p_ctrl) ./ sqrt(n_subjects);
-        cond_sem = nanstd(p_cond(ii,:)) ./ sqrt(n_subjects);
-        plot(ctrl_mu+[-1,1]*ctrl_sem,cond_mu*[1,1],...
-            'color',cond.clrs(ii,:),...
+        ref_mu = nanmean(p_ref);
+        test_mu = nanmean(p_test(ii,:));
+        ref_sem = nanstd(p_ref) ./ sqrt(n_subjects);
+        test_sem = nanstd(p_test(ii,:)) ./ sqrt(n_subjects);
+        plot(ref_mu+[-1,1]*ref_sem,test_mu*[1,1],...
+            'color',test_contrasts.clrs(ii,:),...
             'linestyle','-',...
             'linewidth',1.5);
-        plot(ctrl_mu*[1,1],cond_mu+[-1,1]*cond_sem,...
-            'color',cond.clrs(ii,:),...
+        plot(ref_mu*[1,1],test_mu+[-1,1]*test_sem,...
+            'color',test_contrasts.clrs(ii,:),...
             'linestyle','-',...
             'linewidth',1.5);
     end
