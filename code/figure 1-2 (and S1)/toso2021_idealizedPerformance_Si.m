@@ -1,39 +1,54 @@
 %% check 'main.m' has run (and run it if not)
 toso2021_maincheck;
 
-%% stimulus settings
-stimuli = round(d2 - d1);
-stim_set = unique(stimuli(valid_flags));
-stim2group_flags = abs(diff(stim_set)) <= range(stim_set) * .01;
-if any(stim2group_flags)
-    for ii = find(stim2group_flags)'
-        stimuli(stimuli == stim_set(ii)) = stim_set(ii + 1);
+%% simulate behavior by an 'idealized' observer
+toso2021_idealizedObserver;
+
+%% numerator settings
+numerator = round(s2 - s1);
+numerator_set = unique(numerator(valid_flags));
+numerator2group_flags = abs(diff(numerator_set)) <= range(numerator_set) * .01;
+if any(numerator2group_flags)
+    for ii = find(numerator2group_flags)'
+        numerator(numerator == numerator_set(ii)) = numerator_set(ii + 1);
     end
 end
-stim_set = unique(stimuli(valid_flags));
-n_stimuli = numel(stim_set);
-stim_lbl = sprintf('%s - %s (%s)',d2_lbl,d1_lbl,d_units);
+numerator_set = unique(numerator(valid_flags));
+numerator_count = numel(numerator_set);
+numerator_lbl = sprintf('%s - %s (%s)',s2_lbl,s1_lbl,s_units);
 
-%% compute NDD level associated with each stimulus
-stim_ndd = nan(n_stimuli,1);
+% normalize numerator range
+norm_numerator = (numerator - min(numerator)) / range(numerator);
+numerator_normset = unique(norm_numerator(valid_flags));
+
+% numerator-specific axes properties
+axesopt.numerator.xlim = ...
+    ([numerator_normset(1),numerator_normset(end)] +  [-1,1] * .05);
+axesopt.numerator.xtick = numerator_normset;
+axesopt.numerator.xticklabel = num2cell(round(numerator_set,2));
+ticks2delete = ...
+    ~ismember(axesopt.numerator.xtick,...
+    [min(axesopt.numerator.xtick),max(axesopt.numerator.xtick)]);
+axesopt.numerator.xticklabel(ticks2delete) = {''};
+
+% compute NSD level associated with each numerator value
+nsd_by_numerator = nan(numerator_count,1);
 
 % iterate through stimuli
-for ii = 1 : n_stimuli
-    if ii <= floor(n_stimuli/2)
-        ndd_idx = 1;
-    elseif ii == floor(n_stimuli/2) + 1
-        ndd_idx = 2;
+for ii = 1 : numerator_count
+    if ii <= floor(numerator_count/2)
+        nsd_idx = 1;
     else
-        ndd_idx = 3;
+        nsd_idx = 2;
     end
-    stim_ndd(ii) = ndd_set(ndd_idx);
+    nsd_by_numerator(ii) = nsd_set(nsd_idx);
 end
 
 %% denominator settings
-denominator = round(d2 + d1);
+denominator = round(s2 + s1);
 denominator_set = unique(denominator(valid_flags));
 denominator_count = numel(denominator_set);
-denominator_lbl = sprintf('%s + %s (%s)',d1_lbl,d2_lbl,d_units);
+denominator_lbl = sprintf('%s + %s (%s)',s1_lbl,s2_lbl,s_units);
 
 % normalize denominator range
 norm_denominator = (denominator - min(denominator)) / range(denominator);
@@ -49,14 +64,10 @@ ticks2delete = ...
     [min(axesopt.denominator.xtick),max(axesopt.denominator.xtick)]);
 axesopt.denominator.xticklabel(ticks2delete) = {''};
 
-%% NDD colors
-ndd_clrs = flipud(gray(n_ndd));
+%% NSD colors
+nsd_clrs = flipud(gray(n_nsd));
 
 %% construct psychophysical triples
-
-% normalize stimulus range
-norm_stimuli = (stimuli - min(stimuli)) / range(stimuli);
-normstim_set = unique(norm_stimuli(valid_flags));
 
 % preallocation
 psy = struct();
@@ -66,83 +77,82 @@ for ss = 1 : n_subjects
     subject_flags = subjects == subject_set(ss);
     
     % iterate through stimuli
-    for ii = 1 : n_stimuli
-        stim_flags = stimuli == stim_set(ii);
+    for ii = 1 : numerator_count
+        numerator_flags = numerator == numerator_set(ii);
         trial_flags = ...
             valid_flags & ...
             unique_flags & ...
             subject_flags & ...
-            stim_flags;
+            numerator_flags;
         
         % subject's psychophysical triple
-        psy(ss).x(ii,1) = normstim_set(ii);
-        psy(ss).y(ii,1) = sum(choice(trial_flags));
+        psy(ss).x(ii,1) = numerator_normset(ii);
+        psy(ss).y(ii,1) = sum(idealized_choice(trial_flags));
         psy(ss).n(ii,1) = sum(trial_flags);
         psy(ss).err(ii,1) = ...
-            std(choice(trial_flags)) / sqrt(sum(trial_flags));
+            std(idealized_choice(trial_flags)) / sqrt(sum(trial_flags));
     end
 end
 
 % pooled psychophysical triple
-bigpsy.x = normstim_set;
+bigpsy.x = numerator_normset;
 bigpsy.y = sum(horzcat(psy.y),2);
 bigpsy.n = sum(horzcat(psy.n),2);
-bigpsy.err = zeros(n_stimuli,1);
+bigpsy.err = zeros(numerator_count,1);
 
-%% compute stimulus- & NDD-split performance
+%% compute stimulus- & NSD-split performance
 
 % preallocation
-stim_subj_perf = nan(n_stimuli,n_subjects);
-stim_perf = nan(n_stimuli,1);
+numerator_subj_perf = nan(numerator_count,n_subjects);
+numerator_perf = nan(numerator_count,1);
 denominator_subj_perf = nan(denominator_count,n_subjects);
 denominator_perf = nan(denominator_count,1);
-ndd_subj_perf = nan(n_ndd,n_subjects);
-ndd_perf = nan(n_ndd,1);
+nsd_subj_perf = nan(n_nsd,n_subjects);
+nsd_perf = nan(n_nsd,1);
 
-% iterate through NDD levels
-for ii = 1 : n_ndd
-    ndd_flags = ...
+% iterate through NSD levels
+for ii = 1 : n_nsd
+    nsd_flags = ...
         valid_flags & ...
         unique_flags & ...
-        ndd == ndd_set(ii);
+        nsd == nsd_set(ii);
     
     % iterate through subjects
     for jj = 1 : n_subjects
         subject_flags = ...
-            ndd_flags & ...
+            nsd_flags & ...
             subjects == subject_set(jj);
         
         % compute performance
-        ndd_subj_perf(ii,jj) = ...
-            sum(choice(subject_flags)) / sum(subject_flags);
+        nsd_subj_perf(ii,jj) = ...
+            sum(idealized_choice(subject_flags)) / sum(subject_flags);
     end
     
     % compute performance
-    ndd_perf(ii) = ...
-        sum(choice(ndd_flags)) / sum(ndd_flags);
+    nsd_perf(ii) = ...
+        sum(idealized_choice(nsd_flags)) / sum(nsd_flags);
 end
 
-
 % iterate through stimuli
-for ii = 1 : n_stimuli
-    stim_flags = ...
+for ii = 1 : numerator_count
+    numerator_flags = ...
         valid_flags & ...
-        stimuli == stim_set(ii);
+        numerator == numerator_set(ii);
     
     % iterate through subjects
     for jj = 1 : n_subjects
         subject_flags = ...
-            stim_flags & ...
+            numerator_flags & ...
             subjects == subject_set(jj);
         
         % compute performance
-        stim_subj_perf(ii,jj) = ...
-            nansum(choice(subject_flags)) / nansum(subject_flags);
+        numerator_subj_perf(ii,jj) = ...
+            nansum(idealized_choice(subject_flags)) / nansum(subject_flags);
     end
     
     % compute performance
-    stim_perf(ii) = ...
-        sum(choice(stim_flags)) / sum(stim_flags);
+    numerator_perf(ii) = ...
+        sum(idealized_choice(numerator_flags)) / sum(numerator_flags);
 end
 
 % iterate through stimuli
@@ -159,59 +169,49 @@ for ii = 1 : denominator_count
         
         % compute performance
         denominator_subj_perf(ii,jj) = ...
-            nansum(choice(subject_flags)) / nansum(subject_flags);
+            nansum(idealized_choice(subject_flags)) / nansum(subject_flags);
     end
     
     % compute performance
     denominator_perf(ii) = ...
-        sum(choice(denominator_flags)) / sum(denominator_flags);
+        sum(idealized_choice(denominator_flags)) / sum(denominator_flags);
 end
 
 %% plot phychometric function
 
-% stimulus-specific axes properties
-axesopt.stimulus.xlim = ...
-    ([normstim_set(1),normstim_set(end)] +  [-1,1] * .05);
-axesopt.stimulus.xtick = normstim_set;
-axesopt.stimulus.xticklabel = num2cell(round(stim_set,2));
-ticks2delete = ...
-    ~ismember(axesopt.stimulus.xtick,...
-    [min(axesopt.stimulus.xtick),max(axesopt.stimulus.xtick)]);
-axesopt.stimulus.xticklabel(ticks2delete) = {''};
-
 % figure initialization
 fig = figure(figopt,...
-    'name',sprintf('performance_Di'));
+    'name',sprintf('idealized_performance_Si'));
 
 % axes initialization
 axes(...
     axesopt.default,...
-    axesopt.stimulus,...
+    axesopt.numerator,...
     axesopt.psycurve);
-xlabel(stim_lbl);
+xlabel(numerator_lbl);
 ylabel(sprintf('P(%s > %s)',s2_lbl,s1_lbl));
 
 % reference lines
-plot([1,1]*median(normstim_set),ylim,':k');
+plot([1,1]*median(numerator_normset),ylim,':k');
 plot(xlim,[1,1]*.5,':k');
 
 % iterate through subjects
 for ss = 1 : n_subjects
     offset = (ss - (n_subjects + 1) / 2) * .0 * range(xlim);
     
-    % NDD-crossing line
-    plot(normstim_set+offset,stim_subj_perf(:,ss),...
+    % NSD-crossing line
+    plot(numerator_normset+offset,numerator_subj_perf(:,ss),...
         'color',subject_clr,...
         'linestyle','--',...
         'linewidth',1.5);
     
-    % iterate through NDD levels
-    for kk = 1 : n_ndd
-        ndd_flags = stim_ndd == ndd_set(kk);
+    % iterate through NSD levels
+    for kk = 1 : n_nsd
+        nsd_flags = nsd_by_numerator == nsd_set(kk);
         
         % plot subject's performance
-        plot(normstim_set(ndd_flags)+offset,...
-            stim_subj_perf(ndd_flags,ss),...
+        plot(numerator_normset(nsd_flags)+offset,...
+            numerator_subj_perf(nsd_flags,ss),...
             'color',subject_clr,...
             'marker','o',...
             'markersize',6.5,...
@@ -222,24 +222,24 @@ for ss = 1 : n_subjects
     end
 end
 
-% NDD-crossing line
-plot(normstim_set,stim_perf,...
+% NSD-crossing line
+plot(numerator_normset,numerator_perf,...
     'color','k',...
     'linestyle','--',...
     'linewidth',1.5);
 
-% iterate through NDD levels
-for kk = 1 : n_ndd
-    ndd_flags = stim_ndd == ndd_set(kk);
+% iterate through NSD levels
+for kk = 1 : n_nsd
+    nsd_flags = nsd_by_numerator == nsd_set(kk);
     
     % plot pooled performance
-    plot(normstim_set(ndd_flags),...
-        stim_perf(ndd_flags),...
+    plot(numerator_normset(nsd_flags),...
+        numerator_perf(nsd_flags),...
         'color','k',...
         'marker','o',...
         'markersize',8.5,...
         'markeredgecolor','k',...
-        'markerfacecolor',ndd_clrs(kk,:),...
+        'markerfacecolor',nsd_clrs(kk,:),...
         'linestyle','-',...
         'linewidth',1.5);
 end
@@ -262,7 +262,7 @@ plot(xlim,[1,1]*.5,':k');
 % iterate through subjects
 for ss = 1 : n_subjects
     offset = (ss - (n_subjects + 1) / 2) * .0 * range(xlim);
-
+    
     % iterate through denominator levels
     for kk = 1 : denominator_count
         
@@ -296,23 +296,23 @@ if want2save
     print(fig,svg_file,'-dsvg','-painters');
 end
 
-%% plot performance as a function of stimulus & NDD
+%% plot performance as a function of stimulus & NSD
 
 % figure initialization
 fig = figure(figopt,...
     'position',[489 343 560 412.5],...
-    'name',sprintf('performance_%s_distros',ndd_lbl));
+    'name',sprintf('idealized_performance_%s_distros',nsd_lbl));
 
 % axes initialization
 axes(...
     axesopt.default,...
     'plotboxaspectratio',[1,2.25,1],...
-    'xlim',[min(ndd_set),max(ndd_set)]+[-1,1]*1/2*range(ndd_set),...
-    'xtick',ndd_set,...
+    'xlim',[min(nsd_set),max(nsd_set)]+[-1,1]*1/2*range(nsd_set),...
+    'xtick',nsd_set,...
     'ylim',axesopt.psycurve.ylim,...
     'ytick',axesopt.psycurve.ytick,...
     'yticklabel',axesopt.psycurve.yticklabel);
-xlabel(ndd_lbl);
+xlabel(nsd_lbl);
 ylabel(sprintf('P(%s > %s)',s2_lbl,s1_lbl));
 
 % reference lines
@@ -323,21 +323,21 @@ plot(xlim,[1,1]*.5,':k');
 for ss = 1 : n_subjects
     offset = (ss - (n_subjects + 1) / 2) * .025 * range(xlim);
     
-    % NDD-crossing line
-    plot(ndd_set+offset,...
-        psy(ss).y(floor(n_stimuli/2)+(0:n_ndd-1))./...
-        psy(ss).n(floor(n_stimuli/2)+(0:n_ndd-1)),...
+    % NSD-crossing line
+    plot(nsd_set+offset,...
+        psy(ss).y(floor(numerator_count/2)+(0:n_nsd-1))./...
+        psy(ss).n(floor(numerator_count/2)+(0:n_nsd-1)),...
         'color',subject_clr,...
         'linestyle','--',...
         'linewidth',1.5);
     
-    % iterate through NDD levels
-    for kk = 1 : n_ndd
-        ndd_flags = stim_ndd == ndd_set(kk);
+    % iterate through NSD levels
+    for kk = 1 : n_nsd
+        nsd_flags = nsd_by_numerator == nsd_set(kk);
         
         % plot subject's performance
-        plot(stim_ndd(ndd_flags)+offset,...
-            stim_subj_perf(ndd_flags,ss),...
+        plot(nsd_by_numerator(nsd_flags)+offset,...
+            numerator_subj_perf(nsd_flags,ss),...
             'color',subject_clr,...
             'marker','o',...
             'markersize',6.5,...
@@ -348,26 +348,26 @@ for ss = 1 : n_subjects
     end
 end
 
-% NDD-crossing line
-plot(ndd_set,...
-    bigpsy.y(floor(n_stimuli/2)+(0:n_ndd-1))./...
-    bigpsy.n(floor(n_stimuli/2)+(0:n_ndd-1)),...
+% NSD-crossing line
+plot(nsd_set,...
+    bigpsy.y(floor(numerator_count/2)+(0:n_nsd-1))./...
+    bigpsy.n(floor(numerator_count/2)+(0:n_nsd-1)),...
     'color','k',...
     'linestyle','--',...
     'linewidth',1.5);
 
-% iterate through NDD levels
-for kk = 1 : n_ndd
-    ndd_flags = stim_ndd == ndd_set(kk);
+% iterate through NSD levels
+for kk = 1 : n_nsd
+    nsd_flags = nsd_by_numerator == nsd_set(kk);
     
     % plot average performance
-    plot(stim_ndd(ndd_flags),...
-        bigpsy.y(ndd_flags)./bigpsy.n(ndd_flags),...
+    plot(nsd_by_numerator(nsd_flags),...
+        bigpsy.y(nsd_flags)./bigpsy.n(nsd_flags),...
         'color','k',...
         'marker','o',...
         'markersize',8.5,...
         'markeredgecolor','k',...
-        'markerfacecolor',ndd_clrs(kk,:),...
+        'markerfacecolor',nsd_clrs(kk,:),...
         'linestyle','-',...
         'linewidth',1.5);
 end
@@ -378,23 +378,23 @@ if want2save
     print(fig,svg_file,'-dsvg','-painters');
 end
 
-%% plot performance as a function of NDD
+%% plot performance as a function of NSD
 
 % figure initialization
 fig = figure(figopt,...
     'position',[489 343 560 412.5],...
-    'name',sprintf('performance_%s_averages',ndd_lbl));
+    'name',sprintf('idealized_performance_%s_averages',nsd_lbl));
 
 % axes initialization
 axes(...
     axesopt.default,...
     'plotboxaspectratio',[1,2.25,1],...
-    'xlim',[min(ndd_set),max(ndd_set)]+[-1,1]*1/2*range(ndd_set),...
-    'xtick',ndd_set,...
+    'xlim',[min(nsd_set),max(nsd_set)]+[-1,1]*1/2*range(nsd_set),...
+    'xtick',nsd_set,...
     'ylim',axesopt.psycurve.ylim,...
     'ytick',axesopt.psycurve.ytick,...
     'yticklabel',axesopt.psycurve.yticklabel);
-xlabel(ndd_lbl);
+xlabel(nsd_lbl);
 ylabel(sprintf('P(%s > %s)',s2_lbl,s1_lbl));
 
 % reference lines
@@ -406,7 +406,7 @@ for ss = 1 : n_subjects
     offset = (ss - (n_subjects + 1) / 2) * .025 * range(xlim);
     
     % plot subject's average performance
-    plot(ndd_set+offset,ndd_subj_perf(:,ss),...
+    plot(nsd_set+offset,nsd_subj_perf(:,ss),...
         'color',subject_clr,...
         'marker','s',...
         'markersize',7.65,...
@@ -417,23 +417,23 @@ for ss = 1 : n_subjects
 end
 
 % plot pooled performance
-plot(ndd_set,ndd_perf,...
+plot(nsd_set,nsd_perf,...
     'color','k',...
     'markeredgecolor','k',...
     'markerfacecolor','k',...
     'linestyle','-',...
     'linewidth',1.5);
 
-% iterate through NDD levels
-for kk = 1 : n_ndd
+% iterate through NSD levels
+for kk = 1 : n_nsd
     
     % plot pooled performance
-    plot(ndd_set(kk),ndd_perf(kk),...
+    plot(nsd_set(kk),nsd_perf(kk),...
         'color','k',...
         'marker','s',...
         'markersize',12,...
         'markeredgecolor','k',...
-        'markerfacecolor',ndd_clrs(kk,:),...
+        'markerfacecolor',nsd_clrs(kk,:),...
         'linestyle','-',...
         'linewidth',1.5);
 end

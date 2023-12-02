@@ -1,9 +1,12 @@
 %% check 'main.m' has run (and run it if not)
 toso2021_maincheck;
 
+%% simulate behavior by an 'idealized' observer
+toso2021_idealizedObserver;
+
 %% choice GLM (partial model)
 mdl = fitglm([d1(valid_flags),d2(valid_flags)].*[1,1],...
-    choice(valid_flags,:),'linear',...
+    idealized_choice(valid_flags,:),'linear',...
     'predictorvars',{d1_lbl,d2_lbl},...
     'distribution','binomial',...
     'intercept',true);
@@ -44,7 +47,7 @@ for ii = 1 : n_d_pairs
     end
     
     % compute average performance for the current pair
-    p_choice(ii) = mean(choice(trial_flags));
+    p_choice(ii) = mean(idealized_choice(trial_flags));
     n_trials_perpair(ii) = sum(trial_flags);
 end
 
@@ -54,7 +57,7 @@ p_choice = p_choice(~isnan(p_choice));
 
 % figure & axes initialization
 fig = figure(figopt,...
-    'name','generalization_matrix_Di');
+    'name','idealized_generalization_matrix_Di');
 axes(axesopt.default,...
     'xlim',tfun([d_set(1),d_set(end)]) + [-1,1] * .1 * range(tfun(d_set)),...
     'ylim',tfun([d_set(1),d_set(end)]) + [-1,1] * .1 * range(tfun(d_set)),...
@@ -146,7 +149,7 @@ end
 
 % figure & axes initialization
 fig = figure(figopt,...
-    'name','contraction_bias_Di');
+    'name','idealized_contraction_bias_Di');
 ax = axes(axesopt.default,...
     'xlim',tfun([d_set(1),d_set(end)]) + [-1,1] * .1 * range(tfun(d_set)),...
     'ylim',tfun([d_set(1),d_set(end)]) + [-1,1] * .1 * range(tfun(d_set)),...
@@ -178,12 +181,7 @@ cbar.Label.VerticalAlignment = 'bottom';
 
 % plot hypothesized probability of reporting D2 > D1
 di_x = linspace(invfun(min(xlim)),invfun(max(xlim)),1e2);
-if strcmpi(task_str,'duration')
-    beta = 1.75;
-else
-    beta = 1.75;
-end
-p_choice_mat = 1 ./ (1 + exp(-beta * (di_x' - di_x) ./ (di_x' + di_x)));
+p_choice_mat = 1 ./ (1 + exp(-beta_ndd * (di_x' - di_x) ./ (di_x' + di_x)));
 h = pcolor(tfun(di_x),tfun(di_x),p_choice_mat);
 h.EdgeColor = 'none';
 h.FaceColor = 'interp';
@@ -234,7 +232,7 @@ for ii = 1 : n_d_pairs
     
     % compute post-contraction percept
     s_dv = (d_pairset(ii,2) - di_x) ./ (d_pairset(ii,2) + di_x);
-    p_choice_hypo = 1 ./ (1 + exp(-beta * s_dv));
+    p_choice_hypo = 1 ./ (1 + exp(-beta_ndd * s_dv));
     [~,idx] = min(abs(p_choice(ii) - p_choice_hypo));
     
     % plot post-contraction percept

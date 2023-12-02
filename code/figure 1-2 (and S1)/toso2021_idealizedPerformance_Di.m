@@ -1,6 +1,9 @@
 %% check 'main.m' has run (and run it if not)
 toso2021_maincheck;
 
+%% simulate behavior by an 'idealized' observer
+toso2021_idealizedObserver;
+
 %% stimulus settings
 stimuli = round(d2 - d1);
 stim_set = unique(stimuli(valid_flags));
@@ -76,10 +79,10 @@ for ss = 1 : n_subjects
         
         % subject's psychophysical triple
         psy(ss).x(ii,1) = normstim_set(ii);
-        psy(ss).y(ii,1) = sum(choice(trial_flags));
+        psy(ss).y(ii,1) = sum(idealized_choice(trial_flags));
         psy(ss).n(ii,1) = sum(trial_flags);
         psy(ss).err(ii,1) = ...
-            std(choice(trial_flags)) / sqrt(sum(trial_flags));
+            std(idealized_choice(trial_flags)) / sqrt(sum(trial_flags));
     end
 end
 
@@ -114,12 +117,12 @@ for ii = 1 : n_ndd
         
         % compute performance
         ndd_subj_perf(ii,jj) = ...
-            sum(choice(subject_flags)) / sum(subject_flags);
+            sum(idealized_choice(subject_flags)) / sum(subject_flags);
     end
     
     % compute performance
     ndd_perf(ii) = ...
-        sum(choice(ndd_flags)) / sum(ndd_flags);
+        sum(idealized_choice(ndd_flags)) / sum(ndd_flags);
 end
 
 
@@ -137,12 +140,12 @@ for ii = 1 : n_stimuli
         
         % compute performance
         stim_subj_perf(ii,jj) = ...
-            nansum(choice(subject_flags)) / nansum(subject_flags);
+            nansum(idealized_choice(subject_flags)) / nansum(subject_flags);
     end
     
     % compute performance
     stim_perf(ii) = ...
-        sum(choice(stim_flags)) / sum(stim_flags);
+        sum(idealized_choice(stim_flags)) / sum(stim_flags);
 end
 
 % iterate through stimuli
@@ -159,12 +162,12 @@ for ii = 1 : denominator_count
         
         % compute performance
         denominator_subj_perf(ii,jj) = ...
-            nansum(choice(subject_flags)) / nansum(subject_flags);
+            nansum(idealized_choice(subject_flags)) / nansum(subject_flags);
     end
     
     % compute performance
     denominator_perf(ii) = ...
-        sum(choice(denominator_flags)) / sum(denominator_flags);
+        sum(idealized_choice(denominator_flags)) / sum(denominator_flags);
 end
 
 %% plot phychometric function
@@ -181,7 +184,7 @@ axesopt.stimulus.xticklabel(ticks2delete) = {''};
 
 % figure initialization
 fig = figure(figopt,...
-    'name',sprintf('performance_Di'));
+    'name',sprintf('idealized_performance_Di'));
 
 % axes initialization
 axes(...
@@ -301,7 +304,7 @@ end
 % figure initialization
 fig = figure(figopt,...
     'position',[489 343 560 412.5],...
-    'name',sprintf('performance_%s_distros',ndd_lbl));
+    'name',sprintf('idealized_performance_%s_distros',ndd_lbl));
 
 % axes initialization
 axes(...
@@ -383,7 +386,7 @@ end
 % figure initialization
 fig = figure(figopt,...
     'position',[489 343 560 412.5],...
-    'name',sprintf('performance_%s_averages',ndd_lbl));
+    'name',sprintf('idealized_performance_%s_averages',ndd_lbl));
 
 % axes initialization
 axes(...

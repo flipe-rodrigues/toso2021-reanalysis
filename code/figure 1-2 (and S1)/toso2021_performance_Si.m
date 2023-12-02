@@ -67,7 +67,7 @@ nsd_clrs = flipud(gray(n_nsd));
 %% construct psychophysical triples
 
 % preallocation
-psycurves = struct();
+psy = struct();
 
 % iterate through subjects
 for ss = 1 : n_subjects
@@ -83,42 +83,19 @@ for ss = 1 : n_subjects
             numerator_flags;
         
         % subject's psychophysical triple
-        psycurves(ss).x(ii,1) = numerator_normset(ii);
-        psycurves(ss).y(ii,1) = sum(choice(trial_flags));
-        psycurves(ss).n(ii,1) = sum(trial_flags);
-        psycurves(ss).err(ii,1) = ...
+        psy(ss).x(ii,1) = numerator_normset(ii);
+        psy(ss).y(ii,1) = sum(choice(trial_flags));
+        psy(ss).n(ii,1) = sum(trial_flags);
+        psy(ss).err(ii,1) = ...
             std(choice(trial_flags)) / sqrt(sum(trial_flags));
     end
 end
 
 % pooled psychophysical triple
 bigpsy.x = numerator_normset;
-bigpsy.y = sum(horzcat(psycurves.y),2);
-bigpsy.n = sum(horzcat(psycurves.n),2);
+bigpsy.y = sum(horzcat(psy.y),2);
+bigpsy.n = sum(horzcat(psy.n),2);
 bigpsy.err = zeros(numerator_count,1);
-
-%% fit psychometric function
-
-% psychometric fit settings
-psyopt.fit = struct();
-psyopt.fit.expType = 'YesNo';
-psyopt.fit.sigmoidName = 'logistic';
-psyopt.fit.estimateType = 'MAP';
-psyopt.fit.confP = [.95,.9,.68];
-psyopt.fit.borders = [0,1;0,1;0,.25;0,.25;0,0];
-psyopt.fit.fixedPars = [nan,nan,nan,nan,0];
-psyopt.fit.stepN = [100,100,20,20,20];
-
-% iterate through subjects
-for ss = 1 : n_subjects
-    
-    % fit subject's psychometric curve
-    psycurves(ss).fit = ...
-        psignifit([psycurves(ss).x,psycurves(ss).y,psycurves(ss).n],psyopt.fit);
-end
-
-% fit pooled psychometric curve
-bigpsy.fit = psignifit([bigpsy.x,bigpsy.y,bigpsy.n],psyopt.fit);
 
 %% compute stimulus- & NSD-split performance
 
@@ -345,8 +322,8 @@ for ss = 1 : n_subjects
     
     % NSD-crossing line
     plot(nsd_set+offset,...
-        psycurves(ss).y(floor(numerator_count/2)+(0:n_nsd-1))./...
-        psycurves(ss).n(floor(numerator_count/2)+(0:n_nsd-1)),...
+        psy(ss).y(floor(numerator_count/2)+(0:n_nsd-1))./...
+        psy(ss).n(floor(numerator_count/2)+(0:n_nsd-1)),...
         'color',subject_clr,...
         'linestyle','--',...
         'linewidth',1.5);
