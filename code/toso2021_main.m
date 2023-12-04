@@ -102,6 +102,11 @@ toso2021_rampClusterability_hybrid;
 toso2021_samplingScheme;
 
 %% figure S2
+s1_lbl = 'T_1';
+s2_lbl = 'T_2';
+d1_lbl = 'I_1';
+d2_lbl = 'I_2';
+d_units = 'temp';
 toso2021_idealizedGeneralizationMatrix_Si;
 toso2021_idealizedGeneralizationMatrix_Di;
 toso2021_idealizedPerformance_Si;
