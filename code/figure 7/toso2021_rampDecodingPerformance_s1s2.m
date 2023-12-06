@@ -1,8 +1,5 @@
-%% initialization
-if ~exist('data','var')
-    toso2021_wrapper;
-    close all;
-end
+%% check 'main.m' has run (and run it if not)
+toso2021_maincheck;
 
 %% bootstrap settings
 n_boots = 10;
