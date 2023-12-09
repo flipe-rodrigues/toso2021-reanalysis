@@ -379,7 +379,8 @@ fig = figure(figopt,...
     'color',bg_clr);
 
 %
-clrs = choice_clrs;
+subcontrast = 'correct';
+clrs = eval([subcontrast,'_clrs']);
 clrmap = colorlerp([clrs(1,:);bg_clr;clrs(2,:)],2^8);
 
 % axes initialization
@@ -397,8 +398,7 @@ axes(axesopt.default,...
     'ytick',yytick,...
     'xticklabel',xxticklabel,...
     'yticklabel',yyticklabel,...
-    'colormap',clrmap,...
-    'clipping','off');
+    'colormap',clrmap);
 xlabel(sprintf('Time since %s onset (%s)',s2_lbl,s_units));
 ylabel(sprintf('Internal time since %s onset (%s)',s2_lbl,s_units));
 
@@ -406,7 +406,7 @@ ylabel(sprintf('Internal time since %s onset (%s)',s2_lbl,s_units));
 [T1,T2] = meshgrid(t,t);
 
 % preallocation
-p_tR = zeros(m,m,n_choices);
+P_tR = zeros(m,m,n_choices);
 
 % iterate through S1-S2 pairs
 for ii = 1 : n_t_pairs
@@ -414,21 +414,31 @@ for ii = 1 : n_t_pairs
     t2_idx = find(ismember(t_set,t_pairset(ii,2)));
     t1_flags = t <= t_set(t1_idx);
     t2_flags = t <= t_set(t2_idx);
-
-% % iterate through S2 durations
-% for ii = 1 : n_t
-%     
+    
+    % % iterate through S2 durations
+    % for ii = 1 : n_t
+    %
     % iterate through correctness
     for cc = [1,0]
         choice_flags = ...
-            ((T1 >= T2) == cc);
+            ((T1 <= T2) == cc);
         correct_flags = ...
             ((T1 >= T2) == (t_pairset(ii,1) >= t_pairset(ii,2))) == cc;
-        temp = speed.pdfs .* choice_flags;
+        flags = eval([subcontrast,'_flags']);
+        temp = speed.pdfs .* flags;
         temp(~t2_flags,:) = 0;
-        p_tR(:,:,cc+1) = p_tR(:,:,cc+1) + temp / n_t_pairs;
+        P_tR(:,:,cc+1) = P_tR(:,:,cc+1) + temp / n_t_pairs;
+        %         if t_set(t2_idx) == 1000
+        %         title(sprintf('%i; T1 = %i; T2 = %i',ii,t_set(t1_idx),t_set(t2_idx)));
+        %         imagesc(t,t,temp.*(-1)^(~cc),[-1,1]*1/m);
+        %         imagesc(t,t,P_tR(:,:,cc+1).*(-1)^(~cc),[-1,1]*1/m);
+        %         plot(xlim,ylim,'-k')
+        %         a=1
+        %         end
     end
 end
+P_tR = P_tR ./ nansum(P_tR,2);
+P_tR = P_tR ./ max(P_tR,[],2);
 
 % underlying temporal scaling
 x_flags = ...
@@ -437,19 +447,14 @@ x_flags = ...
 y_flags = ...
     t >= yylim(1) & ...
     t <= yylim(2);
-p_diff = diff(p_tR(x_flags,y_flags,:),1,3);
-p_1 = p_tR(x_flags,y_flags,1);
-p_2 = p_tR(x_flags,y_flags,2);
-% p_1 = p_1 ./ nansum(p_1,2);
-% p_2 = p_2 ./ nansum(p_2,2);
-% p_diff = p_2 - p_1;
-imagesc(t(x_flags),t(y_flags),p_diff',[-1,1]*25/m);
+p_diff = diff(P_tR,1,3);
+% imagesc(t(x_flags),t(y_flags),p_diff(x_flags,y_flags,:),[-1,1]*25/m);
+
+% imagesc(t(x_flags),t(y_flags),p_tR(x_flags,y_flags,2),[-1,1]*1/m);
 
 % convert from tensor to rgb
-P_tR_avg = p_tR(x_flags,y_flags,:);
-P_tR_avg = P_tR_avg ./ nansum(P_tR_avg,2);
-P = tensor2rgb(permute(P_tR_avg,[2,1,3]),choice_clrs);
-% imagesc(x(x_flags),x(y_flags),P);
+P = tensor2rgb(P_tR(x_flags,y_flags,:),clrs);
+imagesc(x(x_flags),x(y_flags),P);
 
 % save figure
 if want2save
