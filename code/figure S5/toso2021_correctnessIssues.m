@@ -65,6 +65,34 @@ speed.pdfs = eye(m) * kernel.pdfs';
 speed.pdfs = speed.pdfs ./ nansum(speed.pdfs,2);
 speed.cdfs = cumsum(speed.pdfs,2);
 
+%% parse stimulus pairs
+
+% pair specification
+t_pairs = [t1,t2];
+t_pairset = unique(t_pairs(valid_flags,:),'rows');
+n_t_pairs = size(t_pairset,1);
+
+% preallocation
+n_trials_perpair = nan(n_s_pairs,1);
+
+% iterate through T1-T2 pairs
+for ii = 1 : n_s_pairs
+    t_flags = all(t_pairs == t_pairset(ii,:),2);
+    trial_flags = ...
+        valid_flags & ...
+        unique_flags & ...
+        t_flags;
+    if sum(trial_flags) == 0
+        continue;
+    end
+    
+    % compute average performance for the current pair
+    n_trials_perpair(ii) = sum(trial_flags);
+end
+
+% compute sampling distribution
+t_pair_pmf = n_trials_perpair / sum(n_trials_perpair);
+
 %% scaling diagram (linear)
 
 % figure initialization
@@ -239,15 +267,10 @@ end
 tfun = @(x) (x);
 invfun = @(x) (x);
 
-% pair specification
-t_pairs = [t1,t2];
-t_pairset = unique(t_pairs(valid_flags,:),'rows');
-n_t_pairs = size(t_pairset,1);
-
 % pair selection
 t_pairs2plot = [3,4];
 
-% iterate through S1-S2 pairs
+% iterate through T1-T2 pairs
 for ii = 1 : n_t_pairs
     t1_idx = find(ismember(t_set,t_pairset(ii,1)));
     t2_idx = find(ismember(t_set,t_pairset(ii,2)));
@@ -295,6 +318,9 @@ for ii = 1 : n_t_pairs
         correct_flags = ...
             P >= pdf_cutoff & ...
             ((invfun(T1) >= invfun(T2)) == (t_pairset(ii,1) >= t_pairset(ii,2))) == cc;
+        choice_flags = ...
+            P >= pdf_cutoff & ...
+            ((invfun(T1) <= invfun(T2)) == cc);
         temp = joint_pdf;
         temp(~correct_flags) = nan;
         xpatch = [tfun(t),fliplr(tfun(t))];
@@ -408,16 +434,13 @@ ylabel(sprintf('Internal time since %s onset (%s)',s2_lbl,s_units));
 % preallocation
 P_tR = zeros(m,m,n_choices);
 
-% iterate through S1-S2 pairs
+% iterate through T1-T2 pairs
 for ii = 1 : n_t_pairs
     t1_idx = find(ismember(t_set,t_pairset(ii,1)));
     t2_idx = find(ismember(t_set,t_pairset(ii,2)));
     t1_flags = t <= t_set(t1_idx);
     t2_flags = t <= t_set(t2_idx);
     
-    % % iterate through S2 durations
-    % for ii = 1 : n_t
-    %
     % iterate through correctness
     for cc = [1,0]
         choice_flags = ...
@@ -427,7 +450,7 @@ for ii = 1 : n_t_pairs
         flags = eval([subcontrast,'_flags']);
         temp = speed.pdfs .* flags;
         temp(~t2_flags,:) = 0;
-        P_tR(:,:,cc+1) = P_tR(:,:,cc+1) + temp / n_t_pairs;
+        P_tR(:,:,cc+1) = P_tR(:,:,cc+1) + temp .* t_pair_pmf(ii);
         %         if t_set(t2_idx) == 1000
         %         title(sprintf('%i; T1 = %i; T2 = %i',ii,t_set(t1_idx),t_set(t2_idx)));
         %         imagesc(t,t,temp.*(-1)^(~cc),[-1,1]*1/m);
@@ -455,6 +478,129 @@ p_diff = diff(P_tR,1,3);
 % convert from tensor to rgb
 P = tensor2rgb(P_tR(x_flags,y_flags,:),clrs);
 imagesc(x(x_flags),x(y_flags),P);
+
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
+end
+
+%% pseudo decoding
+
+% figure initialization
+fig = figure(figopt,...
+    'name','pseudo_decoding',...
+    'color',bg_clr);
+
+%
+subcontrast = 'choice';
+clrs = eval([subcontrast,'_clrs']);
+clrmap = colorlerp([clrs(1,:);bg_clr;clrs(2,:)],2^8);
+
+% axes initialization
+xxlim = round([t_set(1),t_set(end)] + ...
+    [-1,0] * t_set(1)/range(t_set) * range(t_set));
+yylim = xxlim .* [1,1];
+xxtick = unique([0,xxlim,t_set']);
+yytick = unique([0,yylim,t_set']);
+xxticklabel = num2cell(xxtick);
+yyticklabel = num2cell(yytick);
+axes(axesopt.default,...
+    'xlim',xxlim,...
+    'ylim',yylim,...
+    'xtick',xxtick,...
+    'ytick',yytick,...
+    'xticklabel',xxticklabel,...
+    'yticklabel',yyticklabel,...
+    'colormap',clrmap,...
+    'colororder',clrs);
+xlabel(sprintf('Time since %s onset (%s)',s2_lbl,s_units));
+ylabel(sprintf('Internal time since %s onset (%s)',s2_lbl,s_units));
+
+%
+[T1,T2] = meshgrid(t,t);
+
+% preallocation
+P_tR = zeros(m,m,n_choices);
+p_tR = zeros(m,n_choices);
+
+% iterate through T1-T2 pairs
+for ii = 1 : n_t_pairs
+    progressreport(ii,n_t_pairs,'pseudo decoding');
+    t1_idx = find(ismember(t_set,t_pairset(ii,1)));
+    t2_idx = find(ismember(t_set,t_pairset(ii,2)));
+    t2_flags = ...
+        t >= 0 & ...
+        t <= t_set(t2_idx);
+    
+    tt1 = find(t >= t_set(t1_idx),1);
+    tt2 = find(t >= t_set(t2_idx),1);
+    
+    %%
+%     figure;
+    for tt = 1 : tt2
+        
+        joint_pdf = ...
+            speed.pdfs(tt1,:) .* ...
+            speed.pdfs(tt,:)';
+        joint_pdf = joint_pdf / nansum(joint_pdf,'all');
+        
+%                 imagesc(t,t,joint_pdf);
+%                 set(gca,...
+%                     'ydir','normal'); axis square
+%                 xlim([0,1.5e3]);
+%                 ylim([0,1.5e3]);
+%                 pause(.01);
+%             end
+        
+        %%
+        % iterate through correctness
+        for cc = [1,0]
+            choice_flags = ...
+                ((T1 <= T2) == cc);
+            correct_flags = ...
+                ((T1 >= T2) == (t_pairset(ii,1) >= t_pairset(ii,2))) == cc;
+            flags = eval([subcontrast,'_flags']);
+            temp = speed.pdfs .* flags;
+            temp(~t2_flags,:) = 0;
+            
+            temp = joint_pdf;
+            temp(~flags) = nan;
+            s2_marginal = nansum(temp,2)';
+            s2_marginal = s2_marginal / sum(s2_marginal);
+            P_tR(tt,:,cc+1) = P_tR(tt,:,cc+1) + s2_marginal .* t_pair_pmf(ii) * 100;
+        end
+    end
+end
+
+% normalization
+P_tR = P_tR ./ nansum(P_tR,2);
+P_tR(isnan(P_tR)) = 0;
+
+for ii = 1 : n_choices
+    p_tR(:,ii) =  t * P_tR(:,:,ii)';
+    
+    [~,max_idcs] = max(P_tR(:,:,ii),[],2);
+%     p_tR(:,ii) =  t(max_idcs);
+end
+
+% P_tR = P_tR ./ max(P_tR,[],2);
+
+% ROI
+x_flags = ...
+    t >= xxlim(1) & ...
+    t <= xxlim(2);
+y_flags = ...
+    t >= yylim(1) & ...
+    t <= yylim(2);
+
+% convert from tensor to rgb
+P = tensor2rgb(permute(P_tR(x_flags,y_flags,:),[2,1,3]),clrs);
+imagesc(x(x_flags),x(y_flags),P);
+
+%
+plot(t,p_tR,...
+    'linewidth',1.5);
 
 % save figure
 if want2save
