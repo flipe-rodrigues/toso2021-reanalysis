@@ -2,8 +2,8 @@
 toso2021_maincheck;
 
 %% general settings
-m = 1e3;
-t = linspace(0,3,m) * max(t_set);
+m = 1e4;
+t = linspace(-3,10,m) * max(t_set);
 pdf_cutoff = 5 / m;
 cdf_cutoff = .01;
 
@@ -21,7 +21,7 @@ for tt = 1 : n_t
     percept.pdfs(tt,:) = zeros(1,m);
     [~,dirac_idx] = min(abs(t' - percept.mus(tt)));
     percept.pdfs(tt,dirac_idx) = 1;
-    %     percept.pdfs(tt,:) = normpdf(x,percept.mus(tt),percept.sig);
+%     percept.pdfs(tt,:) = normpdf(t,percept.mus(tt),percept.sig);
 end
 percept.pdfs = percept.pdfs ./ nansum(percept.pdfs,2);
 
@@ -61,6 +61,7 @@ speed = struct();
 speed.mus = t';
 speed.web = percept.web;
 speed.sig = percept.sig;
+% speed.pdfs = (eye(m) * gausskernels') * kernel.pdfs';
 speed.pdfs = eye(m) * kernel.pdfs';
 speed.pdfs = speed.pdfs ./ nansum(speed.pdfs,2);
 speed.cdfs = cumsum(speed.pdfs,2);
@@ -261,7 +262,7 @@ if want2save
     print(fig,svg_file,'-dsvg','-painters');
 end
 
-%% joint distribution
+%% pairwise joint distributions
 
 % transfer function
 tfun = @(x) (x);
@@ -305,7 +306,6 @@ for ii = 1 : n_t_pairs
     joint_pdf = ...
         percept.pdfs(t1_idx,:) .* ...
         percept.pdfs(t2_idx,:)';
-    joint_pdf = joint_pdf / nansum(joint_pdf,'all');
     [T1,T2] = meshgrid(tfun(t),tfun(t));
     P = normalize01(joint_pdf,[1,2]);
     contourf(T1,T2,P,[1,1]*pdf_cutoff,...
@@ -399,108 +399,76 @@ end
 
 %% pseudo decoding
 
-% figure initialization
-fig = figure(figopt,...
-    'name','pseudo_decoding',...
-    'color',bg_clr);
-
-%
-subcontrast = 'correct';
-clrs = eval([subcontrast,'_clrs']);
+% sub-contrast selection
+subcontrast_str = 'choice';
+clrs = eval([subcontrast_str,'_clrs']);
 clrmap = colorlerp([clrs(1,:);bg_clr;clrs(2,:)],2^8);
 
-% axes initialization
-xxlim = round([t_set(1),t_set(end)] + ...
-    [-1,0] * t_set(1)/range(t_set) * range(t_set));
-yylim = xxlim .* [1,1];
-xxtick = unique([0,xxlim,t_set']);
-yytick = unique([0,yylim,t_set']);
-xxticklabel = num2cell(xxtick);
-yyticklabel = num2cell(yytick);
-axes(axesopt.default,...
-    'xlim',xxlim,...
-    'ylim',yylim,...
-    'xtick',xxtick,...
-    'ytick',yytick,...
-    'xticklabel',xxticklabel,...
-    'yticklabel',yyticklabel,...
-    'colormap',clrmap);
-xlabel(sprintf('Time since %s onset (%s)',s2_lbl,s_units));
-ylabel(sprintf('Internal time since %s onset (%s)',s2_lbl,s_units));
-
-%
-[T1,T2] = meshgrid(t,t);
-
 % preallocation
+P_tR_pairs = zeros(m,m,n_t_pairs,n_choices);
 P_tR = zeros(m,m,n_choices);
+p_tR_mu = zeros(m,n_choices);
+p_tR_map = zeros(m,n_choices);
 
 % iterate through T1-T2 pairs
 for ii = 1 : n_t_pairs
-    t1_idx = find(ismember(t_set,t_pairset(ii,1)));
-    t2_idx = find(ismember(t_set,t_pairset(ii,2)));
-    t1_flags = t <= t_set(t1_idx);
-    t2_flags = t <= t_set(t2_idx);
-    
-    % iterate through correctness
-    for cc = [1,0]
-        choice_flags = ...
-            ((T1 <= T2) == cc);
-        correct_flags = ...
-            ((T1 >= T2) == (t_pairset(ii,1) >= t_pairset(ii,2))) == cc;
-        flags = eval([subcontrast,'_flags']);
-        temp = speed.pdfs .* flags;
-        temp(~t2_flags,:) = 0;
-        P_tR(:,:,cc+1) = P_tR(:,:,cc+1) + temp .* t_pair_pmf(ii);
-        %         if t_set(t2_idx) == 1000
-        %         title(sprintf('%i; T1 = %i; T2 = %i',ii,t_set(t1_idx),t_set(t2_idx)));
-        %         imagesc(t,t,temp.*(-1)^(~cc),[-1,1]*1/m);
-        %         imagesc(t,t,P_tR(:,:,cc+1).*(-1)^(~cc),[-1,1]*1/m);
-        %         plot(xlim,ylim,'-k')
-        %         a=1
-        %         end
+    progressreport(ii,n_t_pairs,'pseudo decoding');
+    t1_idx = find(t >= t_set(ismember(t_set,t_pairset(ii,1))),1);
+    t2_idx = find(t >= t_set(ismember(t_set,t_pairset(ii,2))),1);
+
+    % iterate through timepoints
+    for tt = 1 : t2_idx
+        
+        %
+        joint_pdf = ...
+            speed.pdfs(t1_idx,:) .* ...
+            speed.pdfs(tt,:)';
+        
+        % iterate through correctness
+        for cc = [1,0]
+            choice_flags = ...
+                ((T1 <= T2) == cc);
+            correct_flags = ...
+                ((T1 >= T2) == (t_pairset(ii,1) >= t_pairset(ii,2))) == cc;
+            flags = eval([subcontrast_str,'_flags']);
+            
+            %
+            temp = joint_pdf;
+            temp(~flags) = nan;
+            s2_marginal = nansum(temp,2)';
+            s2_marginal = s2_marginal / sum(s2_marginal);
+            
+            %
+            P_tR(tt,:,cc+1) = P_tR(tt,:,cc+1) + s2_marginal .* t_pair_pmf(ii);
+            P_tR_pairs(tt,:,ii,cc+1) = s2_marginal .* t_pair_pmf(ii);
+        end
     end
 end
+
+% compute average posterior across stimulus pairs
+P_tR = nanmean(P_tR_pairs,3);
+
+% normalization
 P_tR = P_tR ./ nansum(P_tR,2);
-P_tR = P_tR ./ max(P_tR,[],2);
+P_tR(isnan(P_tR)) = 0;
 
-% underlying temporal scaling
-x_flags = ...
-    t >= xxlim(1) & ...
-    t <= xxlim(2);
-y_flags = ...
-    t >= yylim(1) & ...
-    t <= yylim(2);
-p_diff = diff(P_tR,1,3);
-% imagesc(t(x_flags),t(y_flags),p_diff(x_flags,y_flags,:),[-1,1]*25/m);
-
-% imagesc(t(x_flags),t(y_flags),p_tR(x_flags,y_flags,2),[-1,1]*1/m);
-
-% convert from tensor to rgb
-P = tensor2rgb(P_tR(x_flags,y_flags,:),clrs);
-imagesc(x(x_flags),x(y_flags),P);
-
-% save figure
-if want2save
-    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
-    print(fig,svg_file,'-dsvg','-painters');
+for ii = 1 : n_choices
+    p_tR_mu(:,ii) =  t * P_tR(:,:,ii)';
+    
+    [~,max_idcs] = max(P_tR(:,:,ii),[],2);
+    p_tR_map(:,ii) =  t(max_idcs);
 end
 
-%% pseudo decoding
+%% plot pseudo decoding output
 
 % figure initialization
 fig = figure(figopt,...
-    'name','pseudo_decoding',...
+    'name',sprintf('pseudo_decoding_%s',subcontrast_str),...
     'color',bg_clr);
 
-%
-subcontrast = 'choice';
-clrs = eval([subcontrast,'_clrs']);
-clrmap = colorlerp([clrs(1,:);bg_clr;clrs(2,:)],2^8);
-
 % axes initialization
-xxlim = round([t_set(1),t_set(end)] + ...
-    [-1,0] * t_set(1)/range(t_set) * range(t_set));
-yylim = xxlim .* [1,1];
+xxlim = [0,t_set(t2_mode_idx+1)];
+yylim = [0,t_set(t2_mode_idx+3)];
 xxtick = unique([0,xxlim,t_set']);
 yytick = unique([0,yylim,t_set']);
 xxticklabel = num2cell(xxtick);
@@ -517,93 +485,91 @@ axes(axesopt.default,...
 xlabel(sprintf('Time since %s onset (%s)',s2_lbl,s_units));
 ylabel(sprintf('Internal time since %s onset (%s)',s2_lbl,s_units));
 
-%
-[T1,T2] = meshgrid(t,t);
-
-% preallocation
-P_tR = zeros(m,m,n_choices);
-p_tR = zeros(m,n_choices);
-
-% iterate through T1-T2 pairs
-for ii = 1 : n_t_pairs
-    progressreport(ii,n_t_pairs,'pseudo decoding');
-    t1_idx = find(ismember(t_set,t_pairset(ii,1)));
-    t2_idx = find(ismember(t_set,t_pairset(ii,2)));
-    t2_flags = ...
-        t >= 0 & ...
-        t <= t_set(t2_idx);
-    
-    tt1 = find(t >= t_set(t1_idx),1);
-    tt2 = find(t >= t_set(t2_idx),1);
-    
-    %%
-%     figure;
-    for tt = 1 : tt2
-        
-        joint_pdf = ...
-            speed.pdfs(tt1,:) .* ...
-            speed.pdfs(tt,:)';
-        joint_pdf = joint_pdf / nansum(joint_pdf,'all');
-        
-%                 imagesc(t,t,joint_pdf);
-%                 set(gca,...
-%                     'ydir','normal'); axis square
-%                 xlim([0,1.5e3]);
-%                 ylim([0,1.5e3]);
-%                 pause(.01);
-%             end
-        
-        %%
-        % iterate through correctness
-        for cc = [1,0]
-            choice_flags = ...
-                ((T1 <= T2) == cc);
-            correct_flags = ...
-                ((T1 >= T2) == (t_pairset(ii,1) >= t_pairset(ii,2))) == cc;
-            flags = eval([subcontrast,'_flags']);
-            temp = speed.pdfs .* flags;
-            temp(~t2_flags,:) = 0;
-            
-            temp = joint_pdf;
-            temp(~flags) = nan;
-            s2_marginal = nansum(temp,2)';
-            s2_marginal = s2_marginal / sum(s2_marginal);
-            P_tR(tt,:,cc+1) = P_tR(tt,:,cc+1) + s2_marginal .* t_pair_pmf(ii) * 100;
-        end
-    end
-end
-
-% normalization
-P_tR = P_tR ./ nansum(P_tR,2);
-P_tR(isnan(P_tR)) = 0;
-
-for ii = 1 : n_choices
-    p_tR(:,ii) =  t * P_tR(:,:,ii)';
-    
-    [~,max_idcs] = max(P_tR(:,:,ii),[],2);
-%     p_tR(:,ii) =  t(max_idcs);
-end
-
-% P_tR = P_tR ./ max(P_tR,[],2);
-
-% ROI
-x_flags = ...
+% time selection
+t_flags = ...
     t >= xxlim(1) & ...
-    t <= xxlim(2);
-y_flags = ...
-    t >= yylim(1) & ...
-    t <= yylim(2);
+    t <= t_set(end);
 
 % convert from tensor to rgb
-P = tensor2rgb(permute(P_tR(x_flags,y_flags,:),[2,1,3]),clrs);
-imagesc(x(x_flags),x(y_flags),P);
+p_tR = P_tR(t_flags,:,:);
+p_tR = p_tR ./ max(p_tR,[],2);
+P = tensor2rgb(permute(squeeze(p_tR),[2,1,3]),clrs);
+imagesc(t(t_flags),t,P);
 
-%
-plot(t,p_tR,...
-    'linewidth',1.5);
+% plot point estimate
+% plot(t(t_flags),p_tR_mu(t_flags,:),...
+%     'color','w',...
+%     'linestyle','-',...
+%     'linewidth',3);
+% plot(t(t_flags),p_tR_mu(t_flags,:),...
+%     'linestyle','-',...
+%     'linewidth',1.5);
+% plot(t(t_flags),p_tR_map(t_flags,:),...
+%     'color','w',...
+%     'linestyle','-',...
+%     'linewidth',3);
+% plot(t(t_flags),p_tR_map(t_flags,:),...
+%     'linestyle','-',...
+%     'linewidth',1.5);
+
+% identity line
+plot(t,t,...
+    'color','w',...
+    'linestyle','--');
 
 % save figure
 if want2save
     svg_file = fullfile(panel_path,[fig.Name,'.svg']);
     print(fig,svg_file,'-dsvg','-painters');
 end
+
+%% plot pairwise pseudo decoding output
+return;
+close all;
+
+% iterate through pairs
+for ii = 1 : n_t_pairs
+    
+    % figure initialization
+    fig = figure(figopt,...
+        'name',sprintf('pseudo_decoding_%s',subcontrast_str),...
+        'color',bg_clr);
+    
+    % axes initialization
+    xxlim = [0,t_set(t2_mode_idx+1)];
+    yylim = [0,t_set(t2_mode_idx+3)];
+    xxtick = unique([0,xxlim,t_set']);
+    yytick = unique([0,yylim,t_set']);
+    xxticklabel = num2cell(xxtick);
+    yyticklabel = num2cell(yytick);
+    axes(axesopt.default,...
+        'xlim',xxlim,...
+        'ylim',yylim,...
+        'xtick',xxtick,...
+        'ytick',yytick,...
+        'xticklabel',xxticklabel,...
+        'yticklabel',yyticklabel,...
+        'colormap',clrmap,...
+        'colororder',clrs);
+    title(sprintf('T1 = %i; T2 = %i',t_pairset(ii,:)));
+    xlabel(sprintf('Time since %s onset (%s)',s2_lbl,s_units));
+    ylabel(sprintf('Internal time since %s onset (%s)',s2_lbl,s_units));
+    
+    % time selection
+    t_flags = ...
+        t >= xxlim(1) & ...
+        t <= t_set(end);
+    
+    % convert from tensor to rgb
+    p_tR = P_tR_pairs(t_flags,:,ii,:);
+    P = tensor2rgb(permute(squeeze(p_tR),[2,1,3]),clrs);
+    imagesc(t(t_flags),t,P);
+    
+    
+    % identity line
+    plot(t,t,...
+        'color','w',...
+        'linestyle','--');
+end
+
+dockallopenfigs;
