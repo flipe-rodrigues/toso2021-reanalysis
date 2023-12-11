@@ -59,7 +59,7 @@ speed.pdfs = speed.pdfs ./ nansum(speed.pdfs,2);
 speed.cdfs = cumsum(speed.pdfs,2);
 
 %% color settings
-slow_clr = [0, .5, 1] * .65;%rgb('d'); [0,0,0]; % [.0,.4,.95];
+slow_clr = [0, 1, 1] * .65;%rgb('d'); [0,0,0]; % [.0,.4,.95];
 avg_clr = [1,1,1] * .0;
 fast_clr = [1, 0, 0] * .65; [1,1,0]; % [.95,.25,.35];
 bg_clr = [1,1,1] * 245 / 255;
@@ -125,13 +125,10 @@ xlabel('Time since stimulus onset (ms)_{12}');
 ylabel('Internal time since stimulus onset (ms)_{12}');
 
 % underlying temporal scaling
-x_flags = ...
+t_flags = ...
     t >= xxlim(1) & ...
     t <= xxlim(2);
-y_flags = ...
-    t >= yylim(1) & ...
-    t <= yylim(2);
-imagesc(t(x_flags),t(y_flags),speed.cdfs(x_flags,y_flags)');
+imagesc(t(t_flags),t,speed.cdfs(t_flags,:)');
 
 % iterate through stimuli
 for ii = 1 : n_t
@@ -152,7 +149,7 @@ end
 % colorbar
 clrbar = colorbar();
 clrlabel = struct();
-clrlabel.string = {'Speed of striatal dynamics (a.u.)'};
+clrlabel.string = {'Neuralv speed (a.u.)'};
 clrlabel.fontsize = axesopt.default.fontsize;
 clrlabel.rotation = 270;
 clrlabel.position = [2.75,.5,0];
@@ -200,15 +197,15 @@ xlabel('Time since stimulus onset (ms)_{12}');
 ylabel('Internal time since stimulus onset (ms)_{12}');
 
 % underlying temporal scaling
-x_flags = ...
+t_flags = ...
     t >= invfun(xxlim(1)) & ...
     t <= invfun(xxlim(2));
 y_flags = ...
     t >= invfun(yylim(1)) & ...
     t <= invfun(yylim(2));
-[T1,T2] = meshgrid(tfun(t(x_flags)),tfun(t(y_flags)));
+[T1,T2] = meshgrid(tfun(t(t_flags)),tfun(t(y_flags)));
 P = zeros(size(T1));
-C = speed.cdfs(x_flags,y_flags)';
+C = speed.cdfs(t_flags,y_flags)';
 surf(T1,T2,P,C,...
     'edgecolor','none');
 
@@ -424,7 +421,7 @@ for ii = pairs2plot
         s1_marginal = nansum(temp,1);
         s1_marginal = ...
             (s1_marginal - min(s1_marginal_full)) ./ range(s1_marginal_full);
-        s1_marginal = normalize01(s1_marginal);
+        s1_marginal = normalize01(s1_marginal) * .5 ^ ~cc;
         ypatch = [zeros(size(s1_marginal)),fliplr(s1_marginal)];
         ypatch = ypatch * .1 * tfun(max(percept.mus));
         patch(xpatch(lim_flags),ypatch(lim_flags)+min(ylim),...
@@ -440,7 +437,7 @@ for ii = pairs2plot
         s2_marginal = nansum(temp,2)';
         s2_marginal = ...
             (s2_marginal - min(s2_marginal_full)) ./ range(s2_marginal_full);
-        s2_marginal = normalize01(s2_marginal);
+        s2_marginal = normalize01(s2_marginal) * .5 ^ ~cc;
         ypatch = [zeros(size(s2_marginal)),fliplr(s2_marginal)];
         ypatch = ypatch * .1 * tfun(max(percept.mus));
         patch(min(ylim)+ypatch(lim_flags),xpatch(lim_flags),...
@@ -481,7 +478,7 @@ for ii = pairs2plot
         'handlevisibility','off');
     
     % annotate NSD = 0
-    text(.95,.95,sprintf('%s = 0',nsd_lbl),...
+    text(.95,.95,sprintf('%s - %s = 0',s2_lbl,s1_lbl),...
         'units','normalized',...
         'color','k',...
         'rotation',45,...
@@ -568,7 +565,7 @@ for ii = pairs2plot
         s1_marginal = nansum(temp,1);
         s1_marginal = ...
             (s1_marginal - min(s1_marginal_full)) ./ range(s1_marginal_full);
-        s1_marginal = normalize01(s1_marginal);
+        s1_marginal = normalize01(s1_marginal) * .5 ^ ((diff(t_pairset(ii,:)) < 0) == cc);
         ypatch = [zeros(size(s1_marginal)),fliplr(s1_marginal)];
         ypatch = ypatch * .1 * tfun(max(percept.mus));
         patch(xpatch(lim_flags),ypatch(lim_flags)+min(ylim),...
@@ -584,7 +581,7 @@ for ii = pairs2plot
         s2_marginal = nansum(temp,2)';
         s2_marginal = ...
             (s2_marginal - min(s2_marginal_full)) ./ range(s2_marginal_full);
-        s2_marginal = normalize01(s2_marginal);
+        s2_marginal = normalize01(s2_marginal) * .5 ^ ((diff(t_pairset(ii,:)) < 0) == cc);
         ypatch = [zeros(size(s2_marginal)),fliplr(s2_marginal)];
         ypatch = ypatch * .1 * tfun(max(percept.mus));
         patch(min(ylim)+ypatch(lim_flags),xpatch(lim_flags),...
@@ -625,7 +622,7 @@ for ii = pairs2plot
         'handlevisibility','off');
     
     % annotate NSD = 0
-    text(.95,.95,sprintf('%s = 0',nsd_lbl),...
+    text(.95,.95,sprintf('%s - %s = 0',s2_lbl,s1_lbl),...
         'units','normalized',...
         'color','k',...
         'rotation',45,...
@@ -647,9 +644,9 @@ for ii = pairs2plot
 end
 
 %% pseudo decoding
-return;
+
 % sub-contrast selection
-subcontrast_str = 'choice';
+subcontrast_str = 'correct';
 clrs = eval([subcontrast_str,'_clrs']);
 clrmap = colorlerp([clrs(1,:);bg_clr;clrs(2,:)],2^8);
 
@@ -773,7 +770,7 @@ if want2save
 end
 
 %% plot pairwise pseudo decoding output
-return;
+
 close all;
 
 % iterate through pairs
@@ -811,6 +808,7 @@ for ii = 1 : n_t_pairs
     
     % convert from tensor to rgb
     p_tR = P_tR_pairs(t_flags,:,ii,:);
+    p_tR = p_tR ./ max(p_tR,[],2);
     P = tensor2rgb(permute(squeeze(p_tR),[2,1,3]),clrs);
     imagesc(t(t_flags),t,P);
     
