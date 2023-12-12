@@ -118,3 +118,6 @@ toso2021_rasters_s1Aligned;
 toso2021_PCA_s1Aligned;
 toso2021_neurometricCurves_s1Aligned;
 toso2021_naiveBayesDecoder_avg_s1Aligned;
+
+%% figure S5
+toso2021_correctnessIssues;
