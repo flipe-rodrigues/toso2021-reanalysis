@@ -59,11 +59,11 @@ speed.pdfs = speed.pdfs ./ nansum(speed.pdfs,2);
 speed.cdfs = cumsum(speed.pdfs,2);
 
 %% color settings
-slow_clr = [0, 1, 1] * .65;%rgb('d'); [0,0,0]; % [.0,.4,.95];
+slow_clr = [0, 1, 1] * .65;
 avg_clr = [1,1,1] * .0;
-fast_clr = [1, 0, 0] * .65; [1,1,0]; % [.95,.25,.35];
+fast_clr = [1, 0, 0] * .65;
 bg_clr = [1,1,1] * 245 / 255;
-clrmap = colorlerp([bg_clr;slow_clr;avg_clr;fast_clr;bg_clr],m);
+clrmap = colorlerp([bg_clr; slow_clr; avg_clr; fast_clr; bg_clr],m);
 % clrmap = colorlerp([slow_clr;avg_clr;fast_clr],m);
 
 %% parse stimulus pairs
@@ -97,12 +97,82 @@ t_pair_pmf = n_trials_perpair / sum(n_trials_perpair);
 %% stimulus pair selection
 pairs2plot = [3,4];
 
-%% scaling diagram (linear)
+%% S1 scaling diagram (linear)
 
 % figure initialization
 fig = figure(figopt,...
     'color',bg_clr,...
-    'name','scaling_marginal_linear');
+    'name','scaling_marginal_s1_linear');
+
+% axes initialization
+xxlim = round([t_set(1),t_set(end)] + ...
+    [-1,0] * t_set(1)/range(t_set) * range(t_set));
+yylim = xxlim .* [1,2];
+xxtick = unique([0,xxlim,t_set']);
+yytick = unique([0,yylim,t_set']);
+xxticklabel = num2cell(xxtick);
+yyticklabel = num2cell(yytick);
+axes(axesopt.default,...
+    'xlim',yylim,...
+    'ylim',xxlim,...
+    'xtick',yytick,...
+    'ytick',xxtick,...
+    'xticklabel',yyticklabel,...
+    'yticklabel',xxticklabel,...
+    'colormap',clrmap,...
+    'ydir','reverse',...
+    'clipping','off');
+xlabel('Internal time since S1 onset (ms)_{12}');
+ylabel('Time since S1 onset (ms)_{12}');
+
+% underlying temporal scaling
+t_flags = ...
+    t >= xxlim(1) & ...
+    t <= xxlim(2);
+imagesc(t,t(t_flags),speed.cdfs(t_flags,:));
+
+% iterate through stimuli
+for ii = 1 : n_t
+    pdf_flags = ...
+        (percept.pdfs(ii,:) / max(percept.pdfs(ii,:))) >= pdf_cutoff;
+    
+    % plot percept distribution
+    xpatch = [t(pdf_flags),fliplr(t(pdf_flags))];
+    ypatch = [zeros(1,sum(pdf_flags)),fliplr(percept.pdfs(ii,pdf_flags))];
+    ypatch = normalize01(ypatch,2) * .1 * max(percept.mus);
+    patch(xpatch,t_set(ii)-ypatch,'w',...
+        'edgecolor','k',...
+        'facealpha',1,...
+        'linewidth',1.5,...
+        'linestyle','-');
+end
+
+% colorbar
+clrbar = colorbar();
+clrlabel = struct();
+clrlabel.string = {'Neuralv speed (a.u.)'};
+clrlabel.fontsize = axesopt.default.fontsize;
+clrlabel.rotation = 270;
+clrlabel.position = [2.75,.5,0];
+set(clrbar,...
+    axesopt.colorbar,...
+    'ticks',[],...
+    'box','on');
+set(clrbar.Label,...
+    clrlabel);
+
+% save figure
+if want2save
+    svg_file = fullfile(panel_path,[fig.Name,'.svg']);
+    print(fig,svg_file,'-dsvg','-painters');
+end
+
+%% S2 scaling diagram (linear)
+
+% figure initialization
+fig = figure(figopt,...
+    'color',bg_clr,...
+    'name','scaling_marginal_s2_linear');
 
 % axes initialization
 xxlim = round([t_set(1),t_set(end)] + ...
@@ -121,8 +191,8 @@ axes(axesopt.default,...
     'yticklabel',yyticklabel,...
     'colormap',clrmap,...
     'clipping','off');
-xlabel('Time since stimulus onset (ms)_{12}');
-ylabel('Internal time since stimulus onset (ms)_{12}');
+xlabel('Time since S2 onset (ms)_{12}');
+ylabel('Internal time since S2 onset (ms)_{12}');
 
 % underlying temporal scaling
 t_flags = ...
