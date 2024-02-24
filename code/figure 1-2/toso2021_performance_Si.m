@@ -3,6 +3,7 @@ toso2021_maincheck;
 
 %% numerator settings
 numerator = round(s2 - s1);
+% numerator = round(s2 * w2 + s1 * w1);
 numerator_set = unique(numerator(valid_flags));
 numerator2group_flags = abs(diff(numerator_set)) <= range(numerator_set) * .01;
 if any(numerator2group_flags)

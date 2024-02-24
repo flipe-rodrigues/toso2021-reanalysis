@@ -17,8 +17,8 @@ end
 stim_set = unique(stimuli(valid_flags));
 stim_mode_idx = find(stim_set == mode(stimuli));
 n_stimuli = numel(stim_set);
-stim_lbl = sprintf('%.2f \\times %s + %.2f \\times %s (%s)',...
-    w2,s2_lbl,w1,s1_lbl,s_units);
+stim_lbl = sprintf('%.2f \\times %s + %.2f \\times %s',...
+    w2,s2_lbl,w1,s1_lbl);
 
 %% construct psychophysical triples
 
@@ -114,6 +114,7 @@ axes(...
     axesopt.stimulus,...
     axesopt.psycurve);
 xlabel(sprintf('%s (%s)',s2_lbl,s_units));
+% xlabel(sprintf('%s (%s)',stim_lbl,s_units));
 ylabel(sprintf('P(%s > %s)',s2_lbl,s1_lbl));
 
 % graphical object preallocation

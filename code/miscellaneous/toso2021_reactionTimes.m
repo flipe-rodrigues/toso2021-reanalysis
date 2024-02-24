@@ -1,7 +1,5 @@
-%% initialization
-if ~exist('data','var')
-    toso2021_wrapper;
-end
+%% check 'main.m' has run (and run it if not)
+toso2021_maincheck;
 
 %% need to parse things first...
 rt_i1 = data.Rts(:,3);
@@ -187,7 +185,8 @@ fig = figure(figopt,...
 
 % axes initialization
 axes(...
-    axesopt.default);
+    axesopt.default,...
+    'xtick',unique(rt_i2(rt_valid_flags)));
 title('Reaction times');
 xlabel('I_2 (mm.s^{-1})');
 ylabel('Reaction time (ms)');
@@ -230,7 +229,7 @@ for kk = 1 : rt_n_contrasts
             'markerfacecolor',rt_contrast_clrs(kk,:),...
             'markeredgecolor','k',...
             'linestyle','-',...
-            'markersize',8.5,...
+            'markersize',8.5+.25*(strcmpi(markers{cc+1},'s')),...
             'linewidth',1.5);
     end
 end
@@ -239,6 +238,14 @@ end
 axis tight;
 xlim(xlim+[-1,1]*.05*range(xlim));
 ylim(ylim+[-1,1]*.05*range(ylim));
+
+% legend
+leg_str = cellfun(@(x,y)sprintf('%s = %i %s',x,y,contrast_units),...
+    repmat({contrast_lbl},rt_n_contrasts,1),num2cell(rt_contrast_set),...
+    'uniformoutput',false);
+legend(p(isgraphics(p)),leg_str(isgraphics(p)),...
+    'position',[0.085,0.66,.27,.2],...
+    'box','on');
 
 % save figure
 if want2save

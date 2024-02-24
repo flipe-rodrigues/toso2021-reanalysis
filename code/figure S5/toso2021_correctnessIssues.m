@@ -58,14 +58,6 @@ speed.pdfs = eye(m) * kernel.pdfs';
 speed.pdfs = speed.pdfs ./ nansum(speed.pdfs,2);
 speed.cdfs = cumsum(speed.pdfs,2);
 
-%% color settings
-slow_clr = [0, 1, 1] * .65;
-avg_clr = [1,1,1] * .0;
-fast_clr = [1, 0, 0] * .65;
-bg_clr = [1,1,1] * 245 / 255;
-clrmap = colorlerp([bg_clr; slow_clr; avg_clr; fast_clr; bg_clr],m);
-% clrmap = colorlerp([slow_clr;avg_clr;fast_clr],m);
-
 %% parse stimulus pairs
 
 % pair specification
@@ -98,6 +90,14 @@ t_pair_pmf = n_trials_perpair / sum(n_trials_perpair);
 pairs2plot = [3,4];
 
 %% S1 scaling diagram (linear)
+
+% color settings
+slow_clr = rgb('dodgerblue');
+avg_clr = [1,1,1] * .0;
+fast_clr = rgb('crimson');
+bg_clr = [1,1,1] * 245 / 255;
+clrmap = colorlerp([bg_clr; slow_clr; avg_clr; fast_clr; bg_clr],m);
+% clrmap = colorlerp([slow_clr;avg_clr;fast_clr],m);
 
 % figure initialization
 fig = figure(figopt,...
@@ -168,6 +168,14 @@ if want2save
 end
 
 %% S2 scaling diagram (linear)
+
+% color settings
+slow_clr = [0, 1, 1] * .65;
+avg_clr = [1,1,1] * .0;
+fast_clr = [1, 0, 0] * .65;
+bg_clr = [1,1,1] * 245 / 255;
+clrmap = colorlerp([bg_clr; slow_clr; avg_clr; fast_clr; bg_clr],m);
+% clrmap = colorlerp([slow_clr;avg_clr;fast_clr],m);
 
 % figure initialization
 fig = figure(figopt,...

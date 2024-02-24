@@ -20,8 +20,8 @@ clims = [0,1] + [+1,-1] * .3;
 %% sampling scheme w/ D1-D2 pairwise performance
 
 % transfer function
-tfun = @(x) (x);
-invfun = @(x) (x);
+tfun = @(x) log(x);
+invfun = @(x) exp(x);
 
 % pair specification
 d_pairs = [d1,d2];
