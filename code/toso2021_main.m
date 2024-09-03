@@ -49,11 +49,11 @@ toso2021_neuronSelection;
 %% contrast settings
 
 % contrast selection
-contrast_str = 'i2';
+% contrast_str = 't1';
 % contrast_str = 't2';
 % contrast_str = 'i1';
-% contrast_str = 't1';
-% contrast_str = 'choice';
+% contrast_str = 'i2';
+contrast_str = 'choice';
 % contrast_str = 'correct';
 
 % parse selected contrast
