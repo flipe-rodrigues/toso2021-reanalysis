@@ -33,15 +33,9 @@ for nn = neuron_idcs'
             if sum(s2_spike_flags) == 0
                 continue;
             end
-            
-            % fetch spike counts & compute spike rates
-            s2_spike_counts = data.FR(s2_spike_flags,:);
-            s2_spike_rates = conv2(...
-                1,kernel.pdf,s2_spike_counts,'valid')' / psthbin * 1e3;
-            s2_n_trials = size(s2_spike_counts,1);
 
             % neuron selection criteria
-            trial_type_numbers(nn,tt,ii) = s2_n_trials;
+            trial_type_numbers(nn,tt,ii) = sum(s2_spike_flags);
         end
     end
 end

@@ -52,8 +52,8 @@ toso2021_neuronSelection;
 % contrast_str = 't1';
 % contrast_str = 't2';
 % contrast_str = 'i1';
-% contrast_str = 'i2';
-contrast_str = 'choice';
+contrast_str = 'i2';
+% contrast_str = 'choice';
 % contrast_str = 'correct';
 
 % parse selected contrast
@@ -82,6 +82,7 @@ toso2021_neurometricCurves_s2Aligned;
 toso2021_naiveBayesDecoder_avg_s2Aligned;
 
 %% figure 6
+toso2021_trialTypeDistributions;
 toso2021_spikeCountGLM_data;
 toso2021_positiveControlResponses;
 toso2021_spikeCountGLM_simulations;

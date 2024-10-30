@@ -24,12 +24,3 @@ if ~isfield(data,'SDF')
         data.SDF(trial_flags,validtime_flags) = spike_rates;
     end
 end
-
-% X = data.FR;
-% g = circshift(gamma_kernel.pdf,gamma_kernel.nbins/2+1);
-% g = padarray(g,[0,n_paddedtimebins-gamma_kernel.nbins],0,'post');
-% G = cell2mat(arrayfun(@(i)circshift(g,i),(1:n_paddedtimebins)'-1,...
-%     'uniformoutput',false));
-% Z = X * G / psthbin * 1e3;
-% data.SDF = Z;
-% clear X G Z;
